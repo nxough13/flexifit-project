@@ -1,140 +1,153 @@
+DROP DATABASE IF EXISTS flexifit_db;
 CREATE DATABASE flexifit_db;
 USE flexifit_db;
 
 -- --------------------------------------------------------
--- Table structure for `users` (must be created first)
+-- Table: users
 -- --------------------------------------------------------
-
 CREATE TABLE `users` (
-  `user_id` int(11) NOT NULL AUTO_INCREMENT,
-  `first_name` varchar(50) NOT NULL,
-  `last_name` varchar(50) NOT NULL,
-  `email` varchar(100) NOT NULL UNIQUE,
-  `password` varchar(255) NOT NULL,
-  `user_type` enum('admin','member','guest') NOT NULL,
-  `image` varchar(255) DEFAULT NULL, -- Profile image support
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `user_id` INT(11) NOT NULL AUTO_INCREMENT,
+  `first_name` VARCHAR(50) NOT NULL,
+  `last_name` VARCHAR(50) NOT NULL,
+  `email` VARCHAR(100) NOT NULL UNIQUE,
+  `password` VARCHAR(255) NOT NULL,
+  `user_type` ENUM('admin','member','guest') NOT NULL,
+  `image` VARCHAR(255) DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
   PRIMARY KEY (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- Table structure for `members`
+-- Table: membership_plans (New Table)
 -- --------------------------------------------------------
+CREATE TABLE `membership_plans` (
+  `plan_id` INT(11) NOT NULL AUTO_INCREMENT,
+  `plan_name` VARCHAR(50) NOT NULL,
+  `duration_days` INT(11) NOT NULL, -- E.g., 7 for 1 week, 30 for 1 month
+  `price` DECIMAL(10,2) NOT NULL,
+  PRIMARY KEY (`plan_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- --------------------------------------------------------
+-- Table: members (Updated to include membership plan)
+-- --------------------------------------------------------
 CREATE TABLE `members` (
-  `member_id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL UNIQUE,
-  `membership_status` enum('active','expired','pending') DEFAULT 'pending',
-  `join_date` date DEFAULT curdate(),
+  `member_id` INT(11) NOT NULL AUTO_INCREMENT,
+  `user_id` INT(11) NOT NULL UNIQUE,
+  `plan_id` INT(11) NOT NULL, -- References the membership plan
+  `membership_status` ENUM('active','expired','pending') DEFAULT 'pending',
+  `join_date` DATE DEFAULT CURDATE(),
   PRIMARY KEY (`member_id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`plan_id`) REFERENCES `membership_plans` (`plan_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- Table structure for `trainers`
+-- Table: trainers
 -- --------------------------------------------------------
-
 CREATE TABLE `trainers` (
-  `trainer_id` int(11) NOT NULL AUTO_INCREMENT,
-  `first_name` varchar(50) NOT NULL,
-  `last_name` varchar(50) NOT NULL,
-  `email` varchar(100) NOT NULL, -- Trainer email
-  `specialty` varchar(100) DEFAULT NULL,
-  `availability_status` enum('available','unavailable') DEFAULT 'available',
-  `image` varchar(255) DEFAULT NULL, -- Profile image
+  `trainer_id` INT(11) NOT NULL AUTO_INCREMENT,
+  `first_name` VARCHAR(50) NOT NULL,
+  `last_name` VARCHAR(50) NOT NULL,
+  `email` VARCHAR(100) NOT NULL,
+  `specialty` VARCHAR(100) DEFAULT NULL,
+  `availability_status` ENUM('available','unavailable') DEFAULT 'available',
+  `image` VARCHAR(255) DEFAULT NULL,
+  `status` ENUM('active', 'disabled') DEFAULT 'active',
   PRIMARY KEY (`trainer_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- Table structure for `equipment`
+-- Table: equipment (Updated to include quantity)
 -- --------------------------------------------------------
-
 CREATE TABLE `equipment` (
-  `equipment_id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL,
-  `availability_status` enum('available','in use','maintenance') DEFAULT 'available',
-  `image` varchar(255) DEFAULT NULL, -- Image support
+  `equipment_id` INT(11) NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(100) NOT NULL,
+  `quantity` INT(11) NOT NULL DEFAULT 1, -- New column to track quantity
+  `availability_status` ENUM('available','in use','maintenance') DEFAULT 'available',
+  `image` VARCHAR(255) DEFAULT NULL,
   PRIMARY KEY (`equipment_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- Table structure for `schedules`
+-- Table: equipment_inventory (New table for tracking individual units)
 -- --------------------------------------------------------
+CREATE TABLE `equipment_inventory` (
+  `inventory_id` INT(11) NOT NULL AUTO_INCREMENT,
+  `equipment_id` INT(11) NOT NULL,
+  `unit_number` INT(11) NOT NULL, -- E.g., 1 for treadmill_1, 2 for treadmill_2
+  `status` ENUM('available','in use','maintenance') DEFAULT 'available',
+  PRIMARY KEY (`inventory_id`),
+  FOREIGN KEY (`equipment_id`) REFERENCES `equipment` (`equipment_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- --------------------------------------------------------
+-- Table: schedules (Updated to track individual equipment units)
+-- --------------------------------------------------------
 CREATE TABLE `schedules` (
-  `schedule_id` int(11) NOT NULL AUTO_INCREMENT,
-  `member_id` int(11) NOT NULL,
-  `equipment_id` int(11) NOT NULL, -- Direct equipment association
-  `session_date` date NOT NULL,
-  `start_time` time NOT NULL,
-  `end_time` time NOT NULL,
-  `status` enum('pending','approved','cancelled','completed') DEFAULT 'pending',
+  `schedule_id` INT(11) NOT NULL AUTO_INCREMENT,
+  `member_id` INT(11) NOT NULL,
+  `inventory_id` INT(11) NOT NULL, -- References a specific equipment unit
+  `session_date` DATE NOT NULL,
+  `start_time` TIME NOT NULL,
+  `end_time` TIME NOT NULL,
+  `status` ENUM('pending','approved','cancelled','completed') DEFAULT 'pending',
   PRIMARY KEY (`schedule_id`),
   FOREIGN KEY (`member_id`) REFERENCES `members` (`member_id`) ON DELETE CASCADE,
-  FOREIGN KEY (`equipment_id`) REFERENCES `equipment` (`equipment_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  FOREIGN KEY (`inventory_id`) REFERENCES `equipment_inventory` (`inventory_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- Table structure for `schedule_trainer`
+-- Table: schedule_trainer
 -- --------------------------------------------------------
-
 CREATE TABLE `schedule_trainer` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `schedule_id` int(11) NOT NULL,
-  `trainer_id` int(11) NOT NULL,
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `schedule_id` INT(11) NOT NULL,
+  `trainer_id` INT(11) NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`schedule_id`) REFERENCES `schedules` (`schedule_id`) ON DELETE CASCADE,
   FOREIGN KEY (`trainer_id`) REFERENCES `trainers` (`trainer_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- Table structure for `payments`
+-- Table: payments (Updated to reference membership plans)
 -- --------------------------------------------------------
-
 CREATE TABLE `payments` (
-  `payment_id` int(11) NOT NULL AUTO_INCREMENT,
-  `member_id` int(11) NOT NULL,
-  `amount` decimal(10,2) NOT NULL,
-  `payment_date` timestamp NOT NULL DEFAULT current_timestamp(),
-  `payment_status` enum('pending','completed','failed') DEFAULT 'pending',
-  `payment_method` enum('credit_card','paypal','gcash','bank_transfer') NOT NULL,
+  `payment_id` INT(11) NOT NULL AUTO_INCREMENT,
+  `member_id` INT(11) NOT NULL,
+  `plan_id` INT(11) NOT NULL, -- References the membership plan
+  `amount` DECIMAL(10,2) NOT NULL,
+  `payment_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+  `payment_status` ENUM('pending','completed','failed') DEFAULT 'pending',
+  `payment_method` ENUM('credit_card','paypal','gcash','bank_transfer') NOT NULL,
   PRIMARY KEY (`payment_id`),
-  FOREIGN KEY (`member_id`) REFERENCES `members` (`member_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
--- Table structure for `feedback`
--- --------------------------------------------------------
-
-CREATE TABLE `feedback` (
-  `feedback_id` int(11) NOT NULL AUTO_INCREMENT,
-  `member_id` int(11) NOT NULL,
-  `trainer_id` int(11) DEFAULT NULL,
-  `rating` int(11) DEFAULT NULL CHECK (`rating` between 1 and 5),
-  `comments` text DEFAULT NULL,
-  `feedback_date` timestamp NOT NULL DEFAULT current_timestamp(),
-  `update_date` timestamp NULL DEFAULT NULL, -- Tracks feedback updates
-  PRIMARY KEY (`feedback_id`),
   FOREIGN KEY (`member_id`) REFERENCES `members` (`member_id`) ON DELETE CASCADE,
-  FOREIGN KEY (`trainer_id`) REFERENCES `trainers` (`trainer_id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  FOREIGN KEY (`plan_id`) REFERENCES `membership_plans` (`plan_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- Table structure for `content`
+-- Table: workout_plans (New Feature)
 -- --------------------------------------------------------
+CREATE TABLE `workout_plans` (
+  `plan_id` INT(11) NOT NULL AUTO_INCREMENT,
+  `member_id` INT(11) NOT NULL,
+  `plan_name` VARCHAR(100) NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+  PRIMARY KEY (`plan_id`),
+  FOREIGN KEY (`member_id`) REFERENCES `members` (`member_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE `content` (
-  `content_id` int(11) NOT NULL AUTO_INCREMENT,
-  `admin_id` int(11) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `content_type` enum('guide','tip','announcement','other') NOT NULL,
-  `file_path` varchar(255) DEFAULT NULL,
-  `image` varchar(255) DEFAULT NULL, -- Image support
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`content_id`),
-  FOREIGN KEY (`admin_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-ALTER TABLE trainers ADD COLUMN status ENUM('active', 'disabled') DEFAULT 'active';
-
+-- --------------------------------------------------------
+-- Table: workout_exercises (New Table for storing workout details)
+-- --------------------------------------------------------
+CREATE TABLE `workout_exercises` (
+  `exercise_id` INT(11) NOT NULL AUTO_INCREMENT,
+  `plan_id` INT(11) NOT NULL,
+  `exercise_name` VARCHAR(100) NOT NULL,
+  `sets` INT(11) DEFAULT NULL,
+  `reps` INT(11) DEFAULT NULL,
+  `equipment_id` INT(11) DEFAULT NULL, -- Optional
+  PRIMARY KEY (`exercise_id`),
+  FOREIGN KEY (`plan_id`) REFERENCES `workout_plans` (`plan_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`equipment_id`) REFERENCES `equipment` (`equipment_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
