@@ -8,7 +8,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = trim($_POST['email']);
     $password = trim($_POST['password']);
     $confirm_password = trim($_POST['confirm_password']);
-    $user_type = 'member'; // Default user type
+    $user_type = 'guest'; // Default user type
+
 
     if (!empty($first_name) && !empty($last_name) && !empty($email) && !empty($password) && !empty($confirm_password)) {
         if ($password !== $confirm_password) {
@@ -21,12 +22,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->execute();
             $stmt->store_result();
 
+
             if ($stmt->num_rows > 0) {
                 $error = "Email is already registered!";
             } else {
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $conn->prepare("INSERT INTO users (first_name, last_name, email, password, user_type) VALUES (?, ?, ?, ?, ?)");
                 $stmt->bind_param("sssss", $first_name, $last_name, $email, $hashed_password, $user_type);
+
 
                 if ($stmt->execute()) {
                     header("Location: login.php");
@@ -43,22 +46,83 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 ?>
 
-<style>
-    body {font-family: Arial, sans-serif; background: #f4f4f4; text-align: center; padding: 50px;}
-    form {background: #fff; padding: 20px; width: 300px; margin: auto; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
-    input {width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px;}
-    button {background: #007bff; color: white; border: none; padding: 10px; width: 100%; border-radius: 5px; cursor: pointer;}
-    button:hover {background: #0056b3;}
-    p {color: red; font-size: 14px;}
-</style>
 
-<!-- Registration Form -->
-<form method="post">
-    <input type="text" name="first_name" placeholder="First Name" required>
-    <input type="text" name="last_name" placeholder="Last Name" required>
-    <input type="email" name="email" placeholder="Email" required>
-    <input type="password" name="password" placeholder="Password" required>
-    <input type="password" name="confirm_password" placeholder="Confirm Password" required>
-    <button type="submit">Register</button>
-</form>
-<p><?php echo isset($error) ? $error : ''; ?></p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - FlexiFit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #000;
+            color: #FFD700;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #111;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 15px #FFD700;
+            text-align: center;
+            width: 350px;
+        }
+        h2 {
+            margin-bottom: 15px;
+        }
+        input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #FFD700;
+            background: #222;
+            color: #FFD700;
+            border-radius: 5px;
+        }
+        button {
+            background: #FFD700;
+            color: #000;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #ffcc00;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+
+<div class="container">
+    <h2>Register for FlexiFit</h2>
+    <form method="post">
+        <input type="text" name="first_name" placeholder="First Name" required>
+        <input type="text" name="last_name" placeholder="Last Name" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+        <button type="submit">Register</button>
+    </form>
+    <p class="error"><?php echo isset($error) ? $error : ''; ?></p>
+</div>
+
+
+</body>
+</html>
