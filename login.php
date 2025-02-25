@@ -1,6 +1,10 @@
 <?php
 session_start();
-require 'includes/config.php';
+$host = "localhost";
+$user = "root";
+$password = "";
+$dbname = "flexifit_db";
+$conn = new mysqli($host, $user, $password, $dbname);
 
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {

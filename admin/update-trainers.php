@@ -10,9 +10,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $first_name = $_POST["first_name"];
     $last_name = $_POST["last_name"];
     $email = $_POST["email"];
+    $age = $_POST["age"]; // ✅ Added
+    $gender = $_POST["gender"]; // ✅ Added
     $specialty = $_POST["specialty"];
     $availability_status = $_POST["availability_status"];
-    
+    $status = $_POST["status"]; // ✅ Added
+
     // Fetch existing image
     $sql = "SELECT image FROM trainers WHERE trainer_id=$trainer_id";
     $result = $conn->query($sql);
@@ -37,9 +40,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $image = $currentImage; // Keep old image if no new file is uploaded
     }
 
-    // Update trainer details in database
-    $sql = "UPDATE trainers SET first_name='$first_name', last_name='$last_name', email='$email',
-            specialty='$specialty', availability_status='$availability_status', image='$image' 
+    // ✅ Fixed SQL Query (Added missing columns)
+    $sql = "UPDATE trainers SET 
+                first_name='$first_name', 
+                last_name='$last_name', 
+                email='$email',
+                age=$age, 
+                gender='$gender', 
+                specialty='$specialty', 
+                availability_status='$availability_status', 
+                image='$image',
+                status='$status' 
             WHERE trainer_id=$trainer_id";
 
     if ($conn->query($sql) === TRUE) {
