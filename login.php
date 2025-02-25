@@ -5,6 +5,7 @@ $user = "root";
 $password = "";
 $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
+include 'includes/header.php';
 
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -33,7 +34,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 // Redirect based on user type
                 if ($user_type === 'admin') {
-                    header("Location: admin-index.php");
+                    header("Location: admin/index.php");
                 } else {
                     header("Location: index.php");
                 }

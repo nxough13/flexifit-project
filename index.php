@@ -1,10 +1,26 @@
+<?php
+session_start();
+if (isset($_SESSION['user_type'])) {
+    if ($_SESSION['user_type'] == 'member') {
+        // Redirect members to their index
+        header("Location: member/index.php");
+        exit();
+    } elseif ($_SESSION['user_type'] == 'admin') {
+        // Redirect admins to their index
+        header("Location: admin/index.php");
+        exit();
+    }
+}
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlexiFit Gym</title>
-    <link rel="stylesheet" href="styles.css"> <!-- External CSS -->
+    
 
     <style>
         body {
@@ -13,14 +29,15 @@
     padding: 0;
     background-color: black;
     color: white;
+ 
 }
-header {
+/* header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: black;
     padding: 15px 30px;
-}
+} */
 .logo img {
     height: 50px;
 }
@@ -106,7 +123,7 @@ nav ul li a {
     flex-direction: column;
     align-items: flex-start;
     padding: 50px;
-    max-width: 1200px;
+    max-width: 80%;
     margin: auto;
 }
 .contact-title {
@@ -122,7 +139,7 @@ nav ul li a {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
-    width: 100%;
+    width: 94.5%;
     margin-top: 20px;
 }
 .contact-item {

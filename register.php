@@ -4,6 +4,7 @@ $user = "root";
 $password = "";
 $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
+include 'includes/header.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $first_name = trim($_POST['first_name']);
