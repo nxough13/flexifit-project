@@ -13,11 +13,11 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-if ($_SESSION['user_type'] == 'guest') {
-    // Guests cannot access members or admin areas
-    header("Location: ../index.php");
-    exit();
-}
+// if ($_SESSION['user_type'] == 'guest') {
+//     // Guests cannot access members or admin areas
+//     header("Location: ../index.php");
+//     exit();
+// }
 
 $user_id = $_SESSION['user_id'];
 

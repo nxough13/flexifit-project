@@ -16,14 +16,13 @@ html, body {
 
 /* Footer always sticks at the bottom */
 footer {
-    width: 100%;
+    text-align: center;
+    padding: 10px;
     background: black;
     color: white;
-    text-align: center;
-    padding: 10px 0;
-    font-size: 14px;
-    box-shadow: 0 -2px 10px rgba(255, 255, 255, 0.1);
-}
+    position: relative; /* Change from fixed to relative */
+    width: 100%;
+    bottom: 0;}
 
     </style>
     <p>© 2025 FlexiFit Gym. All Rights Reserved.</p>

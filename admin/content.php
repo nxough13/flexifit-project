@@ -1,5 +1,12 @@
 <?php
 session_start();
+include '../includes/header.php';
+?>
+<?php
+
+
+
+
 $host = "localhost";
 $user = "root";
 $password = "";
@@ -7,9 +14,13 @@ $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 
 
+
+
 // Fetch all content from the database
 $sql = "SELECT * FROM content ORDER BY content_id DESC";
 $result = $conn->query($sql);
+
+
 ?>
 
 
@@ -69,6 +80,8 @@ $result = $conn->query($sql);
 <body>
 
 
+
+
 <div class="container">
     <h2>Content List</h2>
     <table>
@@ -81,8 +94,7 @@ $result = $conn->query($sql);
             <td><?php echo htmlspecialchars($row['title']); ?></td>
             <td>
                 <a href="view-content.php?id=<?php echo $row['content_id']; ?>">View</a>
-                <a href="update-content.php?id=<?php echo $row['content_id']; ?>">Edit</a>
-                <a href="delete-content.php?id=<?php echo $row['content_id']; ?>" onclick="return confirm('Are you sure you want to delete this content?');">Delete</a>
+               
             </td>
         </tr>
         <?php endwhile; ?>
@@ -91,5 +103,12 @@ $result = $conn->query($sql);
 </div>
 
 
+
+
 </body>
 </html>
+<?php
+
+
+include '../includes/footer.php';
+?>
