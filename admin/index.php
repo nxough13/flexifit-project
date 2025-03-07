@@ -130,7 +130,7 @@ function getImagePath($image) {
         <div class="top-buttons">
             <a href="view-trainers.php">Trainers Catalog</a>
             <a href="content.php">Content Catalog</a>
-            <a href="view-users.php">Members Catalog</a>
+            <a href="view-users.php">Users Catalog</a>
             <a href="view-equipments.php">Equipment Catalog</a>
         </div>
 

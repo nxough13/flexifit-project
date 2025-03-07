@@ -5,6 +5,7 @@ $user = "root";
 $password = "";
 $dbname = "flexifit_db";
 
+
 // Database connection
 $conn = new mysqli($host, $user, $password, $dbname);
 if ($conn->connect_error) {
@@ -103,7 +104,7 @@ $result = $conn->query($sql);
 <div class="container">
     <div class="top-bar">
         <h2>Users List</h2>
-        <a href="restore-user.php" class="btn">View Deleted Users</a>
+<!-- <a href="restore-user.php" class="btn">View Deleted Users</a> -->
         <a href="index.php" class="btn">Home</a>
     </div>
 
@@ -122,8 +123,8 @@ $result = $conn->query($sql);
                     <p><strong>Last Name:</strong> <?= htmlspecialchars($row['last_name']) ?></p>
                     <p><strong>Email:</strong> <?= htmlspecialchars($row['email']) ?></p>
                     <p><strong>User Type:</strong> <?= htmlspecialchars($row['user_type']) ?></p>
-                    <a href="delete-user.php?id=<?= $row['user_id'] ?>" class="delete"
-                       onclick="return confirm('Are you sure you want to deactivate this user?');">Delete</a>
+                    <!-- <a href="delete-user.php?id=<?= $row['user_id'] ?>" class="delete" -->
+                       <!-- onclick="return confirm('Are you sure you want to deactivate this user?');">Delete</a> -->
                 </div>
             </div>
         <?php endwhile; ?>

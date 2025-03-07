@@ -12,6 +12,7 @@ if (!isset($_SESSION['user_id'])) {
     header("Location: ../login.php");
     exit();
 }
+include 'includes/header.php';
 
 // if ($_SESSION['user_type'] == 'guest') {
 //     // Guests cannot access members or admin areas

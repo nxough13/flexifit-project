@@ -1,6 +1,7 @@
 <?php
 // Connect to database
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
+include '../includes/header.php';
 
 // Check connection
 if ($conn->connect_error) {
@@ -23,7 +24,7 @@ $result = $conn->query($sql);
             font-family: Arial, sans-serif;
             background-color: #121212;
             color: white;
-            margin: 0;
+            margin-top: 50px;
             padding: 20px;
             text-align: center;
         }
