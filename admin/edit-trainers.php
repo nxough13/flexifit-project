@@ -1,58 +1,39 @@
 <?php
-// Connect to database
+session_start();
+
+// Include database connection and header
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
+include '../includes/header.php';
 
 // Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Get trainer ID from URL
-$id = isset($_GET["id"]) ? (int)$_GET["id"] : 0;
-$trainer = null;
+// Ensure `trainer_id` is in the URL
+if (!isset($_GET['trainer_id']) || empty($_GET['trainer_id'])) {
+    die("Error: Trainer ID is missing from the URL.");
+}
+$trainer_id = $_GET['trainer_id'];
 
-// Fetch trainer data
-if ($id > 0) {
-    $sql = "SELECT * FROM trainers WHERE trainer_id = $id";
-    $result = $conn->query($sql);
+// Fetch trainer's data
+$sql = "SELECT * FROM trainers WHERE trainer_id = '$trainer_id'";
+$result = $conn->query($sql);
+if ($result->num_rows == 0) {
+    die("Error: No trainer found with ID $trainer_id.");
+}
+$trainer = $result->fetch_assoc();
 
-    if ($result->num_rows > 0) {
-        $trainer = $result->fetch_assoc();
-    } else {
-        die("Trainer not found.");
-    }
+// Fetch trainer's specialties
+$sql_specialties = "SELECT s.name FROM specialty s
+                    JOIN trainer_specialty ts ON s.specialty_id = ts.specialty_id
+                    WHERE ts.trainer_id = '$trainer_id'";
+$specialties_result = $conn->query($sql_specialties);
+$specialties = [];
+while ($row = $specialties_result->fetch_assoc()) {
+    $specialties[] = $row['name'];
 }
 
-// Handle form update
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $first_name = $_POST["first_name"];
-    $last_name = $_POST["last_name"];
-    $email = $_POST["email"];
-    $age = $_POST["age"];
-    $gender = $_POST["gender"];
-    $specialty = $_POST["specialty"];
-    $availability_status = $_POST["availability_status"];
-    $status = $_POST["status"];
-
-    // Handle image upload (keep old image if not updated)
-    if (!empty($_FILES["image"]["name"])) {
-        $image = basename($_FILES["image"]["name"]);
-        move_uploaded_file($_FILES["image"]["tmp_name"], "uploads/" . $image);
-    } else {
-        $image = $trainer["image"];
-    }
-
-    // Update trainer data
-    $sql = "UPDATE trainers SET first_name='$first_name', last_name='$last_name', email='$email', 
-            age='$age', gender='$gender', specialty='$specialty', availability_status='$availability_status', 
-            status='$status', image='$image' WHERE trainer_id=$id";
-
-    if ($conn->query($sql) === TRUE) {
-        echo "<script>alert('Trainer updated successfully!'); window.location.href = 'view-trainers.php';</script>";
-    } else {
-        echo "Error: " . $conn->error;
-    }
-}
 ?>
 
 <!DOCTYPE html>
@@ -64,120 +45,188 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #000;
+            background-color: #121212;
             color: yellow;
-            text-align: center;
             padding: 20px;
-        }
-        .container {
-            max-width: 500px;
-            margin: auto;
-            background: #222;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px yellow;
         }
         h2 {
             color: yellow;
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+            margin-bottom: 20px;
+            font-size: 30px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 50px;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: auto;
+            background: #1e1e1e;
+            padding: 40px;
+            border-radius: 10px;
+            border: 2px solid yellow;
+            box-shadow: 0 0 15px rgba(255, 255, 0, 0.8);
+        }
+        .form-container {
+            flex: 1;
+            margin-right: 40px;
+        }
+        .profile-container {
+            flex: 0 0 300px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            border: 2px solid yellow;
+            padding: 20px;
+            border-radius: 8px;
         }
         label {
+            font-weight: bold;
+            margin-top: 10px;
             display: block;
-            margin: 10px 0 5px;
-            text-align: left;
-            color: yellow;
         }
         input, select {
             width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
             border: 1px solid yellow;
-            border-radius: 5px;
-            background: #333;
+            border-radius: 4px;
+            background: #1e1e1e;
             color: yellow;
         }
-        .btn {
+        .btn, .back-btn, .specialty-btn {
             background: yellow;
             color: black;
-            padding: 10px 15px;
+            padding: 12px;
             border: none;
-            border-radius: 5px;
             cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
+            width: 50%;
+            border-radius: 4px;
             font-weight: bold;
+            box-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+            margin-bottom: 10px;
         }
-        .btn:hover {
-            background: #ffd700;
-        }
-        .back-btn {
-            display: block;
-            margin-top: 10px;
+        .btn:hover, .back-btn:hover, .specialty-btn:hover {
+            background: black;
             color: yellow;
-            text-decoration: none;
-            font-weight: bold;
+            border: 2px solid yellow;
+            box-shadow: 0 0 15px rgba(255, 255, 0, 1);
         }
-        .image-preview {
-            display: block;
-            margin: 10px auto;
-            max-width: 150px;
-            border: 3px solid yellow;
-            border-radius: 10px;
+        .img-preview {
+            width: 250px;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .specialty-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        .specialty-input {
+            width: 80%;
+            margin-bottom: 10px;
+        }
+        .remove-btn {
+            background: red;
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        .remove-btn:hover {
+            background: darkred;
         }
     </style>
 </head>
 <body>
+    <br><br>
+<h2>Edit Trainer</h2>
 
 <div class="container">
-    <h2>Edit Trainer</h2>
-    <?php if ($trainer): ?>
-    <form method="POST" enctype="multipart/form-data">
-        <label>First Name:</label>
-        <input type="text" name="first_name" value="<?= htmlspecialchars($trainer['first_name']) ?>" required>
+    <!-- Form container -->
+    <div class="form-container">
+        <form method="POST" action="update-trainers.php?trainer_id=<?php echo $trainer_id; ?>" enctype="multipart/form-data">
+            <label>First Name:</label>
+            <input type="text" name="first_name" value="<?php echo htmlspecialchars($trainer['first_name']); ?>" required>
+
+            <label>Last Name:</label>
+            <input type="text" name="last_name" value="<?php echo htmlspecialchars($trainer['last_name']); ?>" required>
+
+            <label>Email:</label>
+            <input type="email" name="email" value="<?php echo htmlspecialchars($trainer['email']); ?>" required>
+
+            <label>Age:</label>
+            <input type="number" name="age" min="18" value="<?php echo htmlspecialchars($trainer['age']); ?>" required>
+
+            <label>Gender:</label>
+            <select name="gender" required>
+                <option value="male" <?php if ($trainer['gender'] == 'male') echo 'selected'; ?>>Male</option>
+                <option value="female" <?php if ($trainer['gender'] == 'female') echo 'selected'; ?>>Female</option>
+                <option value="other" <?php if ($trainer['gender'] == 'other') echo 'selected'; ?>>Other</option>
+            </select>
+
+            <label>Specialty:</label>
+            <div class="specialty-container">
+                <?php
+                foreach ($specialties as $specialty) {
+                    echo "<div><input type='text' name='specialty[]' class='specialty-input' value='".htmlspecialchars($specialty)."'>
+                          <button type='button' class='remove-btn' onclick='removeSpecialty(this)'>Remove</button></div>";
+                }
+                ?>
+                <button type="button" class="specialty-btn" onclick="addSpecialty()">Add Specialty</button>
+            </div>
+
+            <label>Availability Status:</label>
+            <select name="availability_status" required>
+                <option value="available" <?php if ($trainer['availability_status'] == 'available') echo 'selected'; ?>>Available</option>
+                <option value="unavailable" <?php if ($trainer['availability_status'] == 'unavailable') echo 'selected'; ?>>Unavailable</option>
+            </select>
+
+            <button type="submit" class="btn">Update Trainer</button>
         
-        <label>Last Name:</label>
-        <input type="text" name="last_name" value="<?= htmlspecialchars($trainer['last_name']) ?>" required>
-        
-        <label>Email:</label>
-        <input type="email" name="email" value="<?= htmlspecialchars($trainer['email']) ?>" required>
+    </div>
 
-        <label>Age:</label>
-        <input type="number" name="age" value="<?= htmlspecialchars($trainer['age']) ?>" required>
-
-        <label>Gender:</label>
-        <select name="gender" required>
-            <option value="male" <?= ($trainer['gender'] == 'male') ? 'selected' : '' ?>>Male</option>
-            <option value="female" <?= ($trainer['gender'] == 'female') ? 'selected' : '' ?>>Female</option>
-            <option value="other" <?= ($trainer['gender'] == 'other') ? 'selected' : '' ?>>Other</option>
-        </select>
-
-        <label>Specialty:</label>
-        <input type="text" name="specialty" value="<?= htmlspecialchars($trainer['specialty']) ?>">
-
-        <label>Availability:</label>
-        <select name="availability_status" required>
-            <option value="available" <?= ($trainer['availability_status'] == 'available') ? 'selected' : '' ?>>Available</option>
-            <option value="unavailable" <?= ($trainer['availability_status'] == 'unavailable') ? 'selected' : '' ?>>Unavailable</option>
-        </select>
-
-        <label>Status:</label>
-        <select name="status" required>
-            <option value="active" <?= ($trainer['status'] == 'active') ? 'selected' : '' ?>>Active</option>
-            <option value="disabled" <?= ($trainer['status'] == 'disabled') ? 'selected' : '' ?>>Disabled</option>
-        </select>
-
-        <label>Profile Image:</label>
-        <?php if (!empty($trainer['image'])): ?>
-            <img src="uploads/<?= htmlspecialchars($trainer['image']) ?>" class="image-preview">
-        <?php endif; ?>
-        <input type="file" name="image" accept="image/*">
-        
-        <button type="submit" class="btn">Update Trainer</button>
-        <a href="view-trainers.php" class="back-btn">← Back to List</a>
-    </form>
-    <?php else: ?>
-        <p style="color: red;">Trainer not found.</p>
-    <?php endif; ?>
+    <!-- Profile container -->
+    <div class="profile-container">
+        <h3>Profile Image</h3>
+        <input type="file" name="image" id="imageInput">
+        <img id="preview" class="img-preview" src="uploads/<?php echo $trainer['image']; ?>" alt="Image Preview">
+                    <br><br><br><br><br>
+        <button type="button" class="back-btn" onclick="window.location.href='view-trainers.php'">Return</button>
+        </form>
+    </div>
 </div>
+
+<script>
+    function addSpecialty() {
+        const specialtyContainer = document.querySelector('.specialty-container');
+        const div = document.createElement('div');
+        div.innerHTML = "<input type='text' name='specialty[]' class='specialty-input'> <button type='button' class='remove-btn' onclick='removeSpecialty(this)'>Remove</button>";
+        specialtyContainer.appendChild(div);
+    }
+
+    function removeSpecialty(button) {
+        button.parentElement.remove();
+    }
+
+    document.getElementById('imageInput').addEventListener('change', function(e) {
+        const reader = new FileReader();
+        reader.onload = function() {
+            document.getElementById('preview').src = reader.result;
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    });
+</script>
 
 </body>
 </html>

@@ -1,5 +1,5 @@
 <?php
-session_start();
+// Database connection
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
 
 // Check connection
@@ -7,52 +7,9 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Ensure user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login.php");
-    exit();
-}
-include 'includes/header.php';
-
-// if ($_SESSION['user_type'] == 'guest') {
-//     // Guests cannot access members or admin areas
-//     header("Location: ../index.php");
-//     exit();
-// }
-
-$user_id = $_SESSION['user_id'];
-
-// Fetch available membership plans
-$result = $conn->query("SELECT plan_id, name, duration_days, price FROM membership_plans");
-
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['plan_id'])) {
-    $plan_id = $_POST['plan_id'];
-
-    // Get membership plan details
-    $plan_query = $conn->query("SELECT duration_days FROM membership_plans WHERE plan_id = $plan_id");
-    if ($plan_query->num_rows > 0) {
-        $plan = $plan_query->fetch_assoc();
-        $duration_days = $plan['duration_days'];
-
-        // Set membership dates
-        $start_date = date('Y-m-d');
-        $end_date = date('Y-m-d', strtotime("+$duration_days days"));
-
-        // Insert membership into the `members` table
-        $insert_query = $conn->prepare("INSERT INTO members (user_id, membership_status, plan_id, start_date, end_date) VALUES (?, 'active', ?, ?, ?)");
-        $insert_query->bind_param("iiss", $user_id, $plan_id, $start_date, $end_date);
-        $insert_query->execute();
-
-        // Update user type to 'member'
-        $update_user_query = $conn->prepare("UPDATE users SET user_type = 'member' WHERE user_id = ?");
-        $update_user_query->bind_param("i", $user_id);
-        $update_user_query->execute();
-
-        // Redirect to index.php after successful membership activation
-        header("Location: index.php");
-        exit();
-    }
-}
+// Fetch membership plans from the database
+$sql = "SELECT * FROM membership_plans";
+$result = $conn->query($sql);
 ?>
 
 <!DOCTYPE html>
@@ -60,62 +17,112 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['plan_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select Membership Plan</title>
+    <title>Choose Your Membership Plan</title>
+    <link rel="stylesheet" href="styles.css">
     <style>
         body {
-            font-family: Arial, sans-serif; 
-            background: #f4f4f4; 
-            margin: 0; 
-            padding: 0; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: yellow;
+            margin: 0;
+            padding: 0;
         }
-        .container {
-            width: 80%; 
-            max-width: 600px; 
-            background: #fff; 
-            padding: 20px; 
-            border-radius: 8px; 
-            box-shadow: 0px 0px 10px rgba(0,0,0,0.1); 
+        header {
+            background: #000;
+            padding: 20px;
             text-align: center;
         }
-        h2 { color: #333; }
-        .plan {
-            border: 1px solid #ccc; 
-            padding: 15px; 
-            margin: 10px 0; 
-            border-radius: 5px; 
-            background: #f9f9f9; 
-            cursor: pointer; 
-            transition: 0.3s;
+        h1 {
+            color: #ffc107;
+            font-size: 2.5rem;
+            margin: 0;
         }
-        .plan:hover { background: #e2e2e2; }
-        button {
-            width: 100%; 
-            padding: 10px; 
-            background: #28a745; 
-            color: white; 
-            border: none; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            transition: 0.3s;
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
         }
-        button:hover { background: #218838; }
+        .plan-card {
+            background-color: #1f1f1f;
+            color: white;
+            padding: 20px;
+            width: 30%;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0px 0px 10px rgba(255, 193, 7, 0.8);
+        }
+        .plan-card img {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+        .plan-card h3 {
+            margin-top: 20px;
+            color: #ffc107;
+        }
+        .plan-card p {
+            margin: 10px 0;
+        }
+        .plan-card .price {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffc107;
+        }
+        .plan-card input[type="radio"] {
+            margin-right: 10px;
+        }
+        .submit-container {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .submit-container button {
+            background-color: #ffc107;
+            color: black;
+            font-size: 1.2rem;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.8);
+        }
+        .submit-container button:hover {
+            background-color: #e0a800;
+        }
     </style>
 </head>
 <body>
+<header>
+    <h1>Choose Your Membership Plan</h1>
+    <p>Join our fitness community and start your transformation!</p>
+</header>
 
 <div class="container">
-    <h2>Choose Your Membership Plan</h2>
-    <form method="post">
-        <?php while ($row = $result->fetch_assoc()) { ?>
-            <button type="submit" name="plan_id" value="<?= $row['plan_id'] ?>">
-                <?= $row['name'] ?> - <?= $row['duration_days'] ?> days - $<?= $row['price'] ?>
-            </button>
-        <?php } ?>
-    </form>
+    <?php
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            ?>
+            <div class="plan-card">
+                <img src="uploads/<?php echo $row['image']; ?>" alt="<?php echo $row['name']; ?> Image">
+                <h3><?php echo $row['name']; ?></h3>
+                <p><?php echo $row['description']; ?></p>
+                <p class="price">For only ₱<?php echo number_format($row['price'], 2); ?></p>
+                <p>Duration: <?php echo $row['duration_days']; ?> Days</p>
+                <p>
+                    <input type="radio" name="plan" value="<?php echo $row['plan_id']; ?>" required> Select this Plan
+                </p>
+            </div>
+            <?php
+        }
+    } else {
+        echo "<p>No membership plans available.</p>";
+    }
+    $conn->close();
+    ?>
+</div>
+
+<div class="submit-container">
+    <button type="submit" onclick="window.location.href='payment.php'">Proceed to Payment</button>
 </div>
 
 </body>

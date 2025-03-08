@@ -6,162 +6,316 @@ $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 include 'includes/header.php';
 
+
+// Initialize a variable to store the success message
+$registration_successful = false;
+
+
+// Check if form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $first_name = trim($_POST['first_name']);
-    $last_name = trim($_POST['last_name']);
-    $email = trim($_POST['email']);
-    $password = trim($_POST['password']);
-    $confirm_password = trim($_POST['confirm_password']);
-    $age = trim($_POST['age']);
-    $gender = trim($_POST['gender']);
-    $phone_number = trim($_POST['phone_number']);
-    $user_type = 'guest'; // Default user type
+    // Capture user input
+    $first_name = $_POST['first_name'];
+    $last_name = $_POST['last_name'];
+    $gender = $_POST['gender'];
+    $age = $_POST['age'];
+    $birthdate = $_POST['birthdate'];
+    $email = $_POST['email'];
+    $phone = $_POST['phone'];
+    $address = $_POST['address'];
+    $height = $_POST['height'];
+    $weight = $_POST['weight'];
+    $goal = $_POST['goal'];
+    $medical_condition = $_POST['medical_condition'];
+   
+    // Capture selected medical conditions (if any)
+    $selected_conditions = isset($_POST['medical_conditions']) ? $_POST['medical_conditions'] : [];
+   
+    // If "Other" is selected, append the details provided in the text area (but not "Other" itself)
+    if (in_array('Other', $selected_conditions) && !empty($_POST['other_details'])) {
+        $other_details = $_POST['other_details'];
+        // Remove "Other" from the list of selected conditions
+        $selected_conditions = array_filter($selected_conditions, function($value) {
+            return $value !== 'Other'; // Remove "Other" from the list
+        });
+        // Append only the user-provided details, not the word "Other"
+        $selected_conditions[] = $other_details;
+    }
 
-    if (!empty($first_name) && !empty($last_name) && !empty($email) && !empty($password) && !empty($confirm_password) && !empty($age) && !empty($gender) && !empty($phone_number)) {
-        if ($password !== $confirm_password) {
-            $error = "Passwords do not match!";
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = "Invalid email format!";
-        } elseif (!is_numeric($age) || $age <= 0) {
-            $error = "Please enter a valid age!";
-        } elseif (!preg_match("/^[0-9]{10,15}$/", $phone_number)) {
-            $error = "Invalid phone number!";
-        } else {
-            // Check if email already exists
-            $stmt = $conn->prepare("SELECT email FROM users WHERE email = ?");
-            $stmt->bind_param("s", $email);
-            $stmt->execute();
-            $stmt->store_result();
 
-            if ($stmt->num_rows > 0) {
-                $error = "Email is already registered!";
-            } else {
-                // Handle image upload
-                $image = null;
-                if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
-                    $targetDir = "images/"; // Folder to store images
-                    $fileName = basename($_FILES["image"]["name"]);
-                    $targetFilePath = $targetDir . $fileName;
-                    $fileType = strtolower(pathinfo($targetFilePath, PATHINFO_EXTENSION));
+    // Convert the selected conditions into a comma-separated string
+    $selected_conditions_str = implode(", ", $selected_conditions);
 
-                    // Allowed file types
-                    $allowedTypes = array("jpg", "jpeg", "png", "gif");
-                    if (in_array($fileType, $allowedTypes)) {
-                        if (move_uploaded_file($_FILES["image"]["tmp_name"], $targetFilePath)) {
-                            $image = $fileName; // Save the file name in the database
-                        } else {
-                            $error = "File upload failed!";
-                        }
-                    } else {
-                        $error = "Invalid file type. Only JPG, JPEG, PNG, and GIF are allowed.";
-                    }
-                }
 
-                // If no error, insert into the database
-                if (!isset($error)) {
-                    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                    $stmt = $conn->prepare("INSERT INTO users (first_name, last_name, email, password, age, gender, phone_number, user_type, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("ssssissss", $first_name, $last_name, $email, $hashed_password, $age, $gender, $phone_number, $user_type, $image);
-
-                    if ($stmt->execute()) {
-                        header("Location: login.php");
-                        exit();
-                    } else {
-                        $error = "Registration failed!";
-                    }
-                }
-            }
-            $stmt->close();
-        }
+    // Check if passwords match
+    if ($_POST['password'] !== $_POST['confirm_password']) {
+        echo "<script>alert('Passwords do not match!');</script>";
     } else {
-        $error = "All fields are required!";
+        // Hash the password for security
+        $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+
+
+        // Generate username by appending first and last name
+        $username = strtolower($first_name);
+
+
+        // Insert data into database
+        $query = "INSERT INTO users (username, first_name, last_name, gender, age, birthdate, email, phone_number, address, height, weight, weight_goal, medical_condition, password, medical_conditions)
+                  VALUES ('$username', '$first_name', '$last_name', '$gender', '$age', '$birthdate', '$email', '$phone', '$address', '$height', '$weight', '$goal', '$medical_condition', '$password', '$selected_conditions_str')";
+
+
+        if (mysqli_query($conn, $query)) {
+            // Set success flag if registration is successful
+            $registration_successful = true;
+            // Redirect to login page after success
+            header('Location: login.php');
+            exit();
+        } else {
+            echo "Error: " . mysqli_error($conn);
+        }
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - FlexiFit</title>
+    <title>Register Page</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
         body {
-            background-color: #000;
-            color: #FFD700;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
             display: flex;
             justify-content: center;
+            flex-direction: column;
             align-items: center;
+        }
+        .side-img {
+            width: 20%;
             height: 100vh;
+            background-size: cover;
+            background-position: center;
+            position: fixed;
+            top: 0;
+        }
+        .left-img {
+            background-image: url('images/left-image.jpg');
+            left: 0;
+        }
+        .right-img {
+            background-image: url('images/right-image.jpg');
+            right: 0;
         }
         .container {
-            background: #111;
+            width: 80%;
+            max-width: 800px;
+            background-color: #111;
             padding: 20px;
+            margin: 20px;
+            overflow-y: auto;
             border-radius: 10px;
-            box-shadow: 0px 0px 15px #FFD700;
-            text-align: center;
-            width: 350px;
         }
         h2 {
-            margin-bottom: 15px;
-        }
-        input, select {
-            width: 90%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #FFD700;
-            background: #222;
-            color: #FFD700;
-            border-radius: 5px;
-        }
-        button {
-            background: #FFD700;
-            color: #000;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
             font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
         }
-        button:hover {
-            background: #ffcc00;
-        }
-        .error {
-            color: red;
+        label {
+            display: block;
+            text-align: left;
+            font-weight: bold;
             margin-top: 10px;
         }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            outline: none;
+            background: black;
+            color: white;
+            border-bottom: 2px solid yellow;
+        }
+        input[type="password"] {
+            font-family: Arial, sans-serif;
+        }
+        .gender, .medical-condition {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        .finish-btn {
+            background: yellow;
+            color: black;
+            font-weight: bold;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .success-message {
+            color: green;
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .radio-container {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 30px;
+            background-color: #333;
+            color: white;
+            cursor: pointer;
+        }
+        .radio-container input[type="radio"]:checked + label {
+            background-color: yellow;
+            color: black;
+        }
+        .radio-container input[type="radio"] {
+            display: none;
+        }
+        textarea[name="other_details"] {
+            background: #333;
+            color: white;
+            border: 2px solid yellow;
+            resize: vertical;
+        }
     </style>
+    <script>
+        function toggleMedicalFields() {
+            let yesRadio = document.getElementById("medical-yes");
+            let noRadio = document.getElementById("medical-no");
+            let checkboxes = document.querySelectorAll(".medical-checkbox");
+            let otherTextArea = document.getElementById("other-details");
+            let otherRadio = document.getElementById("medical-other");
+
+
+            if (noRadio.checked) {
+                checkboxes.forEach(box => box.disabled = true);
+                otherRadio.disabled = true;
+                otherTextArea.disabled = true;
+            } else {
+                checkboxes.forEach(box => box.disabled = false);
+                otherRadio.disabled = false;
+            }
+        }
+
+
+        function toggleOtherDetails() {
+            let otherTextArea = document.getElementById("other-details");
+            otherTextArea.disabled = !document.getElementById("medical-other").checked;
+        }
+    </script>
 </head>
 <body>
+    <div class="side-img left-img"></div>
+    <div class="container">
+        <h2>PERSONAL INFORMATION</h2>
 
-<div class="container">
-    <h2>Register for FlexiFit</h2>
-    <form method="post" enctype="multipart/form-data">
-        <input type="text" name="first_name" placeholder="First Name" required>
-        <input type="text" name="last_name" placeholder="Last Name" required>
-        <input type="email" name="email" placeholder="Email" required>
-        <input type="text" name="phone_number" placeholder="Phone Number" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <input type="password" name="confirm_password" placeholder="Confirm Password" required>
-        <input type="file" name="image">
-        <input type="number" name="age" placeholder="Age" required>
-        <select name="gender" required>
-            <option value="">Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-        </select>
-        <button type="submit">Register</button>
-    </form>
-    <p class="error"><?php echo isset($error) ? $error : ''; ?></p>
-</div>
 
+        <!-- Success message -->
+        <?php if ($registration_successful): ?>
+            <div class="success-message">
+                Registration successful! You will be redirected to the login page.
+            </div>
+        <?php endif; ?>
+
+
+        <form action="" method="POST">
+            <label for="first_name">First Name</label>
+            <input type="text" name="first_name" id="first_name" placeholder="First Name" required>
+
+
+            <label for="last_name">Last Name</label>
+            <input type="text" name="last_name" id="last_name" placeholder="Last Name" required>
+
+
+            <label>Gender</label>
+            <div class="gender">
+                <label class="radio-container"><input type="radio" name="gender" value="female" required> Female</label>
+                <label class="radio-container"><input type="radio" name="gender" value="male"> Male</label>
+                <label class="radio-container"><input type="radio" name="gender" value="non-binary"> Non-Binary</label>
+            </div>
+
+
+            <label for="age">Age</label>
+            <input type="number" name="age" id="age" required value="Select Age">
+        
+            <label for="birthdate">Birthdate</label>
+            <input type="date" name="birthdate" id="birthdate" required>
+
+
+            <label for="email">Email</label>
+            <input type="email" name="email" id="email" placeholder="Email" required>
+
+
+            <label for="phone">Phone No.</label>
+            <input type="text" name="phone" id="phone" placeholder="Phone No." maxlength="11" pattern="\d{11}" title="Phone number must be 11 digits" required>
+
+
+            <label for="address">Address</label>
+            <input type="text" name="address" id="address" placeholder="Address" required>
+
+
+            <label for="height">Height (ft)</label>
+            <input type="text" name="height" id="height" placeholder="Height in feet" required>
+
+
+            <label for="weight">Weight (Kg)</label>
+            <input type="text" name="weight" id="weight" placeholder="Weight in Kg" required>
+
+
+            <label for="goal">Weight Goal (Kg)</label>
+            <input type="text" name="goal" id="goal" placeholder="Weight Goal in Kg" required>
+
+
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" placeholder="Enter your password" required>
+
+
+            <label for="confirm_password">Confirm Password</label>
+            <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm your password" required>
+
+
+            <br><br><br>
+            <h2>MEDICAL INFORMATION</h2>
+            <p>Do you have any medical conditions to be wary about?</p>
+            <div class="medical-condition">
+                <label><input type="radio" name="medical_condition" id="medical-yes" onclick="toggleMedicalFields()" value="yes"> Yes</label>
+                <label><input type="radio" name="medical_condition" id="medical-no" onclick="toggleMedicalFields()" value="no"> No</label>
+            </div>
+
+
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="medical_conditions[]" class="medical-checkbox" value="Asthma"> Asthma</label>
+                <label><input type="checkbox" name="medical_conditions[]" class="medical-checkbox" value="Diabetes"> Diabetes</label>
+                <label><input type="checkbox" name="medical_conditions[]" class="medical-checkbox" value="Heart Disease"> Heart Disease</label>
+                <label><input type="checkbox" name="medical_conditions[]" class="medical-checkbox" value="Hypertension"> Hypertension</label>
+                <label><input type="radio" id="medical-other" name="medical_conditions[]" value="Other" onclick="toggleOtherDetails()"> Others</label>
+            </div>
+
+
+            <textarea name="other_details" id="other-details" placeholder="If others, then please provide details..." disabled></textarea>
+
+
+            <button class="finish-btn" type="submit">FINISH</button>
+        </form>
+    </div>
+    <div class="side-img right-img"></div>
 </body>
 </html>
