@@ -1,28 +1,31 @@
 <?php
 session_start();
 include '../includes/header.php';
-include_once 'C:/xampp/htdocs/flexifit-project/includes/config.php';
+include '../includes/config.php';
 
 
-// Debugging: Check if $conn exists
-if (!isset($conn)) {
-    die("Database connection is not established. Check your config file.");
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+
+// Check if database connection is established
+if (!$conn) {
+    die("Database connection failed: " . mysqli_connect_error());
 }
 
 
-// Check if admin is logged in
-if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
-    header("Location: ../login.php");
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
     exit();
 }
 
 
+// Get user details from database
 $user_id = $_SESSION['user_id'];
-
-
-// Fetch admin details from the database
-$sql = "SELECT first_name, last_name, email, age, gender, phone_number, image, created_at FROM users WHERE user_id = ? AND user_type = 'admin'";
-$stmt = $conn->prepare($sql);
+$query = "SELECT * FROM users WHERE user_id = ?";
+$stmt = $conn->prepare($query);
 
 
 if (!$stmt) {
@@ -33,11 +36,30 @@ if (!$stmt) {
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
-$admin = $result->fetch_assoc();
-$stmt->close();
-$conn->close();
+$user = $result->fetch_assoc();
 
 
+// Check if user exists
+if (!$user) {
+    die("User not found.");
+}
+
+
+// Store user_type in session (if not already set)
+if (!isset($_SESSION['user_type'])) {
+    $_SESSION['user_type'] = $user['user_type'];
+}
+
+
+// Check if the user is an admin
+if ($_SESSION['user_type'] !== 'admin') {
+    header("Location: ../index.php"); // Redirect non-admins to homepage
+    exit();
+}
+
+
+// Default profile picture if none is uploaded
+$profile_image = !empty($user['image']) ? "../images/" . htmlspecialchars($user['image']) : "../images/default.png";
 ?>
 
 
@@ -46,198 +68,164 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Profile</title>
+    <title>Member Profile | FlexiFit Gym</title>
     <style>
-        /* Fix header at the top */
-        header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: black;
-            z-index: 1000;
-            padding: 10px 20px;
-        }
-
-
-        /* Adjust body to prevent content from hiding under header */
-        body {
-            padding-top: 60px;
-        }
-
-
-        /* General Styles */
         body {
             font-family: Arial, sans-serif;
             background-color: #111;
             color: white;
             margin: 0;
             padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
         }
-       
-        body {
-    min-height: 100vh; /* Ensure body takes full viewport height */
-    display: flex;
-    flex-direction: column;
-}
-
-
-.profile-container {
-    flex: 1; /* Allows content to expand and push the footer down */
-}
-
-
-
-
-        .profile-container {
-            display: flex;
-            background: #000;
-            border-radius: 10px;
-            overflow: hidden;
-            width: 80%;
-            max-width: 900px;
-            box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.2);
-        }
-
-
-        .profile-left {
-            flex: 1;
-            background: url('../images/background.jpg') center/cover no-repeat;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 20px;
-        }
-
-
-        .profile-left h2 {
-            font-size: 24px;
-            font-weight: bold;
-            color: yellow;
-            margin-top: 15px;
-        }
-
-
-        .profile-left h2 span {
-            color: white;
-        }
-
-
-        .profile-right {
-            flex: 1;
-            background: #222;
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-
-        .profile-picture img {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            border: 3px solid yellow;
-            margin-bottom: 20px;
-        }
-
-
-        .profile-details label {
-            display: block;
-            font-size: 12px;
-            font-weight: bold;
-            color: yellow;
-            margin-bottom: 5px;
-        }
-
-
-        .profile-details input {
+        .profile-header {
+            position: relative;
             width: 100%;
-            padding: 8px;
+            height: 300px;
+            background: url('../images/background.jpg') center/cover no-repeat;
+        }
+        .profile-info {
+            background: yellow;
+            padding: 50px 5%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            color: black;
+            width: 100%;
+        }
+        .profile-pic {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 5px solid black;
+            background: white;
+            position: absolute;
+            top: -90px;
+            left: 5%;
+        }
+        .user-info {
+            margin-left: 220px;
+            text-align: left;
+        }
+        .user-info h2 {
+            margin: 5px 0;
+            font-size: 24px;
+        }
+        .user-info p {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .about-section {
+            flex: 1;
+            text-align: center;
+            padding-right: 5%;
+        }
+        .profile-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            background: black;
+            padding: 40px 5%;
+            width: 100%;
+        }
+        .detail-box label {
+            font-weight: bold;
+            color: yellow;
+            display: block;
+        }
+        .detail-box input {
+            width: 100%;
+            padding: 10px;
             background: #333;
             border: none;
             color: white;
+            text-align: center;
             border-radius: 5px;
-            margin-bottom: 10px;
-            text-align: center;
         }
-
-
-        .edit-button {
-            display: inline-block;
+        .edit-btn-container {
             text-align: center;
-            width: 100%;
-            padding: 10px;
+            padding: 20px;
+        }
+        .edit-button {
             background: yellow;
             color: black;
-            text-transform: uppercase;
+            padding: 12px 24px;
+            text-decoration: none;
             font-weight: bold;
             border-radius: 5px;
-            text-decoration: none;
-            margin-top: 15px;
-            transition: 0.3s ease;
+            font-size: 16px;
         }
-
-
         .edit-button:hover {
             background: orange;
         }
-
-
-        @media (max-width: 768px) {
-            .profile-container {
-                flex-direction: column;
-            }
-            .profile-left {
-                padding: 30px;
-            }
-            .profile-right {
-                padding: 20px;
-            }
-
-
-        }
-
-
-
-
     </style>
 </head>
 <body>
-    <div class="profile-container">
-        <div class="profile-left">
-            <h2>BE FIT <br> <span>BE STRONGER</span></h2>
+
+
+    <div class="profile-header"></div>
+
+
+    <div class="profile-info">
+        <img src="<?php echo $profile_image; ?>" alt="Profile Picture" class="profile-pic">
+       
+        <div class="user-info">
+            <h2><?php echo strtoupper(htmlspecialchars($user['first_name'] . ' ' . $user['last_name'])); ?></h2>
+            <p>ROLE: <?php echo ucfirst(htmlspecialchars($user['user_type'])); ?></p>
         </div>
-        <div class="profile-right">
-            <div class="profile-picture">
-                <img src="../images/<?php echo $admin['image'] ? $admin['image'] : 'default-profile.png'; ?>" alt="Profile Picture">
-            </div>
-            <div class="profile-details">
-                <label>NAME</label>
-                <input type="text" value="<?php echo $admin['first_name'] . ' ' . $admin['last_name']; ?>" readonly>
-                <label>AGE</label>
-                <input type="number" value="<?php echo $admin['age']; ?>" readonly>
-                <label>GENDER</label>
-                <input type="text" value="<?php echo ucfirst($admin['gender']); ?>" readonly>
-                <label>EMAIL</label>
-                <input type="email" value="<?php echo $admin['email']; ?>" readonly>
-                <label>PHONE NO.</label>
-                <input type="text" value="<?php echo $admin['phone_number']; ?>" readonly>
-                <a href="admin-profile-edit.php" class="edit-button">EDIT</a>
-            </div>
+
+
+        <div class="about-section">
+            <p><strong>About Me:</strong> <?php echo !empty($user['description']) ? htmlspecialchars($user['description']) : "No description available..."; ?></p>
         </div>
     </div>
 
 
+    <div class="profile-details">
+        <div class="detail-box">
+            <label>Username:</label>
+            <input type="text" value="<?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>" readonly>
+        </div>
+        <div class="detail-box">
+            <label>Email:</label>
+            <input type="email" value="<?php echo htmlspecialchars($user['email']); ?>" readonly>
+        </div>
+        <div class="detail-box">
+            <label>Phone No.:</label>
+            <input type="text" value="<?php echo htmlspecialchars($user['phone_number']); ?>" readonly>
+        </div>
+        <div class="detail-box">
+            <label>Age:</label>
+            <input type="number" value="<?php echo htmlspecialchars($user['age']); ?>" readonly>
+        </div>
+        <div class="detail-box">
+            <label>Gender:</label>
+            <input type="text" value="<?php echo ucfirst(htmlspecialchars($user['gender'])); ?>" readonly>
+        </div>
+        <div class="detail-box">
+            <label>Height:</label>
+            <input type="text" value="<?php echo htmlspecialchars($user['height']); ?>" readonly>
+        </div>
+        <div class="detail-box">
+            <label>Weight:</label>
+            <input type="text" value="<?php echo htmlspecialchars($user['weight']); ?>" readonly>
+        </div>
+        <div class="detail-box">
+            <label>Weight Goal:</label>
+            <input type="text" value="<?php echo htmlspecialchars($user['weight_goal']); ?>" readonly>
+        </div>
+    </div>
+
+
+    <div class="edit-btn-container">
+        <a href="admin-profile-edit.php" class="edit-button">EDIT</a>
+    </div>
+
+
+    <footer>
+        <p style="text-align: center; padding: 10px;">&copy; 2025 FlexiFit Gym. All rights reserved.</p>
+    </footer>
+
+
 </body>
 </html>
-
-
-<?php include '../includes/footer.php'; ?>

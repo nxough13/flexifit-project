@@ -4,7 +4,7 @@ $host = "localhost";
 $user = "root";
 $password = "";
 $dbname = "flexifit_db";
-
+include '../includes/header.php';
 $conn = new mysqli($host, $user, $password, $dbname);
 
 // Check connection

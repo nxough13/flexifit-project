@@ -1,10 +1,6 @@
 <?php
-session_start();
+session_start(); // Start session to access the logged-in user's details
 include '../includes/header.php';
-?>
-<?php
-
-
 
 
 $host = "localhost";
@@ -14,13 +10,15 @@ $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 
 
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
 
 
 // Fetch all content from the database
-$sql = "SELECT * FROM content ORDER BY content_id DESC";
+$sql = "SELECT * FROM content ORDER BY content_id ASC";
 $result = $conn->query($sql);
-
-
 ?>
 
 
@@ -29,86 +27,154 @@ $result = $conn->query($sql);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Content List</title>
+    <title>View Content</title>
     <style>
         body {
-            background-color: #000;
+            background-color: #222;
             color: #fff;
             font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            flex-direction: column;
         }
+
+
         .container {
-            background-color: #111;
+            width: 80%;
+            margin: 0 auto;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px yellow;
-            width: 90%;
-            max-width: 600px;
-            text-align: center;
         }
+
+
         h2 {
-            color: yellow;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid yellow;
             text-align: center;
+            color: #ffcc00;
+            font-size: 2rem;
         }
-        a {
+
+
+        .create-btn {
+            display: block;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #ffcc00;
+            text-align: center;
             text-decoration: none;
-            color: black;
-            background-color: yellow;
-            padding: 5px 10px;
-            margin: 5px;
-            display: inline-block;
+            color: #222;
+            font-size: 1.2rem;
             border-radius: 5px;
         }
-        a:hover {
-            background-color: #ffaa00;
+
+
+        .create-btn:hover {
+            background-color: #e6b800;
+        }
+
+
+        .content-item {
+            background-color: #333;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+
+        .content-item .content-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+
+
+        .content-item .content-description {
+            margin: 10px 0;
+            font-size: 1.1rem;
+        }
+
+
+        .content-item .content-type {
+            font-size: 1rem;
+            color: #b0b0b0;
+        }
+
+
+        .content-item .content-created-at {
+            font-size: 1rem;
+            color: #999;
+        }
+
+
+        .content-item .content-image {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+
+
+        .edit-btn {
+            display: inline-block;
+            background-color: #ffcc00;
+            color: #222;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .details-btn {
+            display: inline-block;
+            background-color: #ffcc00;
+            color: #222;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .edit-btn:hover {
+            background-color: #e6b800;
+        }
+        .details-btn:hover {
+            background-color: #e6b800;
         }
     </style>
 </head>
 <body>
 
 
-
-
 <div class="container">
-    <h2>Content List</h2>
-    <table>
-        <tr>
-            <th>Title</th>
-            <th>Actions</th>
-        </tr>
+    <h2>Explore the Feed</h2>
+    <a href="create-content.php" class="create-btn">Create New Content</a>
+
+
+    <?php if ($result->num_rows > 0): ?>
         <?php while ($row = $result->fetch_assoc()): ?>
-        <tr>
-            <td><?php echo htmlspecialchars($row['title']); ?></td>
-            <td>
-                <a href="view-content.php?id=<?php echo $row['content_id']; ?>">View</a>
-               
-            </td>
-        </tr>
+            <div class="content-item">
+                <div class="content-title"><?php echo htmlspecialchars($row['title']); ?></div>
+                <div class="content-description"><?php echo nl2br(htmlspecialchars($row['description'])); ?></div>
+                <div class="content-type">Type: <?php echo htmlspecialchars($row['content_type']); ?></div>
+
+
+                <?php if ($row['image']): ?>
+                    <img src="<?php echo htmlspecialchars($row['image']); ?>" alt="Content Image" class="content-image">
+                <?php endif; ?>
+
+
+                <div class="content-created-at">Posted on: <?php echo htmlspecialchars($row['created_at']); ?></div>
+
+
+                <!-- Edit Button -->
+                <a href="edit-content.php?id=<?php echo $row['content_id']; ?>" class="edit-btn">Edit</a>
+                <a href="content-details.php?content_id=<?php echo $row['content_id']; ?>" class="details-btn">Details</a>
+            </div>
         <?php endwhile; ?>
-    </table>
-    <a href="create-content.php">Add New Content</a>
+    <?php else: ?>
+        <p>No content available.</p>
+    <?php endif; ?>
 </div>
-
-
 
 
 </body>
 </html>
+
+
 <?php
-
-
-include '../includes/footer.php';
+$conn->close();
 ?>
+<?php include '../includes/footer.php'; ?>

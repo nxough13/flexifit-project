@@ -1,81 +1,90 @@
 <?php
 session_start();
-include '../includes/config.php';
 include '../includes/header.php';
+include '../includes/config.php';
 
 
-// Check if admin is logged in
-if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
-    header("Location: ../login.php");
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
     exit();
 }
 
 
+// Fetch user details
 $user_id = $_SESSION['user_id'];
-$message = "";
-
-
-// Fetch admin details
 $query = "SELECT * FROM users WHERE user_id = ?";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
-$admin = $result->fetch_assoc();
+$user = $result->fetch_assoc();
 
 
-// Default profile image
-$profile_image = !empty($admin['image']) ? "../images/" . $admin['image'] : "../images/default-profile.png";
+if (!$user) {
+    die("User not found.");
+}
+
+
+// Default profile picture
+$profile_image = !empty($user['image']) ? "../images/" . htmlspecialchars($user['image']) : "../images/default.png";
 
 
 // Handle form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $first_name = $_POST['first_name'];
-    $last_name = $_POST['last_name'];
-    $phone_number = $_POST['phone_number'];
+    // Validate and sanitize input
+    $first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
+    $last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
+    $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+    $phone_number = isset($_POST['phone_number']) ? trim($_POST['phone_number']) : '';
+    $age = isset($_POST['age']) ? intval($_POST['age']) : 0;
+    $gender = isset($_POST['gender']) ? trim($_POST['gender']) : '';
+    $height = isset($_POST['height']) ? trim($_POST['height']) : '';
+    $weight = isset($_POST['weight']) ? trim($_POST['weight']) : '';
+    $weight_goal = isset($_POST['weight_goal']) ? trim($_POST['weight_goal']) : '';
+    $description = isset($_POST['description']) ? trim($_POST['description']) : '';
 
 
-    // Handle image upload
-    if (!empty($_FILES['image']['name'])) {
+    // Handle profile picture upload
+    if (!empty($_FILES["profile_image"]["name"])) {
         $target_dir = "../images/";
-        $image_name = time() . "_" . basename($_FILES['image']['name']); // Unique name
+        $image_name = time() . "_" . basename($_FILES["profile_image"]["name"]); // Prevent duplicate file names
         $target_file = $target_dir . $image_name;
 
 
-        if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file)) {
-            // Update database with new image
-            $update_query = "UPDATE users SET first_name=?, last_name=?, phone_number=?, image=? WHERE user_id=?";
-            $stmt = $conn->prepare($update_query);
-            $stmt->bind_param("ssssi", $first_name, $last_name, $phone_number, $image_name, $user_id);
-
-
-            // Update session with new image
-            $_SESSION['image'] = $image_name;
+        if (move_uploaded_file($_FILES["profile_image"]["tmp_name"], $target_file)) {
+            $profile_image = $image_name;
+            $update_image = "UPDATE users SET image = ? WHERE user_id = ?";
+            $stmt = $conn->prepare($update_image);
+            $stmt->bind_param("si", $profile_image, $user_id);
+            $stmt->execute();
         }
-    } else {
-        // Update database without changing image
-        $update_query = "UPDATE users SET first_name=?, last_name=?, phone_number=? WHERE user_id=?";
-        $stmt = $conn->prepare($update_query);
-        $stmt->bind_param("sssi", $first_name, $last_name, $phone_number, $user_id);
     }
+
+
+    // Ensure the `description` column exists in the database
+    $check_column_query = "SHOW COLUMNS FROM users LIKE 'description'";
+    $result = $conn->query($check_column_query);
+    if ($result->num_rows == 0) {
+        $conn->query("ALTER TABLE users ADD COLUMN description TEXT");
+    }
+
+
+    // Update user info
+    $update_query = "UPDATE users SET first_name=?, last_name=?, email=?, phone_number=?, age=?, gender=?, height=?, weight=?, weight_goal=?, description=? WHERE user_id=?";
+    $stmt = $conn->prepare($update_query);
+    $stmt->bind_param("ssssisssisi", $first_name, $last_name, $email, $phone_number, $age, $gender, $height, $weight, $weight_goal, $description, $user_id);
 
 
     if ($stmt->execute()) {
-        $_SESSION['first_name'] = $first_name;
-        $_SESSION['last_name'] = $last_name;
-        $_SESSION['phone_number'] = $phone_number;
-
-
-        $message = "Profile updated successfully!";
-        header("Location: admin-profile.php");
-        exit();
+        echo "<script>alert('Profile updated successfully!'); window.location='admin-profile.php';</script>";
     } else {
-        $message = "Error updating profile!";
+        echo "<script>alert('Update failed. Please try again.');</script>";
     }
 }
-
-
 ?>
+
+
 
 
 <!DOCTYPE html>
@@ -83,101 +92,189 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Admin Profile | FlexiFit Gym</title>
-    
+    <title>Edit Profile | FlexiFit Gym</title>
     <style>
         body {
-            background-color: #0d0d0d;
-            color: white;
             font-family: Arial, sans-serif;
+            background-color: #111;
+            color: white;
+            margin: 0;
+            padding: 0;
         }
-        .profile-container {
-            width: 50%;
-            margin: auto;
-            padding: 20px;
-            background-color: #1c1c1c;
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.1);
+        .profile-header {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            background: url('../images/background.jpg') center/cover no-repeat;
         }
-        .profile-content {
+        .profile-info {
+            background: yellow;
+            padding: 50px 5%;
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: space-between;
+            position: relative;
+            color: black;
+            width: 100%;
         }
-        .profile-picture img {
+        .profile-pic {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 5px solid black;
+            background: white;
+            position: absolute;
+            top: -90px;
+            left: 5%;
+        }
+        .user-info {
+            margin-left: 220px;
+            text-align: left;
+        }
+        .user-info h2 {
+            margin: 5px 0;
+            font-size: 24px;
+        }
+        .about-section {
+            flex: 1;
+            text-align: center;
+            padding-right: 5%;
+        }
+        .profile-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            background: black;
+            padding: 40px 5%;
+            width: 100%;
+        }
+        .detail-box label {
+            font-weight: bold;
+            color: yellow;
+            display: block;
+        }
+        .detail-box input {
+            width: 100%;
+            padding: 10px;
+            background: #333;
+            border: none;
+            color: white;
+            border-radius: 5px;
+        }
+        .edit-btn-container {
+            text-align: center;
+            padding: 20px;
+        }
+        .save-button {
+            background: yellow;
+            color: black;
+            padding: 12px 24px;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 5px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+        }
+        .save-button:hover {
+            background: orange;
+        }
+        .profile-pic-preview {
+            display: block;
+            margin-top: 10px;
             width: 120px;
             height: 120px;
             border-radius: 50%;
-            border: 3px solid yellow;
-            object-fit: cover;
-        }
-        label {
-            display: block;
-            margin-top: 10px;
-            font-weight: bold;
-            color: yellow;
-        }
-        input, select {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: none;
-            background-color: #2c2c2c;
-            color: white;
-            border-radius: 5px;
-            outline: none;
-        }
-        input[type="file"] {
-            border: none;
-            background: none;
-            padding: 5px;
-        }
-        .edit-button {
-            display: block;
-            width: 100%;
-            text-align: center;
-            background-color: yellow;
-            color: black;
-            padding: 10px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: bold;
-            margin-top: 20px;
-        }
-        .edit-button:hover {
-            background-color: #ffcc00;
+            border: 2px solid yellow;
         }
     </style>
 </head>
-</head>
 <body>
-    <div class="profile-container">
-        <h2>Edit Profile</h2>
-        <div class="profile-content">
-            <div class="profile-picture">
-                <img src="<?php echo $profile_image; ?>" alt="Profile Picture">
+
+
+    <div class="profile-header"></div>
+
+
+    <div class="profile-info">
+        <img src="<?php echo $profile_image; ?>" alt="Profile Picture" class="profile-pic" id="profilePreview">
+       
+        <form method="POST" enctype="multipart/form-data" style="width: 100%;">
+            <div class="user-info">
+                <label for="username" style="font-size: 20px; font-weight: bold;">Username:</label>
+                <input type="text" name="first_name" value="<?php echo htmlspecialchars($user['first_name']); ?>" required style="font-size: 24px; font-weight: bold;">
+                <input type="text" name="last_name" value="<?php echo htmlspecialchars($user['last_name']); ?>" required style="font-size: 24px; font-weight: bold;">
+                <p style="font-size: 20px; font-weight: bold;">ROLE: <?php echo ucfirst(htmlspecialchars($user['user_type'])); ?></p>
             </div>
-            <form action="" method="POST" enctype="multipart/form-data">
-                <label>Upload Profile Picture:</label>
-                <input type="file" name="image">
 
 
-                <label>First Name:</label>
-                <input type="text" name="first_name" value="<?php echo $admin['first_name']; ?>" required>
+            <div class="about-section">
+                <label for="description" style="font-size: 20px; font-weight: bold;"><strong>About Me:</strong></label>
+                <input type="text" name="description" value="<?php echo !empty($user['description']) ? htmlspecialchars($user['description']) : ""; ?>" style="font-size: 18px; width: 80%;">
+            </div>
 
 
-                <label>Last Name:</label>
-                <input type="text" name="last_name" value="<?php echo $admin['last_name']; ?>" required>
-
-
-                <label>Phone Number:</label>
-                <input type="text" name="phone_number" value="<?php echo $admin['phone_number']; ?>" required>
-
-
-                <button type="submit" class="edit-button">Save</button>
-            </form>
-        </div>
     </div>
+
+
+    <form method="POST" enctype="multipart/form-data">
+        <div class="profile-details">
+            <div class="detail-box">
+                <label>Email:</label>
+                <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" required>
+            </div>
+            <div class="detail-box">
+                <label>Phone No.:</label>
+                <input type="text" name="phone_number" value="<?php echo htmlspecialchars($user['phone_number']); ?>" required>
+            </div>
+            <div class="detail-box">
+                <label>Age:</label>
+                <input type="number" name="age" value="<?php echo htmlspecialchars($user['age']); ?>" required>
+            </div>
+            <div class="detail-box">
+    <label style="font-size: 20px;">Gender:</label>
+    <select name="gender" required style="width: 100%; padding: 12px; font-size: 18px; background: #333; color: white; border: none; border-radius: 5px;">
+        <option value="Male" <?php echo ($user['gender'] == 'Male') ? 'selected' : ''; ?>>Male</option>
+        <option value="Female" <?php echo ($user['gender'] == 'Female') ? 'selected' : ''; ?>>Female</option>
+        <option value="Others" <?php echo ($user['gender'] == 'Others') ? 'selected' : ''; ?>>Others</option>
+    </select>
+</div>
+            <div class="detail-box">
+                <label>Height:</label>
+                <input type="text" name="height" value="<?php echo htmlspecialchars($user['height']); ?>" required>
+            </div>
+            <div class="detail-box">
+                <label>Weight:</label>
+                <input type="text" name="weight" value="<?php echo htmlspecialchars($user['weight']); ?>" required>
+            </div>
+            <div class="detail-box">
+                <label>Weight Goal:</label>
+                <input type="text" name="weight_goal" value="<?php echo htmlspecialchars($user['weight_goal']); ?>" required>
+            </div>
+            <div class="detail-box">
+                <label>Profile Picture:</label>
+                <input type="file" name="profile_image" accept="image/*" onchange="previewImage(event)">
+            </div>
+        </div>
+       
+       
+
+
+        <div class="edit-btn-container">
+            <button type="submit" class="save-button">SAVE CHANGES</button>
+        </div>
+    </form>
+
+
+    <script>
+        function previewImage(event) {
+            var reader = new FileReader();
+            reader.onload = function() {
+                document.getElementById('profilePreview').src = reader.result;
+            }
+            reader.readAsDataURL(event.target.files[0]);
+        }
+    </script>
+
+
 </body>
 </html>
-<?php include '../includes/footer.php'; ?>
