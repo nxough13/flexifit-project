@@ -1,15 +1,28 @@
 <?php
+include '../includes/header.php';
+// Start session
+// session_start();
 // Database connection
-$conn = new mysqli("localhost", "root", "", "flexifit_db");
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-// Fetch membership plans from the database
+$host = "localhost";
+$user = "root";
+$password = "";
+$dbname = "flexifit_db";
+$conn = new mysqli($host, $user, $password, $dbname);
 $sql = "SELECT * FROM membership_plans";
 $result = $conn->query($sql);
+
+// Handle form submission to store selected plan in session
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Store selected plan, start date, and end date in session
+    $_SESSION['selected_plan'] = $_POST['selected_plan'];
+    $_SESSION['start_date'] = $_POST['start_date'];
+    $_SESSION['end_date'] = $_POST['end_date'];
+
+    // Redirect to payment page
+    header('Location: process-payment.php');
+    exit();
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -18,112 +31,206 @@ $result = $conn->query($sql);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Choose Your Membership Plan</title>
-    <link rel="stylesheet" href="styles.css">
     <style>
+        /* Styles here */
         body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: yellow;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background: #000;
-            padding: 20px;
-            text-align: center;
-        }
-        h1 {
-            color: #ffc107;
-            font-size: 2.5rem;
-            margin: 0;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 30px auto;
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-        }
-        .plan-card {
-            background-color: #1f1f1f;
-            color: white;
-            padding: 20px;
-            width: 30%;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0px 0px 10px rgba(255, 193, 7, 0.8);
-        }
-        .plan-card img {
-            max-width: 100%;
-            border-radius: 8px;
-        }
-        .plan-card h3 {
-            margin-top: 20px;
-            color: #ffc107;
-        }
-        .plan-card p {
-            margin: 10px 0;
-        }
-        .plan-card .price {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #ffc107;
-        }
-        .plan-card input[type="radio"] {
-            margin-right: 10px;
-        }
-        .submit-container {
-            margin-top: 30px;
-            text-align: center;
-        }
-        .submit-container button {
-            background-color: #ffc107;
-            color: black;
-            font-size: 1.2rem;
-            padding: 15px 40px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(255, 193, 7, 0.8);
-        }
-        .submit-container button:hover {
-            background-color: #e0a800;
-        }
+    font-family: Arial, sans-serif;
+    background-color: #121212;
+    color: white;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align top vertically */
+    gap: 80px;
+    width: 90%;
+    margin: 0 auto;
+}
+
+.membership-plans {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+    max-width: 900px;
+    margin-top: 1%;
+}
+
+.plan-box {
+    background-color: #1a1a1a;
+    border: 2px solid yellow;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+    border-radius: 10px;
+}
+
+.plan-box img {
+    width: 200px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.plan-box h3 {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.plan-box p {
+    font-weight: bold;
+}
+
+.plan-box button {
+    background-color: yellow;
+    color: black;
+    padding: 12px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.plan-box button:hover {
+    background-color: #e0a800;
+}
+
+.form-box {
+    width: 25%;
+    padding: 20px;
+    background-color: #2c2c2c;
+    color: yellow;
+    box-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    flex: 0.75;
+    margin-top: 1.2%;
+}
+
+.form-box input[type="text"], .form-box input[type="date"], .form-box select {
+    width: 50%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid yellow;
+    border-radius: 5px;
+    background-color: #1e1e1e;
+    color: yellow;
+}
+
+.form-box button {
+    background-color: yellow;
+    color: black;
+    padding: 12px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.form-box button:hover {
+    background-color: #e0a800;
+}
+
+.container-flex {
+    display: flex;
+    justify-content: space-between;
+}
+
+h1 {
+    /* margin-top: 1%; */
+    color: yellow;
+    margin-top: 2%;
+    margin-bottom: 10px;
+    margin-left: 10%;
+}
+
+hr {
+    width: 48%;
+    margin-left: 9.5%;
+    border: 2.5px solid white;
+}
     </style>
 </head>
 <body>
-<header>
-    <h1>Choose Your Membership Plan</h1>
-    <p>Join our fitness community and start your transformation!</p>
-</header>
+
+<div class="title1">
+    <h1>Select Membership Plan</h1>
+    <hr>
+</div>
 
 <div class="container">
-    <?php
-    if ($result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            ?>
-            <div class="plan-card">
-                <img src="uploads/<?php echo $row['image']; ?>" alt="<?php echo $row['name']; ?> Image">
-                <h3><?php echo $row['name']; ?></h3>
-                <p><?php echo $row['description']; ?></p>
-                <p class="price">For only ₱<?php echo number_format($row['price'], 2); ?></p>
-                <p>Duration: <?php echo $row['duration_days']; ?> Days</p>
-                <p>
-                    <input type="radio" name="plan" value="<?php echo $row['plan_id']; ?>" required> Select this Plan
-                </p>
-            </div>
-            <?php
+
+    <div class="membership-plans">
+        <?php
+        // Display membership plans fetched from the database
+        if ($result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                // Set the correct image path
+                $image_path = !empty($row['image']) ? '../admin/uploads/' . $row['image'] : 'admin/uploads/default-image.jpg'; // Ensure there's a fallback image
+                echo '<div class="plan-box">';
+                echo '<img src="' . $image_path . '" alt="Plan Image">';  // Fetch and display the plan's image
+                echo '<h3>' . htmlspecialchars($row["name"]) . '</h3>';
+                echo '<p>' . htmlspecialchars($row["description"]) . '</p>';
+                echo '<p>For only P' . number_format($row["price"], 2) . '</p>';
+                echo '<p>Duration: ' . htmlspecialchars($row["duration_days"]) . ' days</p>';
+                echo '<input type="radio" name="selected_plan" value="' . $row["plan_id"] . '" onclick="calculateEndDate(' . $row["duration_days"] . ')"> Select this Plan';
+                echo '</div>';
+            }
         }
-    } else {
-        echo "<p>No membership plans available.</p>";
+        ?>
+    </div>
+
+    <div class="form-box">
+        <h2>Enter Start Date</h2>
+        <form method="POST">
+            <label for="start_date">Preferred Start Date:</label>
+            <input style="margin-left: 5%;" type="date" id="start_date" name="start_date" required onchange="updateEndDate()">
+
+            <label for="end_date">Membership End Date:</label>
+            <input style="margin-left: 1.6%;" type="date" id="end_date" name="end_date" required readonly>
+
+            <button style="margin-left: 55%;" type="submit">Proceed to Payment</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function updateEndDate() {
+        const startDate = document.getElementById('start_date').value;
+        const selectedPlan = document.querySelector('input[name="selected_plan"]:checked');
+
+        if (startDate && selectedPlan) {
+            const duration = selectedPlan.getAttribute('data-duration');
+            const startDateObj = new Date(startDate);
+            const endDateObj = new Date(startDateObj);
+            endDateObj.setDate(startDateObj.getDate() + parseInt(duration));
+
+            const endDateInput = document.getElementById('end_date');
+            endDateInput.value = endDateObj.toISOString().split('T')[0];
+        }
     }
-    $conn->close();
-    ?>
-</div>
 
-<div class="submit-container">
-    <button type="submit" onclick="window.location.href='payment.php'">Proceed to Payment</button>
-</div>
+    function calculateEndDate(duration) {
+        const startDate = document.getElementById('start_date').value;
+        if (startDate) {
+            const startDateObj = new Date(startDate);
+            const endDateObj = new Date(startDateObj);
+            endDateObj.setDate(startDateObj.getDate() + duration);
 
+            const endDateInput = document.getElementById('end_date');
+            endDateInput.value = endDateObj.toISOString().split('T')[0];
+        }
+    }
+</script>
+<br><br><br>
 </body>
 </html>

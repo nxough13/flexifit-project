@@ -4,12 +4,12 @@ $user = "root";
 $password = "";
 $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
-include 'includes/header.php';
 
+session_start();
+include 'includes/header.php'; // Ensure the path to header.php is correct
 
 // Initialize a variable to store the success message
 $registration_successful = false;
-
 
 // Check if form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -41,10 +41,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $selected_conditions[] = $other_details;
     }
 
-
     // Convert the selected conditions into a comma-separated string
     $selected_conditions_str = implode(", ", $selected_conditions);
-
 
     // Check if passwords match
     if ($_POST['password'] !== $_POST['confirm_password']) {
@@ -53,24 +51,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Hash the password for security
         $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-
         // Generate username by appending first and last name
-        $username = strtolower($first_name);
+        $username = strtolower($first_name . $last_name);  // Use both first and last name for username
+
+        // Prepare the query using placeholders to avoid SQL injection
+        $stmt = $conn->prepare("INSERT INTO users (username, first_name, last_name, gender, age, birthdate, email, phone_number, address, height, weight, weight_goal, medical_condition, medical_conditions, password, user_type)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user')");
+
+$stmt->bind_param("sssssssssssssss", 
+    $username, 
+    $first_name, 
+    $last_name, 
+    $gender, 
+    $age, 
+    $birthdate, 
+    $email, 
+    $phone, 
+    $address, 
+    $height, 
+    $weight, 
+    $goal, 
+    $medical_condition, 
+    $selected_conditions_str, 
+    $password 
+);
 
 
-        // Insert data into database
-        $query = "INSERT INTO users (username, first_name, last_name, gender, age, birthdate, email, phone_number, address, height, weight, weight_goal, medical_condition, password, medical_conditions)
-                  VALUES ('$username', '$first_name', '$last_name', '$gender', '$age', '$birthdate', '$email', '$phone', '$address', '$height', '$weight', '$goal', '$medical_condition', '$password', '$selected_conditions_str')";
-
-
-        if (mysqli_query($conn, $query)) {
+        // Execute the statement
+        if ($stmt->execute()) {
             // Set success flag if registration is successful
             $registration_successful = true;
             // Redirect to login page after success
             header('Location: login.php');
             exit();
         } else {
-            echo "Error: " . mysqli_error($conn);
+            echo "Error: " . $stmt->error;
         }
     }
 }
@@ -247,15 +262,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             <label>Gender</label>
             <div class="gender">
-                <label class="radio-container"><input type="radio" name="gender" value="female" required> Female</label>
-                <label class="radio-container"><input type="radio" name="gender" value="male"> Male</label>
-                <label class="radio-container"><input type="radio" name="gender" value="non-binary"> Non-Binary</label>
+                <input type="radio" name="gender" value="female" id="female" required>
+                <label for="female">Female</label>
+
+
+                <input type="radio" name="gender" value="male" id="male">
+                <label for="male">Male</label>
+
+
+                <input type="radio" name="gender" value="non-binary" id="non-binary">
+                <label for="non-binary">Non-Binary</label>
             </div>
 
 
             <label for="age">Age</label>
             <input type="number" name="age" id="age" required value="Select Age">
-        
+            </select>
+
+
             <label for="birthdate">Birthdate</label>
             <input type="date" name="birthdate" id="birthdate" required>
 
@@ -306,7 +330,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <label><input type="checkbox" name="medical_conditions[]" class="medical-checkbox" value="Diabetes"> Diabetes</label>
                 <label><input type="checkbox" name="medical_conditions[]" class="medical-checkbox" value="Heart Disease"> Heart Disease</label>
                 <label><input type="checkbox" name="medical_conditions[]" class="medical-checkbox" value="Hypertension"> Hypertension</label>
-                <label><input type="radio" id="medical-other" name="medical_conditions[]" value="Other" onclick="toggleOtherDetails()"> Others</label>
+                <label><input type="checkbox" id="medical-other" name="medical_conditions[]" value="Other" onclick="toggleOtherDetails()"> Others</label>
             </div>
 
 

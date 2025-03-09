@@ -132,6 +132,7 @@ function getImagePath($image) {
             <a href="content.php">Content Catalog</a>
             <a href="view-users.php">Users Catalog</a>
             <a href="view-equipments.php">Equipment Catalog</a>
+            <a href="view-plans.php">Plans Catalog</a>
         </div>
 
         <div class="dashboard-box">
