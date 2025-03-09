@@ -57,6 +57,7 @@ $equipment_stmt->close();
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -67,6 +68,7 @@ $equipment_stmt->close();
             background-color: rgb(0, 0, 0);
             margin: 20px;
         }
+
         .container {
             width: 50%;
             margin: auto;
@@ -76,22 +78,28 @@ $equipment_stmt->close();
             box-shadow: 0 0 10px rgba(11, 11, 11, 0.1);
             text-align: center;
         }
+
         h2 {
             color: #FFFFFF;
         }
+
         label {
             color: white;
             font-weight: bold;
             display: block;
             margin-top: 10px;
         }
-        input, textarea, select {
+
+        input,
+        textarea,
+        select {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
             border-radius: 5px;
             border: 1px solid #ccc;
         }
+
         .btn {
             text-decoration: none;
             padding: 10px 15px;
@@ -104,22 +112,27 @@ $equipment_stmt->close();
             display: inline-block;
             margin: 10px;
         }
+
         .message {
             font-weight: bold;
             margin-bottom: 15px;
             color: green;
         }
+
         .error {
             font-weight: bold;
             margin-bottom: 15px;
             color: red;
         }
+
         .btn-container {
             margin-top: 15px;
         }
+
         .inventory-container {
             margin-top: 20px;
         }
+
         .inventory-box {
             margin-bottom: 10px;
             border: 1px solid #ccc;
@@ -127,85 +140,98 @@ $equipment_stmt->close();
             background-color: #333;
             border-radius: 5px;
         }
+
         .inventory-box input {
             width: 48%;
             display: inline-block;
             margin-right: 4%;
         }
+
         .inventory-box input:last-child {
             margin-right: 0;
         }
+
+        input[type="file"] {
+            background-color: white;
+            /* Makes input field white */
+            color: black;
+            /* Ensures text is visible */
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
     </style>
 </head>
+
 <body>
 
-<div class="container">
-    <h2>Edit Equipment</h2>
-    
-    <?php if (isset($success)) : ?>
-        <p class="message"><?= $success ?></p>
-    <?php endif; ?>
-    
-    <?php if (isset($error)) : ?>
-        <p class="error"><?= $error ?></p>
-    <?php endif; ?>
+    <div class="container">
+        <h2>Edit Equipment</h2>
 
-    <form action="update-equipment.php" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="inventory_id" value="<?= $inventory['inventory_id'] ?>">
-        <input type="hidden" name="equipment_id" value="<?= $inventory['equipment_id'] ?>">
+        <?php if (isset($success)) : ?>
+            <p class="message"><?= $success ?></p>
+        <?php endif; ?>
 
-        <label for="name">Equipment Name:</label>
-        <input type="text" name="name" id="name" value="<?= $inventory['equipment_name'] ?>" required>
+        <?php if (isset($error)) : ?>
+            <p class="error"><?= $error ?></p>
+        <?php endif; ?>
 
-        <label for="description">Description:</label>
-        <textarea name="description" id="description" rows="4" required><?= $inventory['description'] ?></textarea>
+        <form action="update-equipment.php" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="inventory_id" value="<?= $inventory['inventory_id'] ?>">
+            <input type="hidden" name="equipment_id" value="<?= $inventory['equipment_id'] ?>">
 
-        <label for="image">Upload Image (Leave blank to keep current image):</label>
-        <input type="file" name="image" id="image" accept="image/*">
+            <label for="name">Equipment Name:</label>
+            <input type="text" name="name" id="name" value="<?= $inventory['equipment_name'] ?>" required>
 
-        <label for="quantity">Quantity:</label>
-        <input type="number" name="quantity" id="quantity" min="1" value="<?= count($equipment_inventory) ?>" required>
+            <label for="description">Description:</label>
+            <textarea name="description" id="description" rows="4" required><?= $inventory['description'] ?></textarea>
 
-        <div class="inventory-container" id="inventory-container">
-    <?php foreach ($equipment_inventory as $index => $inv) : ?>
-        <div class="inventory-box">
-            <label for="identifier_<?= $index+1 ?>">Identifier <?= $index+1 ?>:</label>
-            <input type="text" name="identifier_<?= $index+1 ?>" id="identifier_<?= $index+1 ?>" value="<?= $inv['identifier'] ?>" required>
+            <label for="image">Upload Image (Leave blank to keep current image):</label>
+            <input type="file" name="image" id="image" accept="image/*">
 
-            <label for="status_<?= $index+1 ?>">Status <?= $index+1 ?>:</label>
-            <select name="status_<?= $index+1 ?>" id="status_<?= $index+1 ?>" required>
-                <option value="available" <?= ($inv['status'] == 'available') ? 'selected' : '' ?>>Available</option>
-                <option value="in_use" <?= ($inv['status'] == 'in_use') ? 'selected' : '' ?>>In Use</option>
-                <option value="maintenance" <?= ($inv['status'] == 'maintenance') ? 'selected' : '' ?>>Maintenance</option>
-            </select>
+            <label for="quantity">Quantity:</label>
+            <input type="number" name="quantity" id="quantity" min="1" value="<?= count($equipment_inventory) ?>" required>
 
-            <!-- Add Hidden Inventory ID field -->
-            <input type="hidden" name="inventory_id_<?= $index+1 ?>" value="<?= $inv['inventory_id'] ?>">
+            <div class="inventory-container" id="inventory-container">
+                <?php foreach ($equipment_inventory as $index => $inv) : ?>
+                    <div class="inventory-box">
+                        <label for="identifier_<?= $index + 1 ?>">Identifier <?= $index + 1 ?>:</label>
+                        <input type="text" name="identifier_<?= $index + 1 ?>" id="identifier_<?= $index + 1 ?>" value="<?= $inv['identifier'] ?>" required>
+
+                        <label for="status_<?= $index + 1 ?>">Status <?= $index + 1 ?>:</label>
+                        <select name="status_<?= $index + 1 ?>" id="status_<?= $index + 1 ?>" required>
+                            <option value="available" <?= ($inv['status'] == 'available') ? 'selected' : '' ?>>Available</option>
+                            <option value="in_use" <?= ($inv['status'] == 'in_use') ? 'selected' : '' ?>>In Use</option>
+                            <option value="maintenance" <?= ($inv['status'] == 'maintenance') ? 'selected' : '' ?>>Maintenance</option>
+                        </select>
+
+                        <!-- Add Hidden Inventory ID field -->
+                        <input type="hidden" name="inventory_id_<?= $index + 1 ?>" value="<?= $inv['inventory_id'] ?>">
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+
+            <button type="submit" class="btn">Update Equipment</button>
+        </form>
+
+        <div class="btn-container">
+            <a href="view-equipments.php" class="btn">View Equipment List</a>
         </div>
-    <?php endforeach; ?>
-</div>
-
-
-        <button type="submit" class="btn">Update Equipment</button>
-    </form>
-
-    <div class="btn-container">
-        <a href="view-equipments.php" class="btn">View Equipment List</a>
     </div>
-</div>
 
-<script>
-    document.getElementById('quantity').addEventListener('input', function() {
-        let quantity = this.value;
-        let inventoryContainer = document.getElementById('inventory-container');
-        inventoryContainer.innerHTML = '';  // Clear the previous inventory inputs
+    <script>
+        document.getElementById('quantity').addEventListener('input', function() {
+            let quantity = this.value;
+            let inventoryContainer = document.getElementById('inventory-container');
+            inventoryContainer.innerHTML = ''; // Clear the previous inventory inputs
 
-        // Create input fields for inventory based on quantity
-        for (let i = 1; i <= quantity; i++) {
-            let inventoryBox = document.createElement('div');
-            inventoryBox.classList.add('inventory-box');
+            // Create input fields for inventory based on quantity
+            for (let i = 1; i <= quantity; i++) {
+                let inventoryBox = document.createElement('div');
+                inventoryBox.classList.add('inventory-box');
 
-            inventoryBox.innerHTML = ` 
+                inventoryBox.innerHTML = ` 
                 <label for="identifier_${i}">Identifier ${i}:</label>
                 <input type="text" name="identifier_${i}" id="identifier_${i}" required>
 
@@ -216,10 +242,11 @@ $equipment_stmt->close();
                     <option value="maintenance">Maintenance</option>
                 </select>
             `;
-            inventoryContainer.appendChild(inventoryBox);
-        }
-    });
-</script>
+                inventoryContainer.appendChild(inventoryBox);
+            }
+        });
+    </script>
 
 </body>
+
 </html>
