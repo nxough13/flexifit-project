@@ -3,11 +3,11 @@ session_start();
 include('../includes/header.php');
 include('../includes/config.php');
 
-if (!isset($_SESSION['id']) || $_SESSION['user_type'] !== 'admin') {
-    $_SESSION['message'] = "You need to log in first or are not authorized to access this page.";
-    header("Location: ../users/login.php");
-    exit();
-}
+// if (!isset($_SESSION['id']) || $_SESSION['user_type'] !== 'admin') {
+//     $_SESSION['message'] = "You need to log in first or are not authorized to access this page.";
+//     header("Location: ../users/login.php");
+//     exit();
+// }
 
 if (!isset($_POST['plan_id'])) {
     $_SESSION['message'] = "No plan selected for updating.";
