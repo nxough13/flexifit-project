@@ -18,6 +18,6 @@ if (isset($_GET["id"])) {
         echo "Error: " . $conn->error;
     }
 }
-
+// neo
 $conn->close();
 ?>

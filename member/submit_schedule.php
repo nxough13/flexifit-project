@@ -14,7 +14,7 @@ if ($conn->connect_error) {
 if (!isset($_SESSION['user_id'])) {
     die(json_encode(["status" => "error", "message" => "User not authenticated."]));
 }
-
+// neo
 $user_id = $_SESSION['user_id'];
 
 // Fetch member_id based on user_id

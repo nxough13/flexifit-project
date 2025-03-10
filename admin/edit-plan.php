@@ -29,7 +29,7 @@ if (!$plan) {
     header("Location: index.php");
     exit();
 }
-
+// neo
 // Store existing image path
 $existing_image = !empty($plan['image']) ? 'uploads/' . htmlspecialchars($plan['image']) : '';
 ?>

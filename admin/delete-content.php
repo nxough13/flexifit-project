@@ -73,7 +73,7 @@ if (isset($_GET['content_id'])) {
     $stmt->bind_param("i", $content_id);
     $stmt->execute();
     $stmt->close();
-   
+   // neo
     header("Location: content.php");
     exit();
 }

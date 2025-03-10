@@ -7,7 +7,7 @@ include '../includes/header.php';
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
-
+// neo
 // Fetch all membership plans from the database
 $sql = "SELECT * FROM membership_plans ORDER BY plan_id ASC";
 $result = $conn->query($sql);

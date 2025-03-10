@@ -5,7 +5,7 @@ if (!isset($_SESSION['user_id'])) {
     header("Location: ../index.php");
     exit();
 }
-
+// neo
 if ($_SESSION['user_type'] == 'guest') {
     // Guests cannot access members or admin areas
     header("Location: ../index.php");

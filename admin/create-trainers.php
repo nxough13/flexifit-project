@@ -3,7 +3,7 @@ session_start(); // Start the session to handle success messages
 
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
 include '../includes/header.php';
-
+// neo
 // Enable error reporting for debugging
 ini_set('display_errors', 1);
 error_reporting(E_ALL);

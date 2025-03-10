@@ -23,7 +23,7 @@ if ($_SESSION['user_type'] == 'member') {
     header("Location: ../member/index.php");
     exit();
 }
-
+// neo
 // Fetch latest active member
 $latest_member_query = "
     SELECT u.first_name, u.last_name, u.image, mp.name AS plan_name 

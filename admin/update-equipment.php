@@ -44,7 +44,7 @@ $stmt->close();
             echo "Error uploading the image.";
         }
     }
-
+// neo
     // Update equipment details (name, description)
     $update_equipment_query = "UPDATE equipment SET name = ?, description = ? WHERE equipment_id = ?";
     $stmt = $conn->prepare($update_equipment_query);

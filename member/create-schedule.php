@@ -7,7 +7,7 @@ $password = "";
 $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 include "../includes/header.php";
-
+// neo
 // Check connection
 // if ($conn->connect_error) {
 //     die("Connection failed: " . $conn->connect_error);

@@ -10,7 +10,7 @@ $conn = new mysqli($host, $user, $password, $dbname);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
-
+// neo
 // Ensure member access
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'member') {
     header("Location: ../login.php");

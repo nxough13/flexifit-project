@@ -35,7 +35,7 @@ if (isset($_POST['inventory_id'])) {
 } else {
     $_SESSION['error'] = "No equipment ID provided.";
 }
-
+// neo
 $conn->close();
 
 // Redirect back to the equipment list

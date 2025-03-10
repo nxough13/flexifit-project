@@ -36,7 +36,7 @@ foreach ($equipment as $item) {
         exit;
     }
 }
-
+// neo
 // If all insertions succeed
 echo json_encode(["success" => true, "message" => "Schedule successfully saved."]);
 ?>

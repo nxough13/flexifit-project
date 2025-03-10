@@ -4,7 +4,7 @@ $user = "root";
 $password = "";
 $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
-
+// neo
 session_start();
 include 'includes/header.php'; // Ensure the path to header.php is correct
 

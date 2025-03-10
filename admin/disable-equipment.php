@@ -20,7 +20,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
 // Check if inventory_id is provided
 if (isset($_POST['inventory_id'])) {
     $inventory_id = $_POST['inventory_id'];
-
+// neo
     // Update the active_status to 'disabled'
     $stmt = $conn->prepare("UPDATE equipment_inventory SET active_status = 'disabled' WHERE inventory_id = ?");
     $stmt->bind_param("i", $inventory_id);

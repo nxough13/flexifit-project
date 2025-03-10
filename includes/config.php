@@ -4,7 +4,7 @@ $host = "localhost";
 $user = "root";     
 $pass = "";           
 $dbname = "flexifit_db"; 
-
+// neo
 //create conn
 $conn = new mysqli($host, $user, $pass, $dbname);
 

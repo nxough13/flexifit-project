@@ -18,7 +18,7 @@ if ($conn->connect_error) {
 
 
 
-
+// neo
 // Fetch all content from the database
 $sql = "SELECT * FROM content ORDER BY content_id ASC";
 $result = $conn->query($sql);

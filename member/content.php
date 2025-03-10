@@ -147,4 +147,4 @@ $result = $conn->query($sql);
 <?php
 $conn->close();
 ?>
-<?php include '../includes/footer.php'; ?>
+<?php include '../includes/footer.php'; // neo?>

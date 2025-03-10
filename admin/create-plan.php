@@ -36,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         echo "<p style='color:red;'>Error: " . mysqli_error($conn) . "</p>";
     }
 }
+// neo
 ?>
 
 <!DOCTYPE html>

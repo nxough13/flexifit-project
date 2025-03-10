@@ -14,7 +14,7 @@ if (!isset($_POST['plan_id'])) {
     header("Location: index.php");
     exit();
 }
-
+// neo
 $plan_id = $_POST['plan_id'];
 $name = $_POST['name'];
 $duration_days = $_POST['duration_days'];

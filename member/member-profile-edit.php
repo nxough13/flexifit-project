@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-
+// neo
 // Fetch user details
 $user_id = $_SESSION['user_id'];
 $query = "SELECT * FROM users WHERE user_id = ?";

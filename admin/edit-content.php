@@ -21,7 +21,7 @@ if (isset($_SESSION['user_id']) && $_SESSION['user_type'] == 'admin') {
     exit();
 }
 
-
+// neo
 // Check if the form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Capture user input

@@ -169,7 +169,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             flex-direction: column;
             align-items: center;
             width: 100%;
-            gap: 30px; /* Added more spacing between the inputs */
+            gap: 30px; /* Added more spacing between the inputs// neo */
             
         }
 

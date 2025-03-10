@@ -24,7 +24,7 @@ if ($inventory_id === null) {
     header("Location: view-equipments.php");
     exit();
 }
-
+// neo
 // Fetch the equipment inventory based on inventory_id (identifier)
 $query = "SELECT ei.*, e.name AS equipment_name, e.description, e.image 
           FROM equipment_inventory ei

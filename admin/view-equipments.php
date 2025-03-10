@@ -12,7 +12,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: ../login.php");
     exit();
 }
-
+// neo
 // Fetch all equipment from the equipment_inventory table
 $sql = "SELECT ei.inventory_id, e.name AS equipment_name, e.description, ei.identifier, ei.status, ei.active_status, e.image
         FROM equipment_inventory ei

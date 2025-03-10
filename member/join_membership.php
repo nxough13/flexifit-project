@@ -6,7 +6,7 @@ $conn = new mysqli("localhost", "root", "", "flexifit_db");
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
-
+// neo
 if (!isset($_SESSION['user_id']) || !isset($_GET['plan_id'])) {
     header("Location: membership-plans.php");
     exit();

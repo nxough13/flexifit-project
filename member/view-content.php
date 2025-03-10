@@ -15,7 +15,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-
+// neo
 // Ensure content_id is set and valid
 if (!isset($_GET['content_id']) || !is_numeric($_GET['content_id'])) {
     die("Invalid content ID!");

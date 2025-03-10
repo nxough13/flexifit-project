@@ -33,7 +33,7 @@ $specialties = [];
 while ($row = $specialties_result->fetch_assoc()) {
     $specialties[] = $row['name'];
 }
-
+// neo
 ?>
 
 <!DOCTYPE html>

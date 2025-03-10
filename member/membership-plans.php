@@ -8,7 +8,7 @@ $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 $sql = "SELECT * FROM membership_plans";
 $result = $conn->query($sql);
-
+// neo
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $_SESSION['selected_plan'] = $_POST['selected_plan'];

@@ -8,7 +8,7 @@ include '../includes/header.php';
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
-
+// neo
 // Fetch all trainers from the database
 $sql = "SELECT t.trainer_id, t.first_name, t.last_name, t.email, t.age, t.gender, t.image, t.status, t.availability_status,
         GROUP_CONCAT(s.name SEPARATOR ', ') AS specialties

@@ -9,7 +9,7 @@ html, body {
     flex-direction: column;
 }
 
-/* Content should expand to push the footer down */
+/* Content should expand to push the footer down// neo */
 .content-wrapper {
     flex: 1;
 }

@@ -79,7 +79,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['content_id'])) {
         die("Invalid Content ID!");
     }
 
-
+// neo
     $title = trim($_POST['title']);
     $description = trim($_POST['description']);
     $content_type = $_POST['content_type'];

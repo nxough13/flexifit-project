@@ -15,7 +15,7 @@ if (!isset($_POST['equipment'])) {
     echo json_encode(["conflict" => true, "message" => "No equipment selected."]);
     exit;
 }
-
+// neo
 $schedule_date = $_POST['schedule_date'];
 $equipment = $_POST['equipment'];
 $member_id = $_POST['member_id'];  // Get member ID from POST request

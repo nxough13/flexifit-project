@@ -85,7 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $conn->query("INSERT INTO trainer_specialty (trainer_id, specialty_id) VALUES ('$trainer_id', '$specialty_id')");
             }
         }
-
+// neo
         $_SESSION['success_message'] = "Trainer updated successfully!";
         header("Location: view-trainers.php"); // Redirect to the view-trainers.php page
         exit();
