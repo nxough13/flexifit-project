@@ -25,25 +25,88 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $payment_method = $_POST['paymentMethod'];
     $amount_paid = $plan['price'];
     $gmail = $_POST['gmail'];
-    $status = ($payment_method == 'payOnSite') ? 'pending' : 'completed';
+
+    // Set the payment status based on the payment method
+    if ($payment_method == 'payOnSite') {
+        $status = 'pending';
+        $payment_mode = 'cash';  // Set payment mode as 'cash' for pay on site
+    } else {
+        $status = 'completed';
+        $payment_mode = $payment_method;  // Otherwise, use the selected payment method
+    }
+    
 
     $gcash_number = $_POST['gcashNumber'] ?? null;
     $reference_number = $_POST['referenceNumber'] ?? null;
     $card_type = $_POST['cardType'] ?? null;
     $card_id = $_POST['cardID'] ?? null;
 
-    $payment_query = "INSERT INTO membership_payments (member_id, plan_id, amount, gmail, payment_mode, gcash_reference_number, gcash_phone_number, card_type, card_id_number, payment_status, payment_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-    $stmt = $conn->prepare($payment_query);
-    $stmt->bind_param("iidsssssss", $_SESSION['user_id'], $selected_plan, $amount_paid, $gmail, $payment_method, $reference_number, $gcash_number, $card_type, $card_id, $status);
-    
-    if ($stmt->execute()) {
-        echo "<script>alert('Payment processed successfully!'); window.location.href='index.php';</script>";
+    // Check if the user is already a member
+    $check_member_query = "SELECT * FROM members WHERE user_id = ?";
+    $stmt = $conn->prepare($check_member_query);
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows == 0) {
+        // Check the user's medical condition before inserting the member
+        $check_medical_condition = "SELECT medical_condition FROM users WHERE user_id = ?";
+        $stmt = $conn->prepare($check_medical_condition);
+        $stmt->bind_param("i", $_SESSION['user_id']);
+        $stmt->execute();
+        $condition_result = $stmt->get_result();
+        $condition_row = $condition_result->fetch_assoc();
+
+        if ($condition_row['medical_condition'] == 'yes') {
+            $status = 'pending';
+        } else {
+            if ($payment_method == 'payOnSite') {
+                $status = 'pending';
+            } else {
+                $status = 'active';
+            }
+        }
+
+        // Insert into the members table
+        $insert_member = "INSERT INTO members (user_id, plan_id, start_date, end_date, membership_status, free_training_session) 
+                          VALUES (?, ?, ?, ?, ?, ?)";
+        $stmt = $conn->prepare($insert_member);
+        $stmt->bind_param("iisssi", $_SESSION['user_id'], $selected_plan, $start_date, $end_date, $status, $plan['free_training_session']);
+        $stmt->execute();
+
+        // Get the member_id of the inserted record and store it in the session
+        $member_id = $stmt->insert_id;
+        $_SESSION['member_id'] = $member_id;
+        $stmt->close();
+
+        // Update user_type to 'member'
+        $update_user_type = "UPDATE users SET user_type = 'member' WHERE user_id = ?";
+        $stmt = $conn->prepare($update_user_type);
+        $stmt->bind_param("i", $_SESSION['user_id']);
+        $stmt->execute();
+        $stmt->close();
     } else {
-        echo "<script>alert('Payment failed. Try again.');</script>";
+        // Get existing member_id if the user is already a member
+        $member = $result->fetch_assoc();
+        $member_id = $member['member_id'];
     }
-    
+
+    // Insert payment details (ensure the member_id is valid here)
+    $payment_query = "INSERT INTO membership_payments (member_id, plan_id, amount, gmail, payment_mode, gcash_reference_number, gcash_phone_number, card_type, card_id_number, payment_status, payment_date) 
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+    $stmt = $conn->prepare($payment_query);
+    $stmt->bind_param("iidsssssss", $member_id, $selected_plan, $amount_paid, $gmail, $payment_mode, $reference_number, $gcash_number, $card_type, $card_id, $status);
+    $stmt->execute();
+
+    // Get the payment_id of the inserted record and store it in the session
+    $payment_id = $stmt->insert_id;
+    $_SESSION['payment_id'] = $payment_id;  // Store the payment_id for use in the receipt page
     $stmt->close();
+
+    // Close the connection
     $conn->close();
+
+    echo "<script>alert('Payment processed successfully!'); window.location.href='receipt.php';</script>";
 }
 ?>
 
@@ -64,18 +127,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             font-family: 'Roboto', sans-serif;
         }
 
-        /* Ads Image on the left side */
         .ads-image {
             position: fixed;
-            top: 70px; /* Move it below the header */
+            top: 80px;
             left: 0;
-            width: 200px; /* Set width of the image */
-            height: 100vh; /* Full height of the page */
-            background-image: url('../admin/uploads/Left-image.jpg'); /* Replace with your image path */
+            width: 200px;
+            height: 100vh;
+            background-image: url('../admin/uploads/Left-image.jpg');
             background-size: cover;
             background-position: center;
-            border-right: 5px solid yellow; /* Adds the yellow border on the right */
+            border-right: 5px solid yellow;
             z-index: 99;
+        }
+
+        select[name="cardType"] {
+            width: 90%;
+            padding: 12px;
+            border: 2px solid yellow;
+            border-radius: 5px;
+            background-color: black;
+            color: yellow;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            margin-bottom: 20px;
+        }
+
+        select[name="cardType"]::-ms-expand {
+            display: none;
+        }
+
+        select[name="cardType"]:focus {
+            border-color: yellow;
+            outline: none;
         }
 
         .container {
@@ -83,7 +170,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             justify-content: space-between;
             align-items: flex-start;
             margin: 5% auto;
-            width: 75%; /* Adjusted to move content to the left */
+            width: 75%;
             gap: 30px;
         }
 
@@ -153,7 +240,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             font-weight: bold;
             cursor: pointer;
             border-radius: 5px;
-            width: 90%;
+            width: 60%;
             text-align: center;
             border: 2px solid black;
         }
@@ -169,8 +256,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             flex-direction: column;
             align-items: center;
             width: 100%;
-            gap: 30px; /* Added more spacing between the inputs// neo */
-            
+            gap: 15px;
         }
 
         .payment-fields input {
@@ -193,9 +279,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         #payOnSiteWarning {
             display: none;
-            color: red;
+            color: white;
             font-style: italic;
             margin-top: 10px;
+            font-size: larger;
         }
 
         .submit-btn {
@@ -207,7 +294,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             border: none;
             cursor: pointer;
             border-radius: 5px;
-            width: 90%;
+            width: 40%;
         }
 
         .submit-btn:hover {
@@ -215,14 +302,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             color: yellow;
             border: 2px solid yellow;
         }
+
+        .back-to-plans-btn {
+            background-color: yellow;
+            color: black;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 30%;
+            margin-top: 10px;
+        }
+
+        .back-to-plans-btn:hover {
+            background-color: black;
+            color: yellow;
+        }
+
+        .right-box input[name="gmail"] {
+            width: 90%;
+            padding: 12px;
+            border: 2px solid yellow;
+            border-radius: 5px;
+            background-color: black;
+            color: yellow;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
-
 <body>
 
-    <!-- Ads Image on the left side -->
     <div class="ads-image"></div>
-
 
     <div class="container">
         <div class="left-box">
@@ -230,8 +345,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <p>Price: ₱<?php echo number_format($plan['price'], 2); ?></p>
             <p>Starting Date: <?php echo $start_date; ?></p>
             <p>End Date: <?php echo $end_date; ?></p>
-            <input type="email" name="gmail" placeholder="Enter your Gmail" required>
-            <button style="margin-top: 10px;" onclick="window.location.href='membership-plans.php'">Back to Plans</button>
+            <br><br>
+            <button class="back-to-plans-btn" onclick="window.location.href='membership-plans.php'">Back to Plans</button>
         </div>
 
         <div class="right-box">
@@ -247,19 +362,38 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </div>
 
                 <div id="payOnSiteWarning">
-                    <p>Note: Membership Application will be set as pending until paid and activated by an Admin.</p>
+                    <br>
+                    <p>NOTE: Membership Application will be set as pending until paid and activated by an Admin.</p>
+                    <br>
                 </div>
 
                 <div class="payment-fields" id="gcashFields" style="display: none;">
+                    <br>
                     <input type="text" name="gcashNumber" placeholder="Enter GCash Number">
+                    <br><br>
                     <input type="text" name="referenceNumber" placeholder="Enter Reference Number">
+                    <br><br><br>
                 </div>
 
                 <div class="payment-fields" id="cardFields" style="display: none;">
-                    <input type="text" name="cardType" placeholder="Enter Type of Card">
-                    <input type="text" name="cardID" placeholder="Enter Card ID Number">
-                </div>
+                    <br>
+                    <select name="cardType">
+                        <option value="">Select Card Type</option>
+                        <option value="Visa">Visa</option>
+                        <option value="Mastercard">Mastercard</option>
+                        <option value="Amex">Amex</option>
+                        <option value="Other">Other</option>
+                        <option value="Debit">Debit</option>
+                        <option value="Credit">Credit</option>
+                    </select>
 
+                    <br><br>
+                    <input type="text" name="cardID" placeholder="Enter Card ID Number">
+                    <br><br><br>
+                </div>
+                <p style="font-size: large;">Enter Gmail for Receipt:</p>
+                <input type="email" name="gmail" placeholder="Enter your Gmail" required>
+                <br>
                 <button type="submit" class="submit-btn">Submit</button>
             </form>
         </div>
@@ -290,16 +424,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
             }
 
-            // Attach event listener to payment method radio buttons
             paymentMethods.forEach(method => {
                 method.addEventListener("change", toggleFields);
             });
 
-            // Initialize the form on load
             toggleFields();
         });
     </script>
-
+<br><br>
 </body>
 </html>
 
+<?php include "../includes/footer.php"; ?>
