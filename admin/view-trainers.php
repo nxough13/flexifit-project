@@ -2,6 +2,7 @@
 // Connect to database
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
 include '../includes/header.php';
+//hello
 
 // Check connection
 if ($conn->connect_error) {
