@@ -67,11 +67,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         /* Ads Image on the left side */
         .ads-image {
             position: fixed;
-            top: 0;
+            top: 70px; /* Move it below the header */
             left: 0;
             width: 200px; /* Set width of the image */
             height: 100vh; /* Full height of the page */
-            background-image: url('default.jpg'); /* Replace with your image path */
+            background-image: url('../admin/uploads/Left-image.jpg'); /* Replace with your image path */
             background-size: cover;
             background-position: center;
             border-right: 5px solid yellow; /* Adds the yellow border on the right */
@@ -169,7 +169,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             flex-direction: column;
             align-items: center;
             width: 100%;
-            gap: 10px;
+            gap: 30px; /* Added more spacing between the inputs */
+            
         }
 
         .payment-fields input {
