@@ -288,3 +288,22 @@ CREATE TABLE trainer_schedule_approval (
     FOREIGN KEY (trainer_id) REFERENCES trainers(trainer_id) ON DELETE CASCADE
 );
 
+DROP TABLE IF EXISTS membership_payments;
+CREATE TABLE membership_payments (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    member_id INT NOT NULL,
+    plan_id INT NOT NULL, -- Tracks which plan was paid for
+    amount DECIMAL(10,2) NOT NULL,
+    gmail VARCHAR(255) NOT NULL,
+    payment_mode ENUM('cash', 'credit_card', 'gcash', 'bank_transfer') NOT NULL,
+    gcash_reference_number VARCHAR(255) DEFAULT NULL, 
+    gcash_phone_number VARCHAR(20) DEFAULT NULL, 
+    card_type ENUM('Visa', 'Mastercard', 'Amex', 'Other') DEFAULT NULL,
+    card_id_number VARCHAR(20) DEFAULT NULL, -- Stores last 4 digits of the card
+    payment_status ENUM('pending', 'completed', 'failed') NOT NULL DEFAULT 'pending',
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+    FOREIGN KEY (plan_id) REFERENCES membership_plans(plan_id) ON DELETE CASCADE
+);
+
+

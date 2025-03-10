@@ -9,14 +9,12 @@ $conn = new mysqli($host, $user, $password, $dbname);
 $sql = "SELECT * FROM membership_plans";
 $result = $conn->query($sql);
 
-// Handle form submission to store selected plan in session
+// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Store selected plan, start date, and end date in session
     $_SESSION['selected_plan'] = $_POST['selected_plan'];
     $_SESSION['start_date'] = $_POST['start_date'];
     $_SESSION['end_date'] = $_POST['end_date'];
 
-    // Redirect to payment page
     header('Location: process-payment.php');
     exit();
 }
@@ -40,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .container {
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* Align top vertically */
+            align-items: flex-start;
             gap: 80px;
             width: 90%;
             margin: 0 auto;
@@ -50,8 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
-            justify-content: center;
-            align-items: center;
             max-width: 900px;
             margin-top: 1%;
         }
@@ -63,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             text-align: center;
             box-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
             border-radius: 10px;
+            cursor: pointer;
         }
 
         .plan-box img {
@@ -82,20 +79,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             font-weight: bold;
         }
 
-        .plan-box button {
-            background-color: yellow;
-            color: black;
-            padding: 12px;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-
-        .plan-box button:hover {
-            background-color: #e0a800;
-        }
-
         .form-box {
             width: 25%;
             padding: 20px;
@@ -105,15 +88,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             border-radius: 10px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            height: 100%;
-            flex: 0.75;
             margin-top: 1.2%;
         }
 
-        .form-box input[type="text"], .form-box input[type="date"], .form-box select {
-            width: 50%;
+        .form-box input[type="date"], .form-box select {
+            width: 80%;
             padding: 10px;
             margin-bottom: 15px;
             border: 1px solid yellow;
@@ -136,11 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background-color: #e0a800;
         }
 
-        .container-flex {
-            display: flex;
-            justify-content: space-between;
-        }
-
         h1 {
             color: yellow;
             margin-top: 2%;
@@ -155,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         .selected-plan {
-            border: 4px solid #FFD700; /* Highlight with gold */
+            border: 4px solid #FFD700;
             box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
         }
     </style>
@@ -170,10 +145,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <div class="container">
     <div class="membership-plans">
         <?php
-        // Display membership plans fetched from the database
         if ($result->num_rows > 0) {
             while ($row = $result->fetch_assoc()) {
-                $image_path = !empty($row['image']) ? '../admin/uploads/' . $row['image'] : 'admin/uploads/default-image.jpg'; // Ensure there's a fallback image
+                $image_path = !empty($row['image']) ? '../admin/uploads/' . $row['image'] : 'admin/uploads/default-image.jpg';
                 echo '<div class="plan-box selectable" data-plan-id="' . $row["plan_id"] . '" data-duration="' . $row["duration_days"] . '">';
                 echo '<img src="' . $image_path . '" alt="Plan Image">';  
                 echo '<h3>' . htmlspecialchars($row["name"]) . '</h3>';
@@ -190,57 +164,51 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <h2>Enter Start Date</h2>
         <form method="POST">
             <label for="start_date">Preferred Start Date:</label>
-            <input style="margin-left: 5%;" type="date" id="start_date" name="start_date" required onchange="updateEndDate()">
-            
-            <label for="end_date">Membership End Date:</label>
-            <input style="margin-left: 1.6%;" type="date" id="end_date" name="end_date" required readonly>
+            <input type="date" id="start_date" name="start_date" required>
 
-            <button style="margin-left: 55%;" type="submit">Proceed to Payment</button>
+            <label for="end_date">Membership End Date:</label>
+            <input type="date" id="end_date" name="end_date" readonly required>
+
+            <input type="hidden" id="selected_plan_input" name="selected_plan">
+
+            <button type="submit">Proceed to Payment</button>
         </form>
     </div>
 </div>
 
 <script>
-    function updateEndDate() {
-        const startDate = document.getElementById('start_date').value;
-        const selectedPlan = document.querySelector('.selected-plan');
-
-        if (startDate && selectedPlan) {
-            const duration = selectedPlan.getAttribute('data-duration');
-            const startDateObj = new Date(startDate);
-            const endDateObj = new Date(startDateObj);
-            endDateObj.setDate(startDateObj.getDate() + parseInt(duration));
-
-            const endDateInput = document.getElementById('end_date');
-            endDateInput.value = endDateObj.toISOString().split('T')[0];
-        }
-    }
-
     document.addEventListener("DOMContentLoaded", function () {
         const plans = document.querySelectorAll(".selectable");
+        const startDateInput = document.getElementById("start_date");
+        const endDateInput = document.getElementById("end_date");
+        const selectedPlanInput = document.getElementById("selected_plan_input");
+
+        function updateEndDate() {
+            const startDate = startDateInput.value;
+            const selectedPlan = document.querySelector(".selected-plan");
+
+            if (startDate && selectedPlan) {
+                const duration = parseInt(selectedPlan.getAttribute("data-duration"));
+                const startDateObj = new Date(startDate);
+                const endDateObj = new Date(startDateObj);
+                endDateObj.setDate(startDateObj.getDate() + duration);
+                endDateInput.value = endDateObj.toISOString().split('T')[0];
+            }
+        }
 
         plans.forEach(plan => {
             plan.addEventListener("click", function () {
                 plans.forEach(p => p.classList.remove("selected-plan"));
                 this.classList.add("selected-plan");
 
-                const selectedPlanId = this.getAttribute("data-plan-id");
-                document.getElementById("selected_plan_input").value = selectedPlanId;
-
-                updateEndDate(parseInt(this.getAttribute("data-duration")));
+                selectedPlanInput.value = this.getAttribute("data-plan-id");
+                updateEndDate();
             });
         });
-    });
 
-    function updateEndDate(duration) {
-        const startDate = document.getElementById('start_date').value;
-        if (startDate) {
-            const startDateObj = new Date(startDate);
-            const endDateObj = new Date(startDateObj);
-            endDateObj.setDate(startDateObj.getDate() + duration);
-            document.getElementById('end_date').value = endDateObj.toISOString().split('T')[0];
-        }
-    }
+        startDateInput.addEventListener("change", updateEndDate);
+    });
 </script>
+
 </body>
 </html>
