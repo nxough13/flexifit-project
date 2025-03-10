@@ -1,13 +1,8 @@
 <?php
 session_start();
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-include '../includes/header.php';
-
-// Database connection
-$conn = new mysqli($host, $user, $password, $dbname);
+$conn = new mysqli("localhost", "root", "", "flexifit_db");
+include "../includes/header.php";
+// Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }

@@ -3,14 +3,12 @@ session_start(); // Start session to access the logged-in user's details
 include '../includes/header.php';
 
 
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+$conn = new mysqli("localhost", "root", "", "flexifit_db");
 
 
-// Check if connection was successful
+
+
+// Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }

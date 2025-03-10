@@ -1,11 +1,12 @@
 <?php
 // Database connection
+
 $host = "localhost";
 $user = "root";
 $password = "";
 $dbname = "flexifit_db";
-include '../includes/header.php';
 $conn = new mysqli($host, $user, $password, $dbname);
+include "../includes/header.php";
 
 // Check connection
 // if ($conn->connect_error) {
@@ -46,21 +47,129 @@ while ($trainer = mysqli_fetch_assoc($trainers_result)) {
     <title>Schedule Equipment</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
-        /* Your CSS here as before */
-        body { font-family: Arial, sans-serif; background-color: #111; color: white; }
-        .container { display: flex; justify-content: space-between; max-width: 900px; margin: auto; }
-        .box { width: 48%; padding: 20px; background-color: #222; border-radius: 10px; box-shadow: 0 0 10px rgba(255, 193, 7, 0.8); }
-        label { display: block; font-weight: bold; margin-top: 10px; }
-        input, select { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #FFC107; border-radius: 5px; background-color: #333; color: white; }
-        .equipment-box { border: 1px solid #FFC107; padding: 10px; margin-bottom: 10px; background-color: #333; border-radius: 5px; }
-        button { padding: 10px; width: 100%; background-color: #FFC107; border: none; color: black; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .trainer-card { border: 1px solid #FFC107; padding: 10px; width: 90%; margin: 10px 0; background-color: #222; border-radius: 5px; }
-        .trainer-card:hover { background-color: #FFC107; color: black; }
-        .trainer-card img { max-width: 80px; border-radius: 5px; }
-        .selected-trainer { background-color: #f0f8ff; }
-        #equipment-container { margin-bottom: 10px; }
-        #add-equipment { background-color: #fcd100; color: black; padding: 12px; font-weight: bold; width: 100%; cursor: pointer; }
-        #add-equipment:hover { background-color: #e0a800; }
+        body {
+    font-family: Arial, sans-serif;
+    background-color: #111;
+    color: white;
+}
+
+.container {
+    display: flex;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: auto;
+}
+
+.box {
+    width: 48%;
+    padding: 25px;
+    background-color: #222;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.8);
+    margin-top: 20px;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border: 1px solid #FFC107;
+    border-radius: 5px;
+    background-color: #333;
+    color: white;
+    font-size: 16px;
+}
+
+button {
+    padding: 15px;
+    width: 100%;
+    background-color: #FFC107;
+    border: none;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+    font-size: 16px;
+}
+
+button:hover {
+    background-color: #e0a800;
+}
+
+.trainer-card {
+    display: flex;                   /* Arrange content side by side */
+    align-items: center;             /* Vertically align content */
+    border: 1px solid #FFC107;       /* Border color */
+    padding: 15px;
+    width: 100%;
+    margin: 10px 0;
+    background-color: #222;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.trainer-card:hover {
+    background-color: #FFC107;
+    color: black;
+}
+
+.trainer-card.selected {
+    background-color: #FFC107;
+}
+
+.trainer-card h4 {
+    font-size: 22px;                /* Font size for name */
+    margin: 0 0 5px 0;              /* Adjust the margin to avoid unnecessary space */
+}
+
+.trainer-card .trainer-info {
+    display: block;                 /* Stack text elements vertically */
+}
+
+
+.trainer-card img {
+    width: 120px;                    /* Make the image bigger */
+    height: 120px;                   /* Adjust the height to match the width */
+    border-radius: 50%;              /* Circular image */
+    margin-right: 20px;              /* Space between image and text */
+}
+
+.trainer-card p {
+    font-size: 17px;                /* Font size for specialty and availability */
+    margin: 5px 0;                  /* Ensure there's space between the lines */
+}
+
+#equipment-container {
+    margin-bottom: 15px;
+}
+
+#add-equipment {
+    background-color: #fcd100;
+    color: black;
+    padding: 15px;
+    font-weight: bold;
+    width: 100%;
+    cursor: pointer;
+}
+
+#add-equipment:hover {
+    background-color: #e0a800;
+}
+
+/* Title */
+h2 {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #FFC107;
+}
     </style>
 </head>
 <body>
@@ -94,9 +203,11 @@ while ($trainer = mysqli_fetch_assoc($trainers_result)) {
             <?php foreach ($trainers as $trainer): ?>
                 <div class="trainer-card" data-id="<?php echo $trainer['trainer_id']; ?>">
                     <img src="../admin/uploads/<?php echo $trainer['image']; ?>" alt="Trainer Image">
+                    <div class="trainer-info">
                     <h4><?php echo $trainer['first_name'] . " " . $trainer['last_name']; ?></h4>
                     <p>Specialty: <?php echo $trainer['specialty']; ?></p>
-                    <p>Available: <?php echo $trainer['availability_status']; ?></p>
+                    <p>Availability: <?php echo $trainer['availability_status']; ?></p>
+                    </div>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -190,6 +301,14 @@ $(document).ready(function() {
 
         return valid;
     }
+
+    // Trainer selection functionality
+    $(".trainer-card").click(function() {
+        $(".trainer-card").removeClass("selected"); // Deselect all trainers
+        $(this).addClass("selected"); // Select the clicked trainer
+        let trainerId = $(this).data("id");
+        $("#selected_trainer").val(trainerId); // Set selected trainer in the hidden field
+    });
 
     // Submit schedule
     $("#submit-schedule").click(function () {

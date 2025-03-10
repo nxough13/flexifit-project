@@ -275,3 +275,16 @@ ADD COLUMN status ENUM('active', 'disabled') DEFAULT 'ACTIVE';
 
 ALTER TABLE equipment_inventory
 ADD COLUMN active_status ENUM('active', 'disabled') DEFAULT 'ACTIVE';
+
+
+CREATE TABLE trainer_schedule_approval (
+    approval_id INT AUTO_INCREMENT PRIMARY KEY,
+    member_id INT NOT NULL,
+    trainer_id INT NOT NULL,
+    status ENUM('approved', 'pending', 'rejected') NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+    FOREIGN KEY (trainer_id) REFERENCES trainers(trainer_id) ON DELETE CASCADE
+);
+
