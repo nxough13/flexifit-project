@@ -82,7 +82,7 @@ CREATE TABLE equipment_inventory (
     inventory_id INT AUTO_INCREMENT PRIMARY KEY,
     equipment_id INT NOT NULL,
     identifier VARCHAR(50) NOT NULL UNIQUE,
-    status ENUM('available', 'in_use', 'maintenance') NOT NULL DEFAULT 'available',
+    status ENUM('available', 'in_use', 'maintenance') NULL DEFAULT 'available',
     FOREIGN KEY (equipment_id) REFERENCES equipment(equipment_id) ON DELETE CASCADE
 );
 
@@ -336,4 +336,6 @@ CREATE TABLE equipment_usage (
     FOREIGN KEY (inventory_id) REFERENCES equipment_inventory(inventory_id),
     FOREIGN KEY (member_id) REFERENCES members(member_id)  -- Links to members table
 );
+
+
 

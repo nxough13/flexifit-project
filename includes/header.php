@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $base_path = __DIR__; // Gets the directory of the current file
 require_once $base_path . '../config.php'; // Ensures the correct path
 
-// Check if user is logged in and fetch user details// neo
+// Check if user is logged in and fetch user details
 $user = null;
 $profileLink = "../login.php"; // Default profile link for non-logged-in users
 
@@ -42,6 +42,12 @@ if (isset($_SESSION['user_id'])) {
             <li style="display: inline;"><a href="/flexifit-project/index.php#about" style="text-decoration: none; color: white; font-weight: bold;">About</a></li>
             <li style="display: inline;"><a href="/flexifit-project/index.php#offers" style="text-decoration: none; color: white; font-weight: bold;">Offers</a></li>
             <li style="display: inline;"><a href="/flexifit-project/index.php#contact" style="text-decoration: none; color: white; font-weight: bold;">Contact</a></li>
+            <?php if ($user && ($user['user_type'] === 'member' || $user['user_type'] === 'admin')): ?>
+                <li style="display: inline;"><a href="/flexifit-project/member/view-content.php" style="text-decoration: none; color: white; font-weight: bold;">Contents</a></li>
+                <li style="display: inline;"><a href="/flexifit-project/member/view-trainers.php" style="text-decoration: none; color: white; font-weight: bold;">Trainers</a></li>
+                <li style="display: inline;"><a href="/flexifit-project/member/membership-plans.php" style="text-decoration: none; color: white; font-weight: bold;">Membership</a></li>
+                <li style="display: inline;"><a href="/flexifit-project/member/view-equipments.php" style="text-decoration: none; color: white; font-weight: bold;">Equipments</a></li>
+            <?php endif; ?>
         </ul>
     </nav>
 
