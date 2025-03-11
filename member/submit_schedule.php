@@ -6,6 +6,7 @@ $password = "";
 $dbname = "flexifit_db";
 
 $conn = new mysqli($host, $user, $password, $dbname);
+
 if ($conn->connect_error) {
     die(json_encode(["status" => "error", "message" => "Connection failed: " . $conn->connect_error]));
 }
@@ -14,7 +15,7 @@ if ($conn->connect_error) {
 if (!isset($_SESSION['user_id'])) {
     die(json_encode(["status" => "error", "message" => "User not authenticated."]));
 }
-// neo
+
 $user_id = $_SESSION['user_id'];
 
 // Fetch member_id based on user_id
@@ -42,7 +43,7 @@ foreach ($equipment_list as $equipment) {
     $start_time = $equipment['start'];
     $end_time = $equipment['end'];
 
-    // Insert into schedules table
+    // Insert into schedules table for equipment
     $insert_query = "INSERT INTO schedules (member_id, inventory_id, date, start_time, end_time, status) 
                      VALUES (?, ?, ?, ?, ?, 'pending')";
     $stmt = $conn->prepare($insert_query);
@@ -64,11 +65,38 @@ foreach ($equipment_list as $equipment) {
 
     // If a trainer is selected, insert into schedule_trainer table
     if ($trainer_id) {
-        $trainer_query = "INSERT INTO schedule_trainer (schedule_id, trainer_id) VALUES (?, ?)";
-        $stmt = $conn->prepare($trainer_query);
-        $stmt->bind_param("ii", $schedule_id, $trainer_id);
+        // Check if the member has a free training session available
+        $check_sessions_query = "SELECT free_training_session FROM members WHERE member_id = ?";
+        $stmt = $conn->prepare($check_sessions_query);
+        $stmt->bind_param("i", $member_id);
         $stmt->execute();
+        $stmt->bind_result($free_sessions);
+        $stmt->fetch();
         $stmt->close();
+
+        if ($free_sessions > 0) {
+            // Insert trainer schedule with 'approved' status
+            $insert_trainer_schedule_query = "INSERT INTO schedule_trainer (schedule_id, trainer_id, trainer_status) 
+                                              VALUES (?, ?, 'approved')";
+            $stmt = $conn->prepare($insert_trainer_schedule_query);
+            $stmt->bind_param("ii", $schedule_id, $trainer_id);
+            $stmt->execute();
+            $stmt->close();
+
+            // Deduct one free session from the member
+            $update_sessions_query = "UPDATE members SET free_training_session = free_training_session - 1 WHERE member_id = ?";
+            $stmt = $conn->prepare($update_sessions_query);
+            $stmt->bind_param("i", $member_id);
+            $stmt->execute();
+            $stmt->close();
+        } else {
+            // If no free sessions are available, set the trainer schedule status as 'pending'
+            $update_trainer_status_query = "UPDATE schedule_trainer SET trainer_status = 'pending' WHERE schedule_id = ?";
+            $stmt = $conn->prepare($update_trainer_status_query);
+            $stmt->bind_param("i", $schedule_id);
+            $stmt->execute();
+            $stmt->close();
+        }
     }
 }
 

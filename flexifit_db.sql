@@ -306,4 +306,34 @@ CREATE TABLE membership_payments (
     FOREIGN KEY (plan_id) REFERENCES membership_plans(plan_id) ON DELETE CASCADE
 );
 
+CREATE TABLE trainer_reviews (
+    review_id INT AUTO_INCREMENT PRIMARY KEY,
+    trainer_id INT NOT NULL,
+    user_id INT NOT NULL,
+    rating INT CHECK (rating BETWEEN 1 AND 5),
+    comments TEXT,
+    review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (trainer_id) REFERENCES trainers(trainer_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+-- Alter schedule_trainer table to add a dedicated status column for trainer request
+ALTER TABLE schedule_trainer
+ADD COLUMN trainer_status ENUM('approved', 'pending', 'rejected') DEFAULT 'pending';
+
+-- Update the status of a schedule in the schedules table (for equipment)
+ALTER TABLE schedules
+MODIFY COLUMN status ENUM('pending', 'approved', 'cancelled', 'completed') DEFAULT 'pending';
+
+DROP TABLE IF EXISTS equipment_usage;
+CREATE TABLE equipment_usage (
+    usage_id INT AUTO_INCREMENT PRIMARY KEY,
+    inventory_id INT,  -- Tracks the specific unit being used
+    member_id INT,  -- Tracks which member is using it
+    start_time DATETIME,
+    end_time DATETIME DEFAULT NULL,
+    status ENUM('in_use', 'completed'),  -- Tracks if it’s currently in use or done
+    FOREIGN KEY (inventory_id) REFERENCES equipment_inventory(inventory_id),
+    FOREIGN KEY (member_id) REFERENCES members(member_id)  -- Links to members table
+);
 
