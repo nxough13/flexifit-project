@@ -267,38 +267,7 @@ while ($trainer = mysqli_fetch_assoc($trainers_result)) {
 </div>
 
 <script>
-
-// This function fetches available equipment based on the selected schedule
-function fetchAvailableEquipment(scheduleDate, startTime, endTime) {
-    $.ajax({
-        url: 'fetch-available-equipment.php', // A new PHP file to fetch available equipment
-        method: 'POST',
-        data: {
-            schedule_date: scheduleDate,
-            start_time: startTime,
-            end_time: endTime
-        },
-        success: function(response) {
-            if (response.conflict) {
-                alert(response.message); // Show conflict message
-            } else {
-                let options = '';
-                response.equipment.forEach(function(equipment) {
-                    options += `<option value="${equipment.inventory_id}">${equipment.name} (ID: ${equipment.inventory_id})</option>`;
-                });
-                $('#equipment_dropdown').html(options);
-            }
-        },
-        error: function(error) {
-            console.error("Error fetching available equipment:", error);
-        }
-    });
-}
-
-
 $(document).ready(function() {
-    let equipmentOptions = <?php echo json_encode($options); ?>;
-
     // Add new equipment input
     $("#add-equipment").click(function() {
         let newBox = `
@@ -306,7 +275,7 @@ $(document).ready(function() {
                 <label>Equipment:</label>
                 <select name="equipment[]" class="equipment-select">
                     <option value="">Select Equipment</option>
-                    ${equipmentOptions}
+                    <?php echo $options; ?>
                 </select>
 
                 <label>Start Time:</label>
@@ -325,12 +294,75 @@ $(document).ready(function() {
         $(this).closest(".equipment-box").remove();
     });
 
-    // Time validation for each added equipment
-    $(document).on("blur", "input[name='start_time[]'], input[name='end_time[]']", function() {
-        validateTime();
+    // Trainer selection functionality
+    $(".trainer-card").click(function() {
+        $(".trainer-card").removeClass("selected");
+        $(this).addClass("selected");
+        let trainerId = $(this).data("id");
+        $("#selected_trainer").val(trainerId);
     });
 
-    function validateTime() {
+    // Submit schedule
+    $("#submit-schedule").click(function () {
+    let scheduleDate = $("#schedule_date").val();
+    let selectedTrainer = $("#selected_trainer").val();
+    let equipmentData = [];
+
+    $(".equipment-box").each(function () {
+        let equipmentId = $(this).find(".equipment-select").val();
+        let startTime = $(this).find(".start-time").val();
+        let endTime = $(this).find(".end-time").val();
+
+        if (equipmentId && startTime && endTime) {
+            equipmentData.push({
+                id: equipmentId,
+                start: startTime,
+                end: endTime
+            });
+        }
+    });
+
+    if (!scheduleDate) {
+        $("#error-message").text("Please select a date.").show();
+        return;
+    }
+
+    if (equipmentData.length === 0) {
+        $("#error-message").text("Please add at least one equipment schedule.").show();
+        return;
+    }
+
+    if (!validateTime()) {
+        return;
+    }
+
+    $.ajax({
+        url: "submit_schedule.php",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            schedule_date: scheduleDate,
+            equipment: equipmentData,
+            trainer_id: selectedTrainer
+        }),
+        success: function (response) {
+            if (response.status === "success") {
+                alert(response.message);
+                window.location.href = "index.php"; // Redirect on success
+            } else {
+                $("#error-message").text(response.message).show();
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error("AJAX Error:", error);
+            $("#error-message").text("Something went wrong. Please try again.").show();
+        }
+    });
+});
+
+
+    // Time validation
+    function validateTime(equipmentData) {
         let valid = true;
         let equipmentSchedules = [];
         $("#error-message").hide();
@@ -358,9 +390,7 @@ $(document).ready(function() {
 
                 let currentSchedule = { start: start, end: end };
                 for (let existingSchedule of equipmentSchedules) {
-                    if (
-                        (currentSchedule.start < existingSchedule.end && currentSchedule.end > existingSchedule.start)
-                    ) {
+                    if (currentSchedule.start < existingSchedule.end && currentSchedule.end > existingSchedule.start) {
                         $("#error-message").text("Your equipment time overlaps with another schedule. Please adjust the timings.").show();
                         valid = false;
                         return false;
@@ -372,63 +402,6 @@ $(document).ready(function() {
 
         return valid;
     }
-
-    // Trainer selection functionality
-    $(".trainer-card").click(function() {
-        $(".trainer-card").removeClass("selected");
-        $(this).addClass("selected");
-        let trainerId = $(this).data("id");
-        $("#selected_trainer").val(trainerId);
-    });
-
-    // Submit schedule
-    $("#submit-schedule").click(function () {
-        let scheduleDate = $("#schedule_date").val();
-        let selectedTrainer = $("#selected_trainer").val();
-        let equipmentData = [];
-
-        $(".equipment-box").each(function () {
-            let equipmentId = $(this).find(".equipment-select").val();
-            let startTime = $(this).find(".start-time").val();
-            let endTime = $(this).find(".end-time").val();
-
-            if (equipmentId && startTime && endTime) {
-                equipmentData.push({
-                    id: equipmentId,
-                    start: startTime,
-                    end: endTime
-                });
-            }
-        });
-
-        if (equipmentData.length === 0) {
-            $("#error-message").text("Please add at least one equipment schedule.").show();
-            return;
-        }
-
-        if (!validateTime()) {
-            return;
-        }
-
-        $.ajax({
-            url: "submit_schedule.php",
-            type: "POST",
-            contentType: "application/json",
-            data: JSON.stringify({
-                schedule_date: scheduleDate,
-                equipment: equipmentData,
-                trainer_id: selectedTrainer
-            }),
-            success: function (response) {
-                let res = JSON.parse(response);
-                alert(res.message);
-                if (res.status === "success") {
-                    location.reload();
-                    window.location.href = "index.php";
-                }
-            }
-        });
-    });
 });
 </script>
 <br>

@@ -1,110 +1,83 @@
 <?php
-session_start();
+header('Content-Type: application/json');
 $host = "localhost";
 $user = "root";
 $password = "";
 $dbname = "flexifit_db";
-
 $conn = new mysqli($host, $user, $password, $dbname);
-
+session_start();
 if ($conn->connect_error) {
-    die(json_encode(["status" => "error", "message" => "Connection failed: " . $conn->connect_error]));
+    echo json_encode(["status" => "error", "message" => "Database connection failed: " . $conn->connect_error]);
+    exit();
 }
 
-// Ensure the user is logged in
-if (!isset($_SESSION['user_id'])) {
-    die(json_encode(["status" => "error", "message" => "User not authenticated."]));
-}
-
-$user_id = $_SESSION['user_id'];
-
-// Fetch member_id based on user_id
-$member_query = "SELECT member_id FROM members WHERE user_id = ?";
-$stmt = $conn->prepare($member_query);
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$stmt->bind_result($member_id);
-$stmt->fetch();
-$stmt->close();
-
-if (!$member_id) {
-    die(json_encode(["status" => "error", "message" => "Member ID not found."]));
-}
-
-// Get data from AJAX request
+// Get JSON data from request
 $data = json_decode(file_get_contents("php://input"), true);
 
-$schedule_date = $data['schedule_date'];
-$equipment_list = $data['equipment'];
-$trainer_id = $data['trainer_id'] ?? null;
-
-foreach ($equipment_list as $equipment) {
-    $inventory_id = $equipment['id'];
-    $start_time = $equipment['start'];
-    $end_time = $equipment['end'];
-
-    // Insert into schedules table for equipment
-    $insert_query = "INSERT INTO schedules (member_id, inventory_id, date, start_time, end_time, status) 
-                     VALUES (?, ?, ?, ?, ?, 'pending')";
-    $stmt = $conn->prepare($insert_query);
-    $stmt->bind_param("iisss", $member_id, $inventory_id, $schedule_date, $start_time, $end_time);
-    
-    if (!$stmt->execute()) {
-        die(json_encode(["status" => "error", "message" => "Error scheduling equipment."]));
-    }
-    
-    $schedule_id = $stmt->insert_id;
-    $stmt->close();
-
-    // Update equipment status to 'in_use'
-    $update_query = "UPDATE equipment_inventory SET status = 'in_use' WHERE inventory_id = ?";
-    $stmt = $conn->prepare($update_query);
-    $stmt->bind_param("i", $inventory_id);
-    $stmt->execute();
-    $stmt->close();
-
-    // If a trainer is selected, insert into schedule_trainer table
-    if ($trainer_id) {
-        // Check if the member has a free training session
-$free_training_query = "SELECT free_training_session FROM members WHERE user_id = ?";
-$stmt = $conn->prepare($free_training_query);
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$stmt->bind_result($free_sessions);
-$stmt->fetch();
-$stmt->close();
-
-if ($free_sessions > 0 && $trainer_id) {
-    // Deduct one free training session if trainer is selected
-    $update_sessions_query = "UPDATE members SET free_training_session = free_training_session - 1 WHERE user_id = ?";
-    $update_stmt = $conn->prepare($update_sessions_query);
-    $update_stmt->bind_param("i", $user_id);
-    $update_stmt->execute();
-    $update_stmt->close();
-
-    // Mark trainer schedule as approved
-    $trainer_status = 'approved';
-} else {
-    $trainer_status = 'pending';
+// Debugging: Check if data is received
+if (!$data) {
+    echo json_encode(["status" => "error", "message" => "No data received."]);
+    exit();
 }
 
-// Proceed with inserting into equipment_usage table
-foreach ($equipment_list as $equipment) {
-    $inventory_id = $equipment['id'];
-    $start_time = $equipment['start'];
-    $end_time = $equipment['end'];
+// Extract data
+$schedule_date = $data['schedule_date'] ?? null;
+$trainer_id = $data['trainer_id'] ?? null;
+$equipment = $data['equipment'] ?? [];
+
+if (!$schedule_date || empty($equipment)) {
+    echo json_encode(["status" => "error", "message" => "Schedule date and equipment are required."]);
+    exit();
+}
+
+$user_id = $_SESSION['user_id'] ?? null; // Ensure user is logged in
+if (!$user_id) {
+    echo json_encode(["status" => "error", "message" => "User is not logged in."]);
+    exit();
+}
+
+// Debugging: Log received data
+error_log("Schedule Date: $schedule_date, Trainer ID: $trainer_id, User ID: $user_id");
+error_log("Equipment Data: " . print_r($equipment, true));
+
+foreach ($equipment as $equip) {
+    $inventory_id = $equip['id'];
+    $start_time = $equip['start'];
+    $end_time = $equip['end'];
+
+    // Debugging: Log each equipment entry
+    error_log("Processing Equipment - ID: $inventory_id, Start: $start_time, End: $end_time");
 
     // Insert into equipment_usage table
-    $query = "INSERT INTO equipment_usage (inventory_id, member_id, start_time, end_time, status) 
-              VALUES (?, ?, ?, ?, ?)";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("iisss", $inventory_id, $member_id, $start_time, $end_time, 'active');
-    $stmt->execute();
-    $stmt->close();
-}
+    $stmt = $conn->prepare("INSERT INTO equipment_usage (user_id, inventory_id, schedule_date, start_time, end_time, status) VALUES (?, ?, ?, ?, ?, 'pending')");
+    
+    if ($stmt === false) {
+        echo json_encode(["status" => "error", "message" => "SQL Prepare Error: " . $conn->error]);
+        exit();
+    }
 
+    $stmt->bind_param("iisss", $user_id, $inventory_id, $schedule_date, $start_time, $end_time);
+    if (!$stmt->execute()) {
+        echo json_encode(["status" => "error", "message" => "SQL Execution Error: " . $stmt->error]);
+        exit();
     }
 }
 
-echo json_encode(["status" => "success", "message" => "Schedule saved successfully."]);
+// If a trainer is selected, insert into schedule_trainer table
+if (!empty($trainer_id)) {
+    $stmt = $conn->prepare("INSERT INTO schedule_trainer (user_id, trainer_id, schedule_date, status) VALUES (?, ?, ?, 'pending')");
+    if ($stmt === false) {
+        echo json_encode(["status" => "error", "message" => "SQL Prepare Error (Trainer): " . $conn->error]);
+        exit();
+    }
+
+    $stmt->bind_param("iis", $user_id, $trainer_id, $schedule_date);
+    if (!$stmt->execute()) {
+        echo json_encode(["status" => "error", "message" => "SQL Execution Error (Trainer): " . $stmt->error]);
+        exit();
+    }
+}
+
+echo json_encode(["status" => "success", "message" => "Schedule created successfully."]);
+exit();
 ?>

@@ -275,14 +275,35 @@ $stmt->bind_param("sssssssssssssss",
             </div>
 
 
-            <label for="age">Age</label>
-            <input type="number" name="age" id="age" required value="Select Age">
-            </select>
+            
 
 
+            
             <label for="birthdate">Birthdate</label>
-            <input type="date" name="birthdate" id="birthdate" required>
+<input type="date" name="birthdate" id="birthdate" required onchange="calculateAge()">
 
+<label for="age">Age</label>
+<input type="number" name="age" id="age" required readonly>
+
+<script>
+    function calculateAge() {
+        const birthdate = document.getElementById('birthdate').value;
+        if (birthdate) {
+            const birthDateObj = new Date(birthdate);
+            const today = new Date();
+            let age = today.getFullYear() - birthDateObj.getFullYear();
+            const m = today.getMonth() - birthDateObj.getMonth();
+
+            // Adjust age if birthday hasn't occurred yet this year
+            if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
+                age--;
+            }
+
+            // Set the calculated age in the 'age' input field
+            document.getElementById('age').value = age;
+        }
+    }
+</script>
 
             <label for="email">Email</label>
             <input type="email" name="email" id="email" placeholder="Email" required>
