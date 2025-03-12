@@ -7,6 +7,12 @@ $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 include "../includes/header.php";
 
+if (!isset($_SESSION['user_id'])) {
+    // No user is logged in, redirect to main index.php
+    header("Location: ../index.php");
+    exit();
+}
+
 // Fetch available equipment, ensuring no time conflict
 $options = "";
 $query = "
@@ -16,12 +22,12 @@ $query = "
     WHERE ei.status = 'available'
     AND NOT EXISTS (
         SELECT 1 
-        FROM schedules s
-        WHERE s.inventory_id = ei.inventory_id
-        AND s.status != 'cancelled' 
+        FROM equipment_usage eu
+        WHERE eu.inventory_id = ei.inventory_id
+        AND eu.status != 'cancelled' 
         AND (
-            (s.start_time < ? AND s.end_time > ?) OR 
-            (s.start_time < ? AND s.end_time > ?)
+            (eu.start_time < ? AND eu.end_time > ?) OR 
+            (eu.start_time < ? AND eu.end_time > ?)
         )
     )
 ";
@@ -61,17 +67,38 @@ while ($trainer = mysqli_fetch_assoc($trainers_result)) {
             font-family: Arial, sans-serif;
             background-color: #111;
             color: white;
+           
         }
 
         .container {
             display: flex;
             justify-content: space-between;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: auto;
         }
 
+        #submit-schedule {
+    width: auto; /* Change width from 100% to auto */
+    padding: 15px 30px; /* Adjust padding for a more compact button */
+    background-color: #FFC107;
+    border: none;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 5px;
+    margin-top: 20px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto; /* Center the button horizontally */
+}
+
+#submit-schedule:hover {
+    background-color: #e0a800;
+}
+
         .box {
-            width: 48%;
+            width: 55%;
             padding: 25px;
             background-color: #222;
             border-radius: 10px;
@@ -87,7 +114,7 @@ while ($trainer = mysqli_fetch_assoc($trainers_result)) {
 
         input,
         select {
-            width: 100%;
+            width: 90%;
             padding: 12px;
             margin-top: 10px;
             border: 1px solid #FFC107;
@@ -99,7 +126,7 @@ while ($trainer = mysqli_fetch_assoc($trainers_result)) {
 
         button {
             padding: 15px;
-            width: 100%;
+            width: 55%;
             background-color: #FFC107;
             border: none;
             color: black;
@@ -127,7 +154,7 @@ while ($trainer = mysqli_fetch_assoc($trainers_result)) {
             align-items: center;
             border: 1px solid #FFC107;
             padding: 15px;
-            width: 100%;
+            width: 90%;
             margin: 10px 0;
             background-color: #222;
             border-radius: 5px;
@@ -190,6 +217,7 @@ while ($trainer = mysqli_fetch_assoc($trainers_result)) {
     </style>
 </head>
 <body>
+    <br>
 <div class="container">
     <!-- Left Box (Equipment Scheduling) -->
     <div class="box">
@@ -239,6 +267,35 @@ while ($trainer = mysqli_fetch_assoc($trainers_result)) {
 </div>
 
 <script>
+
+// This function fetches available equipment based on the selected schedule
+function fetchAvailableEquipment(scheduleDate, startTime, endTime) {
+    $.ajax({
+        url: 'fetch-available-equipment.php', // A new PHP file to fetch available equipment
+        method: 'POST',
+        data: {
+            schedule_date: scheduleDate,
+            start_time: startTime,
+            end_time: endTime
+        },
+        success: function(response) {
+            if (response.conflict) {
+                alert(response.message); // Show conflict message
+            } else {
+                let options = '';
+                response.equipment.forEach(function(equipment) {
+                    options += `<option value="${equipment.inventory_id}">${equipment.name} (ID: ${equipment.inventory_id})</option>`;
+                });
+                $('#equipment_dropdown').html(options);
+            }
+        },
+        error: function(error) {
+            console.error("Error fetching available equipment:", error);
+        }
+    });
+}
+
+
 $(document).ready(function() {
     let equipmentOptions = <?php echo json_encode($options); ?>;
 
@@ -367,12 +424,15 @@ $(document).ready(function() {
                 alert(res.message);
                 if (res.status === "success") {
                     location.reload();
+                    window.location.href = "index.php";
                 }
             }
         });
     });
 });
 </script>
-
+<br>
 </body>
 </html>
+
+ <?php include '../includes/footer.php'; ?> 

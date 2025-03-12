@@ -6,8 +6,10 @@ include '../includes/config.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    // No user is logged in, redirect to main index.php
+    header("Location: ../index.php");
     exit();
+
 }
 
 // neo

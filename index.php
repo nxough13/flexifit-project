@@ -1,16 +1,11 @@
 <?php
 session_start();
-if (isset($_SESSION['user_type'])) {
-    if ($_SESSION['user_type'] == 'member') {
-        // Redirect members to their index
-        header("Location: member/index.php");
-        exit();
-    } elseif ($_SESSION['user_type'] == 'admin') {
-        // Redirect admins to their index
-        header("Location: admin/index.php");
-        exit();
-    }
-}// neo
+if (!isset($_SESSION['user_id'])) {
+    // No user is logged in, redirect to main index.php
+    header("Location: ../index.php");
+    exit();
+}
+
 ?>
 
 
@@ -31,13 +26,7 @@ if (isset($_SESSION['user_type'])) {
     color: white;
  
 }
-/* header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: black;
-    padding: 15px 30px;
-} */
+
 .logo img {
     height: 50px;
 }

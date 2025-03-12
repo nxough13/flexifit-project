@@ -8,6 +8,14 @@ $password = "";
 $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 
+
+if (!isset($_SESSION['user_id'])) {
+    // No user is logged in, redirect to main index.php
+    header("Location: ../index.php");
+    exit();
+
+}
+
 // Check if payment_id is available in session
 if (!isset($_SESSION['payment_id'])) {
     echo "<script>alert('No payment data found! Please make sure the payment was successful.'); window.location.href = 'membership-plans.php';</script>";

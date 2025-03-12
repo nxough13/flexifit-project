@@ -7,6 +7,14 @@ $password = "";
 $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 
+
+if (!isset($_SESSION['user_id'])) {
+    // No user is logged in, redirect to main index.php
+    header("Location: ../index.php");
+    exit();
+
+}
+
 // Fetch the selected plan from the session
 $selected_plan = $_SESSION['selected_plan'];
 $start_date = $_SESSION['start_date'];

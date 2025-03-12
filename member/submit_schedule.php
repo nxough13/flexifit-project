@@ -65,38 +65,44 @@ foreach ($equipment_list as $equipment) {
 
     // If a trainer is selected, insert into schedule_trainer table
     if ($trainer_id) {
-        // Check if the member has a free training session available
-        $check_sessions_query = "SELECT free_training_session FROM members WHERE member_id = ?";
-        $stmt = $conn->prepare($check_sessions_query);
-        $stmt->bind_param("i", $member_id);
-        $stmt->execute();
-        $stmt->bind_result($free_sessions);
-        $stmt->fetch();
-        $stmt->close();
+        // Check if the member has a free training session
+$free_training_query = "SELECT free_training_session FROM members WHERE user_id = ?";
+$stmt = $conn->prepare($free_training_query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($free_sessions);
+$stmt->fetch();
+$stmt->close();
 
-        if ($free_sessions > 0) {
-            // Insert trainer schedule with 'approved' status
-            $insert_trainer_schedule_query = "INSERT INTO schedule_trainer (schedule_id, trainer_id, trainer_status) 
-                                              VALUES (?, ?, 'approved')";
-            $stmt = $conn->prepare($insert_trainer_schedule_query);
-            $stmt->bind_param("ii", $schedule_id, $trainer_id);
-            $stmt->execute();
-            $stmt->close();
+if ($free_sessions > 0 && $trainer_id) {
+    // Deduct one free training session if trainer is selected
+    $update_sessions_query = "UPDATE members SET free_training_session = free_training_session - 1 WHERE user_id = ?";
+    $update_stmt = $conn->prepare($update_sessions_query);
+    $update_stmt->bind_param("i", $user_id);
+    $update_stmt->execute();
+    $update_stmt->close();
 
-            // Deduct one free session from the member
-            $update_sessions_query = "UPDATE members SET free_training_session = free_training_session - 1 WHERE member_id = ?";
-            $stmt = $conn->prepare($update_sessions_query);
-            $stmt->bind_param("i", $member_id);
-            $stmt->execute();
-            $stmt->close();
-        } else {
-            // If no free sessions are available, set the trainer schedule status as 'pending'
-            $update_trainer_status_query = "UPDATE schedule_trainer SET trainer_status = 'pending' WHERE schedule_id = ?";
-            $stmt = $conn->prepare($update_trainer_status_query);
-            $stmt->bind_param("i", $schedule_id);
-            $stmt->execute();
-            $stmt->close();
-        }
+    // Mark trainer schedule as approved
+    $trainer_status = 'approved';
+} else {
+    $trainer_status = 'pending';
+}
+
+// Proceed with inserting into equipment_usage table
+foreach ($equipment_list as $equipment) {
+    $inventory_id = $equipment['id'];
+    $start_time = $equipment['start'];
+    $end_time = $equipment['end'];
+
+    // Insert into equipment_usage table
+    $query = "INSERT INTO equipment_usage (inventory_id, member_id, start_time, end_time, status) 
+              VALUES (?, ?, ?, ?, ?)";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("iisss", $inventory_id, $member_id, $start_time, $end_time, 'active');
+    $stmt->execute();
+    $stmt->close();
+}
+
     }
 }
 

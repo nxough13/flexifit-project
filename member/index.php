@@ -1,20 +1,9 @@
 <?php
 session_start();
+include '../includes/header.php';
 if (!isset($_SESSION['user_id'])) {
     // No user is logged in, redirect to main index.php
     header("Location: ../index.php");
-    exit();
-}
-// neo
-if ($_SESSION['user_type'] == 'guest') {
-    // Guests cannot access members or admin areas
-    header("Location: ../index.php");
-    exit();
-}
-
-if ($_SESSION['user_type'] == 'member' && basename($_SERVER['PHP_SELF']) == '../admin/index.php') {
-    // Members cannot access the admin area
-    header("Location: ../member/index.php");
     exit();
 }
 ?>
@@ -36,13 +25,7 @@ if ($_SESSION['user_type'] == 'member' && basename($_SERVER['PHP_SELF']) == '../
     color: white;
  
 }
-/* header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: black;
-    padding: 15px 30px;
-} */
+
 .logo img {
     height: 50px;
 }
@@ -166,13 +149,13 @@ nav ul li a {
     </style>
 </head>
 <body>
-    <?php include '../includes/header.php'; ?>
+    
 
     <!-- Home Section -->
     <section class="home" id="home">
         <h1>BE FIT</h1>
         <h2>BE STRONGER</h2>
-        <a href="membership-plans.php" class="btn">JOIN TODAY</a>
+        
     </section>
 
     <!-- About Section -->

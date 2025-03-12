@@ -44,6 +44,41 @@ foreach ($equipment as $item) {
         echo json_encode(["conflict" => true, "message" => "End time cannot extend to the next day for equipment ID: " . $inventory_id]);
         exit;
     }
+    
+    // Validate the equipment scheduling
+foreach ($equipment as $item) {
+    $inventory_id = $item["id"];
+    $start_time = strtotime($item["start"]);
+    $end_time = strtotime($item["end"]);
+
+    // End time must be after start time
+    if ($end_time <= $start_time) {
+        echo json_encode(["conflict" => true, "message" => "End time must be after start time for equipment ID: " . $inventory_id]);
+        exit;
+    }
+
+    // Duration must be between 5 minutes and 40 minutes
+    $duration = ($end_time - $start_time) / 60;
+    if ($duration < 5 || $duration > 40) {
+        echo json_encode(["conflict" => true, "message" => "Duration must be between 5 and 40 minutes for equipment ID: " . $inventory_id]);
+        exit;
+    }
+
+    // Check for conflicts in the equipment_usage table
+    $conflict_query = "SELECT 1 FROM equipment_usage WHERE inventory_id = ? 
+                       AND status != 'cancelled' 
+                       AND ((start_time < ? AND end_time > ?) OR (start_time < ? AND end_time > ?))";
+    $stmt = $conn->prepare($conflict_query);
+    $stmt->bind_param("issss", $inventory_id, $start_time, $end_time, $start_time, $end_time);
+    $stmt->execute();
+    $stmt->store_result();
+    if ($stmt->num_rows > 0) {
+        echo json_encode(["conflict" => true, "message" => "This equipment is already booked during the selected time."]);
+        exit;
+    }
+    $stmt->close();
+}
+
 
     // ✅ 4. Check for Schedule Conflicts (Same Member Using Another Equipment)
     $query = "SELECT * FROM schedules 

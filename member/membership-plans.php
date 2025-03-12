@@ -8,6 +8,14 @@ $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 $sql = "SELECT * FROM membership_plans";
 $result = $conn->query($sql);
+
+if (!isset($_SESSION['user_id'])) {
+    // No user is logged in, redirect to main index.php
+    header("Location: ../index.php");
+    exit();
+
+}
+
 // neo
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {

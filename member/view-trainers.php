@@ -1,119 +1,165 @@
 <?php
+// Start session to access the logged-in user's details
 session_start();
+include '../includes/header.php';
+
+
 $host = "localhost";
 $user = "root";
 $password = "";
 $dbname = "flexifit_db";
-include '../includes/header.php';
-// Database connection
 $conn = new mysqli($host, $user, $password, $dbname);
+
+
+// Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
-// neo
-// Ensure member access
-if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'member') {
-    header("Location: ../login.php");
+
+if (!isset($_SESSION['user_id'])) {
+    // No user is logged in, redirect to main index.php
+    header("Location: ../index.php");
     exit();
+
 }
 
-// Fetch all trainers from the trainers table
-$sql = "SELECT trainer_id, first_name, last_name, specialty, image FROM trainers";
+
+// Fetch all trainers from the database
+$sql = "SELECT * FROM trainers ORDER BY trainer_id ASC";
 $result = $conn->query($sql);
 ?>
 
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Trainers</title>
     <style>
         body {
+            background-color: #222;
+            color: #fff;
             font-family: Arial, sans-serif;
-            background-color: black;
-            margin: 20px;
-            color: white;
         }
+
+
         .container {
-            width: 90%;
-            margin: auto;
-            background: black;
+            width: 80%;
+            margin: 0 auto;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
         }
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
+
+
         h2 {
-            color: yellow;
-        }
-        .btn {
-            text-decoration: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-weight: bold;
-            color: black;
-            cursor: pointer;
-            background-color: yellow;
-            border: none;
-        }
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-        .trainer-card {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
             text-align: center;
-            color: black;
+            color: #ffcc00;
+            font-size: 2rem;
         }
-        .trainer-card img {
-            width: 60%;
-            height: 500px;
-            object-fit: cover;
+
+
+        .trainer-item {
+            background-color: #333;
+            padding: 15px;
+            margin-bottom: 20px;
             border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
-        .trainer-info {
+
+
+        .trainer-item .trainer-name {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+
+
+        .trainer-item .trainer-details {
+            margin: 10px 0;
+            font-size: 1.1rem;
+        }
+
+
+        .trainer-item .trainer-status {
+            font-size: 1rem;
+            color: #b0b0b0;
+        }
+
+
+        .trainer-item .trainer-availability {
+            font-size: 1rem;
+            color: #999;
+        }
+
+
+        .trainer-item .trainer-image {
+    width: 150px; /* Set a fixed width */
+    height: 150px; /* Set a fixed height */
+    object-fit: cover; /* This ensures the image fits within the box without stretching */
+    border-radius: 50%; /* Optionally, make the image circular */
+    margin-top: 10px;
+}
+
+
+
+
+        .details-btn {
+            display: inline-block;
+            background-color: #ffcc00;
+            color: #222;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 5px;
             margin-top: 10px;
+        }
+
+
+        .details-btn:hover {
+            background-color: #e6b800;
         }
     </style>
 </head>
+
 <body>
 
-<div class="container">
-    <div class="top-bar">
-        <h2>Trainers List</h2>
-        <a href="index.php" class="btn">Back to Dashboard</a>
+
+    <div class="container">
+        <h2>View Trainers</h2>
+
+
+        <?php if ($result->num_rows > 0): ?>
+            <?php while ($row = $result->fetch_assoc()): ?>
+                <div class="trainer-item">
+                    <div class="trainer-name"><?php echo htmlspecialchars($row['first_name']) . ' ' . htmlspecialchars($row['last_name']); ?></div>
+                    <div class="trainer-details">Email: <?php echo htmlspecialchars($row['email']); ?></div>
+                    <div class="trainer-details">Age: <?php echo htmlspecialchars($row['age']); ?></div>
+                    <div class="trainer-status">Status: <?php echo htmlspecialchars($row['status']); ?></div>
+                    <div class="trainer-availability">Availability: <?php echo htmlspecialchars($row['availability_status']); ?></div>
+
+
+                    <?php if ($row['image']): ?>
+                        <img style="width: 250px;"src="../admin/uploads/<?php echo $row['image'] ?? 'default.jpg'; ?>" alt="Trainer Image">
+
+                    <?php endif; ?>
+
+
+                    <!-- Details Button -->
+                    <a href="trainers.php?trainer_id=<?php echo $row['trainer_id']; ?>" class="details-btn">Details</a>
+                </div>
+            <?php endwhile; ?>
+        <?php else: ?>
+            <p>No trainers available.</p>
+        <?php endif; ?>
     </div>
 
-    <div class="grid-container">
-        <?php while ($row = $result->fetch_assoc()) : ?>
-            <div class="trainer-card">
-                <!-- Display Trainer Image or Placeholder -->
-                <img src="<?= !empty($row['image']) && file_exists('uploads/' . $row['image']) 
-                             ? 'uploads/' . htmlspecialchars($row['image']) 
-                             : 'uploads/placeholder.png' ?>" 
-                     alt="Trainer Image">
-                
-                <div class="trainer-info">
-                    <p><strong>Trainer ID:</strong> <?= htmlspecialchars($row['trainer_id']) ?></p>
-                    <p><strong>Name:</strong> <?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) ?></p>
-                    <p><strong>Specialty:</strong> <?= htmlspecialchars($row['specialty']) ?></p>
-                </div>
-            </div>
-        <?php endwhile; ?>
-    </div>
-</div>
 
 </body>
+
 </html>
 
-<?php $conn->close(); ?>
+
+<?php
+$conn->close();
+?>
+<?php include '../includes/footer.php'; ?>
