@@ -4,16 +4,21 @@ $user = "root";
 $password = "";
 $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
-session_start();
+
 // Ensure POST values exist
-if (!isset($_POST['schedule_date']) || !isset($_POST['equipment']) || !isset($_POST['member_id'])) {
-    echo json_encode(["conflict" => true, "message" => "Missing required data."]);
+if (!isset($_POST['schedule_date'])) {
+    echo json_encode(["conflict" => true, "message" => "Missing schedule date."]);
+    exit;
+}
+
+if (!isset($_POST['equipment'])) {
+    echo json_encode(["conflict" => true, "message" => "No equipment selected."]);
     exit;
 }
 
 $schedule_date = $_POST['schedule_date'];
 $equipment = $_POST['equipment'];
-$member_id = $_POST['member_id'];
+$member_id = $_POST['member_id'];  // Get member ID from POST request
 $response = ["conflict" => false];
 
 foreach ($equipment as $item) {
@@ -28,41 +33,58 @@ foreach ($equipment as $item) {
     }
 
     // ✅ 2. Enforce Minimum (5 mins) and Maximum (40 mins) Duration
-    $duration = ($end_time - $start_time) / 60;
+    $duration = ($end_time - $start_time) / 60; // Convert to minutes
     if ($duration < 5 || $duration > 40) {
         echo json_encode(["conflict" => true, "message" => "Duration for equipment ID: " . $inventory_id . " must be between 5 and 40 minutes."]);
         exit;
     }
 
-    // ✅ 3. Ensure End Time Doesn't Go Past Midnight
-    if (date("Y-m-d", $start_time) !== date("Y-m-d", $end_time)) {
-        echo json_encode(["conflict" => true, "message" => "End time cannot extend to the next day for equipment ID: " . $inventory_id]);
+    // ✅ 3. Check for Schedule Conflicts (Same Member Using Another Equipment)
+    $query = "SELECT * FROM schedules 
+              WHERE member_id = ? 
+              AND schedule_date = ? 
+              AND (
+                  (start_time < ? AND end_time > ?) OR  
+                  (start_time < ? AND end_time > ?) OR  
+                  (start_time >= ? AND end_time <= ?)   
+              )";
+
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("isssssss", $member_id, $schedule_date, 
+                      date("H:i:s", $end_time), date("H:i:s", $start_time), 
+                      date("H:i:s", $start_time), date("H:i:s", $start_time), 
+                      date("H:i:s", $start_time), date("H:i:s", $end_time));
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        echo json_encode(["conflict" => true, "message" => "Schedule conflict! Member is already using another equipment during this time."]);
         exit;
     }
 
-    // ✅ 4. Check for Conflicts in `equipment_usage` Table
-    $conflict_query = "SELECT 1 FROM equipment_usage 
-                       WHERE inventory_id = ? 
-                       AND schedule_date = ? 
-                       AND status != 'cancelled' 
-                       AND (
-                           (start_time < ? AND end_time > ?) OR  
-                           (start_time < ? AND end_time > ?) OR  
-                           (start_time >= ? AND end_time <= ?)   
-                       )";
-    
-    $stmt = $conn->prepare($conflict_query);
+    // ✅ 5. Check if Equipment is Already Booked
+    $equipment_query = "SELECT * FROM schedules 
+                        WHERE inventory_id = ? 
+                        AND schedule_date = ? 
+                        AND status != 'cancelled'
+                        AND (
+                            (start_time < ? AND end_time > ?) OR  
+                            (start_time < ? AND end_time > ?) OR  
+                            (start_time >= ? AND end_time <= ?)   
+                        )";
+
+    $stmt = $conn->prepare($equipment_query);
     $stmt->bind_param("isssssss", $inventory_id, $schedule_date, 
                       date("H:i:s", $end_time), date("H:i:s", $start_time), 
                       date("H:i:s", $start_time), date("H:i:s", $start_time), 
                       date("H:i:s", $start_time), date("H:i:s", $end_time));
     $stmt->execute();
-    $stmt->store_result();
-    if ($stmt->num_rows > 0) {
+    $equipment_result = $stmt->get_result();
+
+    if ($equipment_result->num_rows > 0) {
         echo json_encode(["conflict" => true, "message" => "Schedule conflict! Equipment ID: " . $inventory_id . " is already booked at this time."]);
         exit;
     }
-    $stmt->close();
 }
 
 echo json_encode(["conflict" => false, "message" => "Schedule is valid."]);
