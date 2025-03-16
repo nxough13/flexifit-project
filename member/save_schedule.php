@@ -11,12 +11,12 @@ if ($conn->connect_error) {
 }
 
 // Ensure POST values exist
-if (!isset($_POST['schedule_date']) || !isset($_POST['equipment'])) {
+if (!isset($_POST['date']) || !isset($_POST['equipment'])) {
     echo json_encode(["success" => false, "message" => "Missing required data."]);
     exit;
 }
 
-$schedule_date = $_POST['schedule_date'];
+$date = $_POST['date'];
 $equipment = $_POST['equipment'];
 $member_id = $_POST['member_id']; // Make sure this is passed from the frontend
 
@@ -26,10 +26,10 @@ foreach ($equipment as $item) {
     $end_time = date("H:i:s", strtotime($item["end"]));
 
     // Insert the schedule into the database
-    $query = "INSERT INTO schedules (member_id, inventory_id, schedule_date, start_time, end_time) 
+    $query = "INSERT INTO schedules (member_id, inventory_id, date, start_time, end_time) 
               VALUES (?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("iisss", $member_id, $inventory_id, $schedule_date, $start_time, $end_time);
+    $stmt->bind_param("iisss", $member_id, $inventory_id, $date, $start_time, $end_time);
     
     if (!$stmt->execute()) {
         echo json_encode(["success" => false, "message" => "Error saving schedule for equipment ID: " . $inventory_id]);

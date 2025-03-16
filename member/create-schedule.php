@@ -7,10 +7,41 @@ $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 include "../includes/header.php";
 
+// header("Content-Type: application/json");
 // Fetch all available equipment without filtering by existing schedules
 $date = $_POST['date'] ?? null;
 $start_time = $_POST['start_time'] ?? null;
 $end_time = $_POST['end_time'] ?? null;
+
+if (isset($_SESSION['user_id'])) {
+    $user_id = $_SESSION['user_id'];  // Retrieve user_id from session
+} else {
+    echo "Error: User not authenticated. Session ID: " . session_id();  // Debug session ID if no user_id in session
+    exit;  // Exit if the user is not authenticated
+}
+
+$member_query = "SELECT member_id FROM members WHERE user_id = ?";
+$stmt = $conn->prepare($member_query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($member_id);
+$stmt->fetch();
+$stmt->close();
+
+// Check if we got a member_id
+if ($member_id) {
+    // Store member_id in session
+    $_SESSION['member_id'] = $member_id;
+} else {
+    // Handle the case where member_id is not found (user might not be a member)
+    echo "Error: Member ID not found for user ID $user_id.";
+    exit;
+}
+
+// Debugging: Check if member_id is set in session
+file_put_contents("schedule_debug.log", "Session member_id: " . $_SESSION['member_id'] . "\n", FILE_APPEND);
+
+
 
 $query = "
     SELECT ei.inventory_id, e.name, ei.identifier 
@@ -70,10 +101,36 @@ while ($trainer = mysqli_fetch_assoc($trainers_result)) {
         .trainer-card { display: flex; align-items: center; border: 1px solid #FFC107; padding: 15px; width: 100%; margin: 10px 0; background-color: #222; border-radius: 5px; font-size: 16px; cursor: pointer; }
         .trainer-card:hover, .trainer-card.selected { background-color: #FFC107; color: black; }
         .trainer-card img { width: 120px; height: 120px; border-radius: 50%; margin-right: 20px; }
+        #error-message {
+    color: red;
+    font-size: 18px;
+    margin: 20px auto;
+    width: 90%;
+    display: none;
+    padding: 15px;
+    border: 2px solid red;  /* Border around the error message */
+    border-radius: 10px;  /* Rounded corners */
+    background-color: #f8d7da;  /* Light red background */
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);  /* Subtle shadow for the box */
+    text-align: left;  /* Align text to the left */
+}
+
+#error-message ul {
+    list-style-type: disc;
+    padding-left: 20px;
+    margin: 0;  /* Remove default margin from <ul> */
+}
     </style>
 </head>
 <body>
 
+<div id="error-message">
+    <ul style="list-style-type: disc; padding-left: 20px;">
+        <!-- Error messages will be dynamically inserted here -->
+    </ul>
+</div>
+
+<form id="schedule-form" action="submit_schedule.php" method="POST">
 <div class="container">
     <div class="box">
         <h2>Schedule Equipment</h2>
@@ -127,9 +184,13 @@ while ($trainer = mysqli_fetch_assoc($trainers_result)) {
 <div style="text-align: center; margin-top: 20px;">
     <button type="button" id="submit-schedule">Submit Schedule</button>
 </div>
-
+            </form>
 <script>
 $(document).ready(function() {
+
+    console.log("jQuery is ready!");
+
+
     $("#add-equipment").click(function () {
         let newBox = $(".equipment-box:first").clone();
         newBox.find("select, input").val(""); // Reset cloned inputs
@@ -149,40 +210,156 @@ $(document).ready(function() {
     });
 
     $("#submit-schedule").click(function () {
-        let scheduleDate = $("#date").val();
-        let selectedTrainer = $("#selected_trainer").val();
-        let equipmentData = [];
-        let hasError = false;
+    // Debugging log to confirm that the button is being clicked
+    // alert("Button clicked!");
 
-        $(".error-msg").hide();
+    let scheduleDate = $("#date").val();
+    let selectedTrainer = $("#selected_trainer").val();
+    let equipmentData = [];
+    let errorMessages = []; // Array to store all error messages
+    let hasError = false;
 
-        $(".equipment-box").each(function () {
-            let equipmentId = $(this).find(".equipment-select").val();
-            let startTime = $(this).find(".start-time").val();
-            let endTime = $(this).find(".end-time").val();
+    // Hide all previous error messages
+    $(".error-msg").hide();
+    $("#error-message").hide();  // Hide error message section initially
 
-            if (!equipmentId || !startTime || !endTime) {
-                $(this).find(".error-msg").text("All fields are required.").show();
+    // Validate Date (Ensure it's not before today)
+    let today = new Date();
+    let formattedToday = today.getFullYear() + '-' + 
+                         String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                         String(today.getDate()).padStart(2, '0');
+    
+    if (scheduleDate < formattedToday) {
+        errorMessages.push("The selected date can't be earlier than today.");
+        hasError = true;
+    }
+
+    // Validate if at least one equipment or trainer is selected
+    let atLeastOneSelected = false;
+    $(".equipment-box").each(function () {
+        if ($(this).find(".equipment-select").val()) {
+            atLeastOneSelected = true;
+        }
+    });
+
+    if (!scheduleDate || (!selectedTrainer && !atLeastOneSelected)) {
+        errorMessages.push("At least one equipment or one trainer must be selected.");
+        hasError = true;
+    }
+
+    $(".equipment-box").each(function () {
+        let equipmentId = $(this).find(".equipment-select").val();
+        let startTime = $(this).find(".start-time").val();
+        let endTime = $(this).find(".end-time").val();
+        if (!equipmentId) return;
+        // Clear previous errors
+        $(this).find(".error-msg").text("").hide();
+
+        // Validate Equipment, Start Time, End Time
+        if (!equipmentId) {
+            $(this).find(".error-msg").eq(0).text("Please select equipment.").show();
+            hasError = true;
+        }
+        if (!startTime) {
+            $(this).find(".error-msg").eq(1).text("Start time is required.").show();
+            hasError = true;
+        }
+        if (!endTime) {
+            $(this).find(".error-msg").eq(2).text("End time is required.").show();
+            hasError = true;
+        }
+
+        // Validate that end time is not earlier than start time
+        if (startTime && endTime) {
+            let start = new Date(`1970-01-01T${startTime}`);
+            let end = new Date(`1970-01-01T${endTime}`);
+            if (start >= end) {
+                $(this).find(".error-msg").eq(3).text("End time must be after start time.").show();
+                errorMessages.push("End time must be after start time.");
                 hasError = true;
             }
 
-            if (!hasError) {
-                equipmentData.push({ id: equipmentId, start: startTime, end: endTime });
+            // Duration must be between 5 and 40 minutes
+            let duration = (end - start) / (1000 * 60);
+            if (duration < 5) {
+                $(this).find(".error-msg").eq(4).text("Duration must be at least 5 minutes.").show();
+                errorMessages.push("Duration must be at least 5 minutes.");
+                hasError = true;
             }
+            if (duration > 40) {
+                $(this).find(".error-msg").eq(5).text("Duration cannot exceed 40 minutes.").show();
+                errorMessages.push("Duration cannot exceed 40 minutes.");
+                hasError = true;
+            }
+        }
+
+        // Collect data if no errors
+        if (!hasError) {
+            equipmentData.push({ id: equipmentId, start: startTime, end: endTime });
+        }
+    });
+
+    if (hasError) {
+        // Display all errors as a single message
+        let errorMessage = "Input invalid. Issues may be:\n\n" + errorMessages.join("\n");
+        $("#error-message ul").empty();  // Clear any previous errors
+        errorMessages.forEach(msg => {
+            $("#error-message ul").append(`<li>${msg}</li>`);
         });
+        $("#error-message").show();
+        return; // Stop the function if there are errors
+    }
 
-        if (hasError) return;
-
-        $.post("validate_schedule.php", { schedule_date: scheduleDate, equipment: equipmentData }, function(response) {
-            let res = JSON.parse(response);
+    // Debugging log before sending AJAX request
+    console.log("Sending data to backend");
+    let memberId = "<?php echo $_SESSION['member_id']; ?>"
+    // Validate the schedule with the backend
+    $.ajax({
+        url: "validate_schedule.php",
+        method: "POST",
+        data: {
+            date: scheduleDate,
+            equipment: JSON.stringify(equipmentData),
+            member_id: memberId
+        },
+        dataType: "json",  // Expect JSON response
+        success: function(res) {
             if (res.conflict) {
                 alert(res.message);
             } else {
-                alert("Schedule submitted successfully!");
-                location.reload();
+                // Now submit the schedule
+                $.ajax({
+                    url: "submit_schedule.php",
+                    method: "POST",
+                    data: {
+                        date: scheduleDate,
+                        equipment: JSON.stringify(equipmentData),
+                        trainer_id: selectedTrainer,
+                        member_id: memberId
+                    },
+                    dataType: "json",  // Expect JSON response
+                    success: function(response) {
+                        console.log("Response received:", response);
+                        alert(response.message);
+                        if (response.status === "success") {
+                            location.reload();
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error submitting schedule:", error);
+                        console.error("Response:", xhr.responseText);
+                        alert("Error submitting schedule: " + error);
+                    }
+                });
             }
-        });
+        },
+        error: function(xhr, status, error) {
+            console.error("Validation error:", error);
+            console.error("Response:", xhr.responseText);
+            alert("Error validating schedule: " + error);
+        }
     });
+});
 });
 </script>
 
