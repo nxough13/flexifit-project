@@ -87,29 +87,6 @@ while ($row = mysqli_fetch_assoc($gender_distribution_result)) {
     $gender_distribution[$row['gender']] = $row['count'];
 }
 
-// Fetch Total Revenue per day (for Line chart)
-$revenue_query = "SELECT DATE(payment_date) AS date, SUM(amount) AS total_revenue FROM membership_payments GROUP BY DATE(payment_date) ORDER BY date";
-$revenue_result = mysqli_query($conn, $revenue_query);
-$revenue_data = [];
-while ($row = mysqli_fetch_assoc($revenue_result)) {
-    $revenue_data[] = ['date' => $row['date'], 'total_revenue' => $row['total_revenue']];
-}
-
-// Payment Breakdown (successful, pending, failed payments)
-$payment_breakdown_query = "SELECT payment_status, COUNT(*) AS count FROM membership_payments GROUP BY payment_status";
-$payment_breakdown_result = mysqli_query($conn, $payment_breakdown_query);
-$payment_breakdown = [];
-while ($row = mysqli_fetch_assoc($payment_breakdown_result)) {
-    $payment_breakdown[$row['payment_status']] = $row['count'];
-}
-
-// Most Popular Plan (Donut Chart)
-$popular_plan_query = "SELECT mp.name AS plan_name, COUNT(*) AS count FROM members m
-                       JOIN membership_plans mp ON m.plan_id = mp.plan_id
-                       GROUP BY m.plan_id ORDER BY count DESC LIMIT 1";
-$popular_plan_result = mysqli_query($conn, $popular_plan_query);
-$popular_plan = mysqli_fetch_assoc($popular_plan_result);
-
 // Function to get image path
 function getImagePath($image) {
     $uploadPath = "../images/";
@@ -127,137 +104,93 @@ function getImagePath($image) {
     <title>Admin Dashboard - FlexiFit</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-      /* General Styles */
-body {
-    font-family: Arial, sans-serif;
-    background-color: #222;
-    color: #FFD700;
-    text-align: center;
-}
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #222;
+            color: #FFD700;
+            text-align: center;
+        }
+        .container {
+            width: 95%;
+            margin: auto;
+        }
+        .top-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .top-buttons a {
+            padding: 10px 20px;
+            background-color: #FFD700;
+            color: #222;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+        .dashboard-box {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .box {
+            width: 48%;
+            padding: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
+        }
+        .profile-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+        canvas {
+            max-width: 100% !important;
+            height: 250px !important;  /* Adjusted height */
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(255, 215, 0, 0.5);
+        }
 
-.container {
-    width: 90%;  /* Increased container width for more space */
-    margin: auto;
-}
+        /* Membership Overview Styles */
+        .membership-overview-container {
+            margin-top: 30px;
+            background-color: #333;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
+        }
+        .first-row, .second-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
 
-.top-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin: 20px 0;
-}
-
-.top-buttons a {
-    padding: 10px 20px;
-    background-color: #FFD700;
-    color: #222;
-    text-decoration: none;
-    font-weight: bold;
-    border-radius: 5px;
-}
-
-/* Membership Overview Styles */
-.membership-overview-container {
-    margin-top: 30px;
-    background-color: #333;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
-}
-
-.membership-overview-container h2 {
-    margin-bottom: 20px;
-    font-size: 24px;
-}
-
-/* Membership Overview - First Row (Big Charts) */
-.first-row {
-    display: flex;
-    flex-wrap: wrap;  /* Allow wrapping if content overflows */
-    justify-content: space-between;
-    gap: 10px; /* Reduced gap between cards */
-    margin-bottom: 20px;
-}
-
-/* Membership Overview - Second Row (Smaller Charts) */
-.second-row {
-    display: flex;
-    flex-wrap: wrap;  /* Allow wrapping if content overflows */
-    justify-content: space-between;
-    gap: 10px; /* Reduced gap between cards */
-}
-
-/* Analytics Card Styling */
-.analytics-card {
-    width: 30%;  /* Adjusted width to fit cards better */
-    padding: 20px;
-    background-color: #333;
-    color: #FFD700;
-    text-align: center;
-    border-radius: 10px;
-    box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
-    margin-bottom: 20px;
-    /* Added border for better structure */
-    border: 1px solid #FFD700;
-}
-
-canvas {
-    max-width: 100% !important;
-    height: 250px !important; /* Reduced canvas height */
-    margin: 20px 0;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(255, 215, 0, 0.5);
-}
-
-/* Payment Overview Section */
-.payment-overview-container {
-    margin-top: 30px;
-    background-color: #333;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
-}
-
-.payment-overview-container h2 {
-    margin-bottom: 20px;
-    font-size: 24px;
-}
-
-/* Payment Overview - First Row (Graphs) */
-.first-row.payment-overview {
-    display: flex;
-    flex-wrap: wrap;  /* Allow wrapping if content overflows */
-    justify-content: space-between;
-    gap: 10px; /* Reduced gap between cards */
-    margin-bottom: 20px;
-}
-
-/* Payment Overview - Second Row (Charts) */
-.second-row.payment-overview {
-    display: flex;
-    flex-wrap: wrap;  /* Allow wrapping if content overflows */
-    justify-content: space-between;
-    gap: 10px; /* Reduced gap between cards */
-}
-
-/* For Payment Overview analytics, adjust width to fit properly */
-.first-row.payment-overview .analytics-card {
-    width: 32%; /* Adjusted width for 3 charts to fit in one row */
-}
-
-.second-row.payment-overview .analytics-card {
-    width: 32%; /* Adjusted width for 3 charts to fit in one row */
-}
-
-/* Membership Overview Layout (aligned in one row) */
-.membership-overview-container .first-row .analytics-card {
-    width: 32%; /* For consistency with Payment Overview, we set it to 32% */
-}
-
-/* Adjust for the second row, if necessary */
-.membership-overview-container .second-row .analytics-card {
-    width: 32%; /* To fit them in one row */
-}
-
+        /* Payment Overview Styles */
+        .payment-overview-container {
+            margin-top: 30px;
+            background-color: #333;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
+        }
+        .first-row, .second-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .analytics-card {
+            width: 48%;
+            padding: 20px;
+            background-color: #333;
+            color: #FFD700;
+            text-align: center;
+            border-radius: 10px;
+            box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -272,6 +205,32 @@ canvas {
             <a href="view-plans.php">Plans Catalog</a>
         </div>
 
+        <!-- Latest Registered Member -->
+        <div class="dashboard-box">
+            <div class="box">
+                <h2>Latest Registered Member</h2>
+                <?php if ($latest_member): ?>
+                    <img src="<?= getImagePath($latest_member['image']) ?>" class="profile-img" alt="Member Image">
+                    <p><strong><?= $latest_member['first_name'] . ' ' . $latest_member['last_name'] ?></strong></p>
+                    <p>Plan: <?= $latest_member['plan_name'] ?></p>
+                <?php else: ?>
+                    <p>No recent active members.</p>
+                <?php endif; ?>
+            </div>
+
+            <!-- Admin Profile -->
+            <div class="box">
+                <h2>Admin Profile</h2>
+                <?php if ($admin): ?>
+                    <img src="<?= getImagePath($admin['image']) ?>" class="profile-img" alt="Admin Image">
+                    <p><strong><?= $admin['first_name'] . ' ' . $admin['last_name'] ?></strong></p>
+                    <p>Email: <?= $admin['email'] ?></p>
+                <?php else: ?>
+                    <p>Admin details not found.</p>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <!-- Membership Overview Analytics -->
         <div class="membership-overview-container">
             <h2>Membership Overview</h2>
@@ -282,6 +241,7 @@ canvas {
                     <h3>Total Members and Non-Members</h3>
                     <canvas id="totalMembersNonMembersChart"></canvas>
                 </div>
+
                 <div class="analytics-card">
                     <h3>New Members (This Week/Month)</h3>
                     <canvas id="newMembersLineChart"></canvas>
@@ -294,10 +254,12 @@ canvas {
                     <h3>Membership Status</h3>
                     <canvas id="statusDistributionChart"></canvas>
                 </div>
+
                 <div class="analytics-card">
                     <h3>Member Medical Conditions</h3>
                     <canvas id="medicalConditionChart"></canvas>
                 </div>
+
                 <div class="analytics-card">
                     <h3>Gender Distribution</h3>
                     <canvas id="genderDistributionChart"></canvas>
@@ -309,21 +271,21 @@ canvas {
         <div class="payment-overview-container">
             <h2>Payment Overview</h2>
 
-            <!-- First Row: Line Chart for Total Revenue -->
-            <div class="first-row payment-overview">
+            <!-- First Row -->
+            <div class="first-row">
                 <div class="analytics-card">
                     <h3>Total Revenue</h3>
                     <canvas id="totalRevenueChart"></canvas>
                 </div>
-                <!-- Second Analytics: Payment Breakdown -->
+
                 <div class="analytics-card">
                     <h3>Payment Breakdown</h3>
                     <canvas id="paymentBreakdownChart"></canvas>
                 </div>
             </div>
 
-            <!-- Second Row: Donut Chart for Most Popular Plan -->
-            <div class="second-row payment-overview">
+            <!-- Second Row -->
+            <div class="second-row">
                 <div class="analytics-card">
                     <h3>Most Popular Plan</h3>
                     <canvas id="mostPopularPlanChart"></canvas>
@@ -435,13 +397,13 @@ canvas {
         var totalRevenueChart = new Chart(document.getElementById("totalRevenueChart"), {
             type: 'line',
             data: {
-                labels: [<?php echo implode(", ", array_column($revenue_data, 'date')); ?>],
+                labels: ['2025-03-16', '2025-03-17'],
                 datasets: [{
                     label: 'Total Revenue',
-                    data: [<?php echo implode(", ", array_column($revenue_data, 'total_revenue')); ?>],
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    fill: true
+                    data: [700, 1400],  // Example data, replace with dynamic data from DB
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                    fill: true,
                 }]
             }
         });
@@ -453,13 +415,9 @@ canvas {
                 labels: ['Successful', 'Pending', 'Failed'],
                 datasets: [{
                     label: 'Payment Breakdown',
-                    data: [
-                        <?php echo isset($payment_breakdown['completed']) ? $payment_breakdown['completed'] : 0; ?>,
-                        <?php echo isset($payment_breakdown['pending']) ? $payment_breakdown['pending'] : 0; ?>,
-                        <?php echo isset($payment_breakdown['failed']) ? $payment_breakdown['failed'] : 0; ?>
-                    ],
-                    backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)', 'rgba(255, 159, 64, 0.6)'],
-                    borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)', 'rgba(255, 159, 64, 1)'],
+                    data: [50, 1, 0],  // Example data, replace with dynamic data from DB
+                    backgroundColor: ['rgba(0, 123, 255, 0.6)', 'rgba(255, 159, 64, 0.6)', 'rgba(255, 99, 132, 0.6)'],
+                    borderColor: ['rgba(0, 123, 255, 1)', 'rgba(255, 159, 64, 1)', 'rgba(255, 99, 132, 1)'],
                     borderWidth: 1
                 }]
             }
@@ -469,11 +427,12 @@ canvas {
         var mostPopularPlanChart = new Chart(document.getElementById("mostPopularPlanChart"), {
             type: 'doughnut',
             data: {
-                labels: ['<?php echo $popular_plan['plan_name']; ?>'],
+                labels: ['7-Days Plan'],  // Example, replace dynamically with most popular plan
                 datasets: [{
-                    data: [<?php echo $popular_plan['count']; ?>],
-                    backgroundColor: ['rgba(255, 159, 64, 0.6)'],
-                    borderColor: ['rgba(255, 159, 64, 1)'],
+                    label: 'Most Popular Plan',
+                    data: [100],  // Example data, replace with dynamic data from DB
+                    backgroundColor: ['rgba(255, 99, 132, 0.6)'],
+                    borderColor: ['rgba(255, 99, 132, 1)'],
                     borderWidth: 1
                 }]
             }
