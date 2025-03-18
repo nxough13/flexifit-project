@@ -34,6 +34,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $amount_paid = $plan['price'];
     $gmail = $_POST['gmail'];
 
+    $_SESSION['payment_gmail'] = $gmail;
+
     // Set the payment status based on the payment method
     if ($payment_method == 'payOnSite') {
         $status = 'pending';
@@ -82,6 +84,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->bind_param("iisssi", $_SESSION['user_id'], $selected_plan, $start_date, $end_date, $status, $plan['free_training_session']);
         $stmt->execute();
 
+        
+
         // Get the member_id of the inserted record and store it in the session
         $member_id = $stmt->insert_id;
         $_SESSION['member_id'] = $member_id;
@@ -110,6 +114,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $payment_id = $stmt->insert_id;
     $_SESSION['payment_id'] = $payment_id;  // Store the payment_id for use in the receipt page
     $stmt->close();
+/*
+
+
+*/
+    // Add this to process-payment.php before redirecting to receipt.php
+unset($_SESSION['email_sent']); // Clear any previous email sent flag
+unset($_SESSION['fresh_receipt_page']); // Ensure fresh page load
 
     // Close the connection
     $conn->close();
