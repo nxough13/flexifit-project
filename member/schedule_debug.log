@@ -73,3 +73,37 @@ Session member_id: 6
 Session member_id: 7
 Session member_id: 7
 Session member_id: 7
+Session member_id: 7
+Session member_id: 1
+--- New Request 2025-03-18 04:06:01 ---
+POST data: Array
+(
+    [date] => 2025-03-18
+    [equipment] => [{"id":"1","start":"11:05","end":"11:11"}]
+    [trainer_id] => 2
+    [member_id] => 1
+)
+
+User ID: 5
+Member ID: 1
+Date: 2025-03-18
+Equipment: Array
+(
+    [0] => Array
+        (
+            [id] => 1
+            [start] => 11:05
+            [end] => 11:11
+        )
+
+)
+
+Trainer ID: 2
+Processing equipment: ID=1, Start=11:05, End=11:11
+Inserted schedule ID: 1
+Equipment status update result: success
+Trainer schedule insert result: success
+All schedules processed successfully
+Session member_id: 1
+Session member_id: 1
+Session member_id: 1

@@ -269,8 +269,8 @@ ADD COLUMN availability_status ENUM('Available','Unavailable') NOT NULL DEFAULT 
 
 ALTER TABLE membership_plans
 ADD COLUMN description TEXT DEFAULT NULL, 
-ADD COLUMN image VARCHAR(255) DEFAULT NULL;
-ADD COLUMN status ENUM('active', 'disabled') DEFAULT 'ACTIVE';
+ADD COLUMN image VARCHAR(255) DEFAULT NULL,
+ADD COLUMN status ENUM('active', 'disabled') DEFAULT 'active';
 
 
 ALTER TABLE equipment_inventory

@@ -4,13 +4,23 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Correct the path dynamically
-$base_path = __DIR__; // Gets the directory of the current file
-require_once $base_path . '../config.php'; // Ensures the correct path
+// include '../includes/header.php';
+
+// use PHPMailer\PHPMailer\PHPMailer;
+// use PHPMailer\PHPMailer\Exception;
+
+// require '../vendor/autoload.php';
+
+$host = "localhost";
+$user = "root";
+$password = "";
+$dbname = "flexifit_db";
+$conn = new mysqli($host, $user, $password, $dbname);
 
 // Check if user is logged in and fetch user details
 $user = null;
 $profileLink = "../login.php"; // Default profile link for non-logged-in users
+$homeLink = "/flexifit-project/index.php"; // Default Home link
 
 if (isset($_SESSION['user_id'])) {
     $user_id = $_SESSION['user_id'];
@@ -21,33 +31,70 @@ if (isset($_SESSION['user_id'])) {
     $result = $stmt->get_result();
     $user = $result->fetch_assoc();
 
-    // Set profile link based on user type
+    // Set profile link and home link based on user type
     if ($user) {
         $userType = $user['user_type'];
         $profileLink = ($userType === 'admin') ? "/flexifit-project/admin/admin-profile.php" : "/flexifit-project/member/member-profile.php";
+        $homeLink = ($userType === 'admin') ? "/flexifit-project/admin/index.php" : "/flexifit-project/member/index.php";
     }
 }
 ?>
 
 <header style="display: flex; justify-content: space-between; align-items: center; background: black; padding: 15px 30px;">
     <div class="logo" style="display: flex; align-items: center;">
-        <a href="/flexifit-project/index.php">
+        <a href="<?= $homeLink ?>">
             <img src="/flexifit-project/images/flexfit-logo.png" alt="FlexiFit Logo" style="height: 50px;">
         </a>
         <span style="font-weight: bold; font-size: 20px; margin-left: 10px; color: white;">FLEXIFIT GYM</span>
     </div>
+
     <nav>
         <ul style="list-style: none; display: flex; gap: 20px; margin: 0; padding: 0;">
-            <li style="display: inline;"><a href="/flexifit-project/index.php#home" style="text-decoration: none; color: white; font-weight: bold;">Home</a></li>
-            <li style="display: inline;"><a href="/flexifit-project/index.php#about" style="text-decoration: none; color: white; font-weight: bold;">About</a></li>
-            <li style="display: inline;"><a href="/flexifit-project/index.php#offers" style="text-decoration: none; color: white; font-weight: bold;">Offers</a></li>
-            <li style="display: inline;"><a href="/flexifit-project/index.php#contact" style="text-decoration: none; color: white; font-weight: bold;">Contact</a></li>
-            <?php if ($user && ($user['user_type'] === 'member' || $user['user_type'] === 'admin')): ?>
-                <li style="display: inline;"><a href="/flexifit-project/member/content.php" style="text-decoration: none; color: white; font-weight: bold;">Contents</a></li>
-                <li style="display: inline;"><a href="/flexifit-project/member/view-trainers.php" style="text-decoration: none; color: white; font-weight: bold;">Trainers</a></li>
-                <li style="display: inline;"><a href="/flexifit-project/member/membership-plans.php" style="text-decoration: none; color: white; font-weight: bold;">Membership</a></li>
-                <li style="display: inline;"><a href="/flexifit-project/member/view-equipments.php" style="text-decoration: none; color: white; font-weight: bold;">Equipments</a></li>
-                <li style="display: inline;"><a href="/flexifit-project/member/create-schedule.php" style="text-decoration: none; color: white; font-weight: bold;"> Set Schedule</a></li>
+            <!-- Home button will now link dynamically based on user type -->
+            <li style="display: inline;">
+                <a href="<?= $homeLink ?>" style="text-decoration: none; color: white; font-weight: bold;">Home</a>
+            </li>
+            <!-- <li style="display: inline;">
+                <a href="/flexifit-project/index.php#about" style="text-decoration: none; color: white; font-weight: bold;">About</a>
+            </li>
+            <li style="display: inline;">
+                <a href="/flexifit-project/index.php#offers" style="text-decoration: none; color: white; font-weight: bold;">Offers</a>
+            </li>
+            <li style="display: inline;">
+                <a href="/flexifit-project/index.php#contact" style="text-decoration: none; color: white; font-weight: bold;">Contact</a>
+            </li> -->
+
+            <?php if ($user && ($user['user_type'] === 'member')): ?>
+                <!-- Links for Members -->
+                <li style="display: inline;">
+                    <a href="/flexifit-project/member/content.php" style="text-decoration: none; color: white; font-weight: bold;">Contents</a>
+                </li>
+                <li style="display: inline;">
+                    <a href="/flexifit-project/member/view-trainers.php" style="text-decoration: none; color: white; font-weight: bold;">Trainers</a>
+                </li>
+                <li style="display: inline;">
+                    <a href="/flexifit-project/member/membership-plans.php" style="text-decoration: none; color: white; font-weight: bold;">Membership</a>
+                </li>
+                <li style="display: inline;">
+                    <a href="/flexifit-project/member/view-equipments.php" style="text-decoration: none; color: white; font-weight: bold;">Equipments</a>
+                </li>
+                <li style="display: inline;">
+                    <a href="/flexifit-project/member/create-schedule.php" style="text-decoration: none; color: white; font-weight: bold;">Set Schedule</a>
+                </li>
+            <?php elseif ($user && ($user['user_type'] === 'admin')): ?>
+                <!-- Links for Admin -->
+                <li style="display: inline;">
+                    <a href="/flexifit-project/admin/view-trainers.php" style="text-decoration: none; color: white; font-weight: bold;">Trainers</a>
+                </li>
+                <li style="display: inline;">
+                    <a href="/flexifit-project/admin/view-plans.php" style="text-decoration: none; color: white; font-weight: bold;">Plans</a>
+                </li>
+                <li style="display: inline;">
+                    <a href="/flexifit-project/admin/view-content.php" style="text-decoration: none; color: white; font-weight: bold;">Content</a>
+                </li>
+                <li style="display: inline;">
+                    <a href="/flexifit-project/admin/view-equipments.php" style="text-decoration: none; color: white; font-weight: bold;">Equipments</a>
+                </li>
             <?php endif; ?>
         </ul>
     </nav>
