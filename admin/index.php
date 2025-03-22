@@ -203,6 +203,7 @@ function getImagePath($image) {
             <a href="view-users.php">Users Catalog</a>
             <a href="view-equipments.php">Equipment Catalog</a>
             <a href="view-plans.php">Plans Catalog</a>
+            <a href="view-schedules.php">View Schedules</a>
         </div>
 
         <!-- Latest Registered Member -->
