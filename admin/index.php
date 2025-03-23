@@ -68,7 +68,6 @@ while ($row = mysqli_fetch_assoc($status_distribution_result)) {
     $status_distribution[$row['membership_status']] = $row['count'];
 }
 
-// New Analytics
 // Fetch members with medical condition (yes/no)
 $medical_condition_query = "SELECT COUNT(*) AS medical_condition_yes FROM users WHERE medical_condition = 'yes'";
 $medical_condition_result = mysqli_query($conn, $medical_condition_query);
@@ -87,6 +86,18 @@ while ($row = mysqli_fetch_assoc($gender_distribution_result)) {
     $gender_distribution[$row['gender']] = $row['count'];
 }
 
+// Fetch payment data
+$total_revenue_query = "SELECT SUM(amount) AS total_revenue FROM membership_payments WHERE payment_status = 'completed'";
+$total_revenue_result = mysqli_query($conn, $total_revenue_query);
+$total_revenue = mysqli_fetch_assoc($total_revenue_result)['total_revenue'];
+
+$payment_breakdown_query = "SELECT payment_status, COUNT(*) AS count FROM membership_payments GROUP BY payment_status";
+$payment_breakdown_result = mysqli_query($conn, $payment_breakdown_query);
+$payment_breakdown = ['completed' => 0, 'pending' => 0, 'failed' => 0];
+while ($row = mysqli_fetch_assoc($payment_breakdown_result)) {
+    $payment_breakdown[$row['payment_status']] = $row['count'];
+}
+
 // Function to get image path
 function getImagePath($image) {
     $uploadPath = "../images/";
@@ -94,6 +105,73 @@ function getImagePath($image) {
         ? htmlspecialchars($uploadPath . $image) 
         : htmlspecialchars($uploadPath . "placeholder.png");
 }
+
+// Query to fetch Most Booked Equipment
+$most_booked_equipment_query = "
+    SELECT e.name, COUNT(s.inventory_id) AS bookings_count
+    FROM schedules s
+    JOIN equipment_inventory ei ON s.inventory_id = ei.inventory_id
+    JOIN equipment e ON ei.equipment_id = e.equipment_id
+    GROUP BY s.inventory_id
+    ORDER BY bookings_count DESC
+    LIMIT 5
+";
+$most_booked_equipment_result = mysqli_query($conn, $most_booked_equipment_query);
+$most_booked_equipment = mysqli_fetch_all($most_booked_equipment_result, MYSQLI_ASSOC);
+
+// Query to fetch Most Booked Trainer
+// Most Booked Trainer
+$most_booked_trainer_query = "
+    SELECT CONCAT(t.first_name, ' ', t.last_name) AS trainer_name, COUNT(st.trainer_id) AS trainer_bookings
+    FROM schedule_trainer st
+    JOIN trainers t ON st.trainer_id = t.trainer_id
+    GROUP BY st.trainer_id
+    ORDER BY trainer_bookings DESC
+    LIMIT 5
+";
+$most_booked_trainer_result = mysqli_query($conn, $most_booked_trainer_query);
+$most_booked_trainer = mysqli_fetch_all($most_booked_trainer_result, MYSQLI_ASSOC);
+
+
+// Query to fetch Day with Most Schedules
+$most_scheduled_day_query = "
+    SELECT DATE(date) AS schedule_date, COUNT(*) AS schedule_count
+    FROM schedules
+    GROUP BY DATE(date)
+    ORDER BY schedule_count DESC
+    LIMIT 1
+";
+$most_scheduled_day_result = mysqli_query($conn, $most_scheduled_day_query);
+$most_scheduled_day = mysqli_fetch_all($most_scheduled_day_result, MYSQLI_ASSOC);
+
+// Query to fetch Most Reviewed Content
+$most_reviewed_content_query = "
+    SELECT c.title, AVG(r.rating) AS average_rating, COUNT(r.review_id) AS review_count
+    FROM content c
+    LEFT JOIN reviews r ON c.content_id = r.content_id
+    GROUP BY c.content_id
+    ORDER BY review_count DESC, average_rating DESC
+    LIMIT 5
+";
+$most_reviewed_content_result = mysqli_query($conn, $most_reviewed_content_query);
+$most_reviewed_content = mysqli_fetch_all($most_reviewed_content_result, MYSQLI_ASSOC);
+
+// Query to fetch Most Reviewed Trainer
+// Most Reviewed Trainer
+$most_reviewed_trainer_query = "
+    SELECT t.trainer_id, CONCAT(t.first_name, ' ', t.last_name) AS trainer_name, 
+           AVG(tr.rating) AS avg_rating, COUNT(tr.trainer_id) AS total_reviews
+    FROM trainer_reviews tr
+    JOIN trainers t ON tr.trainer_id = t.trainer_id
+    GROUP BY tr.trainer_id
+    ORDER BY total_reviews DESC, avg_rating DESC
+    LIMIT 5
+";
+$most_reviewed_trainer_result = mysqli_query($conn, $most_reviewed_trainer_query);
+$most_reviewed_trainer = mysqli_fetch_all($most_reviewed_trainer_result, MYSQLI_ASSOC);
+
+
+
 ?>
 
 <!DOCTYPE html>
@@ -109,16 +187,21 @@ function getImagePath($image) {
             background-color: #222;
             color: #FFD700;
             text-align: center;
+            margin: 0;
+            padding: 0;
         }
+
         .container {
             width: 95%;
             margin: auto;
         }
+
         .top-buttons {
             display: flex;
             justify-content: space-between;
             margin: 20px 0;
         }
+
         .top-buttons a {
             padding: 10px 20px;
             background-color: #FFD700;
@@ -126,70 +209,108 @@ function getImagePath($image) {
             text-decoration: none;
             font-weight: bold;
             border-radius: 5px;
+            transition: background-color 0.3s;
         }
+
+        .top-buttons a:hover {
+            background-color: #e0a800;
+        }
+
         .dashboard-box {
             display: flex;
             justify-content: space-between;
             margin-top: 20px;
         }
+
         .box {
             width: 48%;
             padding: 20px;
             background-color: #333;
             border-radius: 10px;
             box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
+            margin-bottom: 20px;
         }
+
         .profile-img {
             width: 80px;
             height: 80px;
             border-radius: 50%;
             margin-bottom: 10px;
         }
+
         canvas {
-            max-width: 100% !important;
-            height: 250px !important;  /* Adjusted height */
+            max-width: 100%;
+            height: 300px !important; /* Increased height for better visibility */
             margin: 20px 0;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(255, 215, 0, 0.5);
         }
 
-        /* Membership Overview Styles */
-        .membership-overview-container {
-            margin-top: 30px;
-            background-color: #333;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
-        }
-        .first-row, .second-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        /* Payment Overview Styles */
-        .payment-overview-container {
-            margin-top: 30px;
-            background-color: #333;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
-        }
-        .first-row, .second-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
         .analytics-card {
-            width: 48%;
+            width: 32%;
             padding: 20px;
             background-color: #333;
             color: #FFD700;
             text-align: center;
             border-radius: 10px;
             box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center; /* Ensure the charts are centered */
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .analytics-card h3 {
+            margin-bottom: 10px; /* Title spacing */
+        }
+
+        .note {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 10px;
+        }
+
+        .first-row, .second-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .first-row .analytics-card {
+            width: 49%; /* Wider cards for line graphs */
+        }
+
+        .second-row .analytics-card {
+            height: 300px; /* Fixed height for circular graphs */
+            padding: 20px; /* Add padding to prevent overlapping */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #mostPopularPlanChart {
+            max-height: 250px; /* Match the height of circular graphs */
+            width: 100% !important; /* Ensure it fits within the container */
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .first-row, .second-row {
+                flex-direction: column;
+            }
+
+            .analytics-card {
+                width: 100%;
+                margin-bottom: 20px;
+            }
+        }
+
+        /* Payment Overview Styles */
+        .payment-overview-container .first-row .analytics-card,
+        .payment-overview-container .second-row .analytics-card {
+            margin-bottom: 0; /* Remove extra margin on payment overview charts */
         }
     </style>
 </head>
@@ -283,16 +404,55 @@ function getImagePath($image) {
                     <h3>Payment Breakdown</h3>
                     <canvas id="paymentBreakdownChart"></canvas>
                 </div>
-            </div>
 
-            <!-- Second Row -->
-            <div class="second-row">
                 <div class="analytics-card">
                     <h3>Most Popular Plan</h3>
                     <canvas id="mostPopularPlanChart"></canvas>
                 </div>
             </div>
         </div>
+
+        <!-- Trend Analytics -->
+        <div class="trend-analytics-container">
+            <h2>Trend Analytics</h2>
+
+            <!-- First Row: Bar Charts -->
+            <div class="first-row">
+                <div class="analytics-card">
+                    <h3>Most Booked Equipment</h3>
+                    <canvas id="mostBookedEquipmentChart"></canvas>
+                    <p class="note">Displays the top 5 most booked equipment based on booking data.</p>
+                </div>
+
+                <div class="analytics-card">
+                    <h3>Most Booked Trainer</h3>
+                    <canvas id="mostBookedTrainerChart"></canvas>
+                    <p class="note">Shows the top 5 trainers with the highest number of bookings.</p>
+                </div>
+            </div>
+
+            <!-- Second Row: Line Chart and Bar Charts -->
+            <div class="second-row">
+                <div class="analytics-card">
+                    <h3>Day with Most Schedules</h3>
+                    <canvas id="mostScheduledDayChart"></canvas>
+                    <p class="note">Shows the day with the highest number of scheduled bookings.</p>
+                </div>
+
+                <div class="analytics-card">
+                    <h3>Most Reviewed Content</h3>
+                    <canvas id="mostReviewedContentChart"></canvas>
+                    <p class="note">Displays content with the highest number of reviews and highest average ratings.</p>
+                </div>
+
+                <div class="analytics-card">
+                    <h3>Most Reviewed Trainer</h3>
+                    <canvas id="mostReviewedTrainerChart"></canvas>
+                    <p class="note">Displays the trainers with the highest number of reviews and average ratings.</p>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -304,7 +464,7 @@ function getImagePath($image) {
                 datasets: [{
                     label: 'Total Members vs Non-Members',
                     data: [<?php echo $total_members; ?>, <?php echo $non_members; ?>],
-                    backgroundColor: 'rgba(255, 215, 0, 0.6)',
+                    backgroundColor: 'rgba(255, 215, 0, 1)',
                     borderColor: 'rgba(255, 215, 0, 1)',
                     borderWidth: 1
                 }]
@@ -353,8 +513,8 @@ function getImagePath($image) {
                         <?php echo isset($status_distribution['expired']) ? $status_distribution['expired'] : 0; ?>,
                         <?php echo isset($status_distribution['pending']) ? $status_distribution['pending'] : 0; ?>
                     ],
-                    backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)', 'rgba(255, 159, 64, 0.6)'],
-                    borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)', 'rgba(255, 159, 64, 1)'],
+                    backgroundColor: ['#17a2b8', '#e83e8c', '#ffc107'],
+                    borderColor: ['#17a2b8', '#e83e8c', '#ffc107'],
                     borderWidth: 1
                 }]
             }
@@ -368,8 +528,8 @@ function getImagePath($image) {
                 datasets: [{
                     label: 'Medical Conditions',
                     data: [<?php echo $medical_condition_yes; ?>, <?php echo $medical_condition_no; ?>],
-                    backgroundColor: ['rgba(54, 162, 235, 0.6)', 'rgba(153, 102, 255, 0.6)'],
-                    borderColor: ['rgba(54, 162, 235, 1)', 'rgba(153, 102, 255, 1)'],
+                    backgroundColor: ['#007bff', '#6f42c1'],
+                    borderColor: ['#007bff', '#6f42c1'],
                     borderWidth: 1
                 }]
             }
@@ -387,8 +547,8 @@ function getImagePath($image) {
                         <?php echo $gender_distribution['female']; ?>,
                         <?php echo $gender_distribution['other']; ?>
                     ],
-                    backgroundColor: ['rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)', 'rgba(153, 102, 255, 0.6)'],
-                    borderColor: ['rgba(54, 162, 235, 1)', 'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'],
+                    backgroundColor: ['#007bff', '#28a745', '#6f42c1'],
+                    borderColor: ['#007bff', '#28a745', '#6f42c1'],
                     borderWidth: 1
                 }]
             }
@@ -398,10 +558,10 @@ function getImagePath($image) {
         var totalRevenueChart = new Chart(document.getElementById("totalRevenueChart"), {
             type: 'line',
             data: {
-                labels: ['2025-03-16', '2025-03-17'],
+                labels: ['2025-03-10', '2025-03-17'],
                 datasets: [{
                     label: 'Total Revenue',
-                    data: [700, 1400],  // Example data, replace with dynamic data from DB
+                    data: [<?php echo $total_revenue; ?>],
                     borderColor: 'rgba(0, 123, 255, 1)',
                     backgroundColor: 'rgba(0, 123, 255, 0.2)',
                     fill: true,
@@ -416,9 +576,13 @@ function getImagePath($image) {
                 labels: ['Successful', 'Pending', 'Failed'],
                 datasets: [{
                     label: 'Payment Breakdown',
-                    data: [50, 1, 0],  // Example data, replace with dynamic data from DB
-                    backgroundColor: ['rgba(0, 123, 255, 0.6)', 'rgba(255, 159, 64, 0.6)', 'rgba(255, 99, 132, 0.6)'],
-                    borderColor: ['rgba(0, 123, 255, 1)', 'rgba(255, 159, 64, 1)', 'rgba(255, 99, 132, 1)'],
+                    data: [
+                        <?php echo $payment_breakdown['completed']; ?>,
+                        <?php echo $payment_breakdown['pending']; ?>,
+                        <?php echo $payment_breakdown['failed']; ?>
+                    ],
+                    backgroundColor: ['#28a745', '#ff7f00', '#dc3545'],
+                    borderColor: ['#28a745', '#ff7f00', '#dc3545'],
                     borderWidth: 1
                 }]
             }
@@ -428,12 +592,96 @@ function getImagePath($image) {
         var mostPopularPlanChart = new Chart(document.getElementById("mostPopularPlanChart"), {
             type: 'doughnut',
             data: {
-                labels: ['7-Days Plan'],  // Example, replace dynamically with most popular plan
+                labels: ['7-Days Plan'],
                 datasets: [{
                     label: 'Most Popular Plan',
-                    data: [100],  // Example data, replace with dynamic data from DB
-                    backgroundColor: ['rgba(255, 99, 132, 0.6)'],
-                    borderColor: ['rgba(255, 99, 132, 1)'],
+                    data: [100],
+                    backgroundColor: ['#ff5733'],
+                    borderColor: ['#ff5733'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // Prevent chart from stretching
+            }
+        });
+
+          // Fetch Most Booked Equipment
+        var mostBookedEquipmentData = <?php echo json_encode($most_booked_equipment); ?>;
+        var mostBookedEquipmentChart = new Chart(document.getElementById("mostBookedEquipmentChart"), {
+            type: 'bar',
+            data: {
+                labels: mostBookedEquipmentData.map(item => item.name),
+                datasets: [{
+                    label: 'Bookings',
+                    data: mostBookedEquipmentData.map(item => item.bookings_count),
+                    backgroundColor: 'rgba(75, 192, 192, 1)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            }
+        });
+
+        // Fetch Most Booked Trainer
+        var mostBookedTrainerData = <?php echo json_encode($most_booked_trainer); ?>;
+        var mostBookedTrainerChart = new Chart(document.getElementById("mostBookedTrainerChart"), {
+            type: 'bar',
+            data: {
+                labels: mostBookedTrainerData.map(item => item.trainer_name),
+                datasets: [{
+                    label: 'Bookings',
+                    data: mostBookedTrainerData.map(item => item.trainer_bookings),
+                    backgroundColor: 'rgba(153, 102, 255, 1)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }]
+            }
+        });
+
+        // Fetch Day with Most Schedules
+        var mostScheduledDayData = <?php echo json_encode($most_scheduled_day); ?>;
+        var mostScheduledDayChart = new Chart(document.getElementById("mostScheduledDayChart"), {
+            type: 'line',
+            data: {
+                labels: mostScheduledDayData.map(item => item.schedule_date),
+                datasets: [{
+                    label: 'Schedules',
+                    data: mostScheduledDayData.map(item => item.schedule_count),
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                    fill: true
+                }]
+            }
+        });
+
+        // Fetch Most Reviewed Content
+        var mostReviewedContentData = <?php echo json_encode($most_reviewed_content); ?>;
+        var mostReviewedContentChart = new Chart(document.getElementById("mostReviewedContentChart"), {
+            type: 'bar',
+            data: {
+                labels: mostReviewedContentData.map(item => item.title),
+                datasets: [{
+                    label: 'Reviews',
+                    data: mostReviewedContentData.map(item => item.review_count),
+                    backgroundColor: 'rgba(255, 99, 132, 1)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            }
+        });
+
+        // Fetch Most Reviewed Trainer
+        var mostReviewedTrainerData = <?php echo json_encode($most_reviewed_trainer); ?>;
+        var mostReviewedTrainerChart = new Chart(document.getElementById("mostReviewedTrainerChart"), {
+            type: 'bar',
+            data: {
+                labels: mostReviewedTrainerData.map(item => item.trainer_name),
+                datasets: [{
+                    label: 'Reviews',
+                    data: mostReviewedTrainerData.map(item => item.total_reviews),
+                    backgroundColor: 'rgba(0, 123, 255, 1)',
+                    borderColor: 'rgba(0, 123, 255, 1)',
                     borderWidth: 1
                 }]
             }
