@@ -15,7 +15,6 @@ if (!isset($_SESSION['user_id'])) {
     // No user is logged in, redirect to main index.php
     header("Location: ../index.php");
     exit();
-
 }
 
 

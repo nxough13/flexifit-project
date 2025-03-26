@@ -164,7 +164,7 @@ while ($trainer = mysqli_fetch_assoc($trainers_result)) {
     </div>
 
     <div class="box">
-        <h3>Select Trainer (Optional)</h3>
+        <h3>Select Trainer (Optional: based on trainer's Specialty)</h3>
         <div id="trainer-list">
             <?php foreach ($trainers as $trainer): ?>
                 <div class="trainer-card" data-id="<?php echo $trainer['trainer_id']; ?>">

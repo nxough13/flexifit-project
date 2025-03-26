@@ -107,3 +107,155 @@ All schedules processed successfully
 Session member_id: 1
 Session member_id: 1
 Session member_id: 1
+Session member_id: 1
+Session member_id: 1
+--- New Request 2025-03-23 16:30:31 ---
+POST data: Array
+(
+    [date] => 2025-03-23
+    [equipment] => [{"id":"14","start":"23:30","end":"23:48"}]
+    [trainer_id] => 1
+    [member_id] => 1
+)
+
+User ID: 5
+Member ID: 1
+Date: 2025-03-23
+Equipment: Array
+(
+    [0] => Array
+        (
+            [id] => 14
+            [start] => 23:30
+            [end] => 23:48
+        )
+
+)
+
+Trainer ID: 1
+Processing equipment: ID=14, Start=23:30, End=23:48
+Inserted schedule ID: 1
+Equipment status update result: success
+Trainer schedule insert result: success
+All schedules processed successfully
+Session member_id: 1
+Session member_id: 1
+--- New Request 2025-03-23 16:31:23 ---
+POST data: Array
+(
+    [date] => 2025-03-24
+    [equipment] => [{"id":"2","start":"23:30","end":"23:49"},{"id":"12","start":"22:57","end":"23:26"}]
+    [trainer_id] => 
+    [member_id] => 1
+)
+
+User ID: 5
+Member ID: 1
+Date: 2025-03-24
+Equipment: Array
+(
+    [0] => Array
+        (
+            [id] => 2
+            [start] => 23:30
+            [end] => 23:49
+        )
+
+    [1] => Array
+        (
+            [id] => 12
+            [start] => 22:57
+            [end] => 23:26
+        )
+
+)
+
+Trainer ID: 
+Processing equipment: ID=2, Start=23:30, End=23:49
+Inserted schedule ID: 2
+Equipment status update result: success
+Processing equipment: ID=12, Start=22:57, End=23:26
+Inserted schedule ID: 3
+Equipment status update result: success
+All schedules processed successfully
+Session member_id: 1
+Session member_id: 4
+Session member_id: 4
+--- New Request 2025-03-23 16:39:54 ---
+POST data: Array
+(
+    [date] => 2025-03-23
+    [equipment] => [{"id":"5","start":"23:39","end":"23:50"}]
+    [trainer_id] => 2
+    [member_id] => 4
+)
+
+User ID: 2
+Member ID: 4
+Date: 2025-03-23
+Equipment: Array
+(
+    [0] => Array
+        (
+            [id] => 5
+            [start] => 23:39
+            [end] => 23:50
+        )
+
+)
+
+Trainer ID: 2
+Processing equipment: ID=5, Start=23:39, End=23:50
+Inserted schedule ID: 4
+Equipment status update result: success
+Trainer schedule insert result: success
+All schedules processed successfully
+Session member_id: 4
+Session member_id: 5
+Session member_id: 5
+--- New Request 2025-03-23 16:57:09 ---
+POST data: Array
+(
+    [date] => 2025-03-24
+    [equipment] => [{"id":"9","start":"22:56","end":"23:28"},{"id":"3","start":"23:31","end":"23:56"}]
+    [trainer_id] => 1
+    [member_id] => 5
+)
+
+User ID: 6
+Member ID: 5
+Date: 2025-03-24
+Equipment: Array
+(
+    [0] => Array
+        (
+            [id] => 9
+            [start] => 22:56
+            [end] => 23:28
+        )
+
+    [1] => Array
+        (
+            [id] => 3
+            [start] => 23:31
+            [end] => 23:56
+        )
+
+)
+
+Trainer ID: 1
+Processing equipment: ID=9, Start=22:56, End=23:28
+Inserted schedule ID: 5
+Equipment status update result: success
+Trainer schedule insert result: success
+Processing equipment: ID=3, Start=23:31, End=23:56
+Inserted schedule ID: 6
+Equipment status update result: success
+Trainer schedule insert result: success
+All schedules processed successfully
+Session member_id: 5
+Session member_id: 5
+Session member_id: 1
+Session member_id: 1
+Session member_id: 1
+Session member_id: 6

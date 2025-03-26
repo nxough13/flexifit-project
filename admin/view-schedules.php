@@ -6,6 +6,8 @@ $password = "";
 $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 
+include '../includes/header.php';
+
 // Ensure the user is logged in and is an admin
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
     echo "Error: Access restricted to admins only.";

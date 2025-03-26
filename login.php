@@ -6,13 +6,16 @@ $password = "";
 $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 
+
 // Include the header
 include 'includes/header.php';
+
 
 // Login logic
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = trim($_POST['email']);
     $password = trim($_POST['password']);
+
 
     if (!empty($email) && !empty($password)) {
         $stmt = $conn->prepare("SELECT user_id, first_name, last_name, password, user_type FROM users WHERE email = ?");
@@ -20,9 +23,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->execute();
         $stmt->store_result();
 
+
         if ($stmt->num_rows > 0) {
             $stmt->bind_result($user_id, $first_name, $last_name, $hashed_password, $user_type);
             $stmt->fetch();
+
 
             if (password_verify($password, $hashed_password)) {
                 $_SESSION['user_id'] = $user_id;
@@ -30,9 +35,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $_SESSION['last_name'] = $last_name;
                 $_SESSION['user_type'] = $user_type;
 
+
                 // Redirect based on user type
                 if ($user_type === 'admin') {
                     header("Location: admin/index.php");
+                } elseif ($user_type === 'trainer') {
+                    header("Location: member/index.php");
                 } else {
                     header("Location: index.php");
                 }
@@ -49,6 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -115,7 +124,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body>
 
+
 <!-- Header is already included via includes/header.php -->
+
 
 <div class="login-container">
     <h2>Login</h2>
@@ -126,6 +137,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </form>
     <p class="error"><?php echo isset($error) ? $error : ''; ?></p>
 </div>
+
 
 </body>
 </html>

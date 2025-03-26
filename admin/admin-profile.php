@@ -53,10 +53,10 @@ if (!isset($_SESSION['user_type'])) {
 
 
 // Check if the user is an admin
-if ($_SESSION['user_type'] !== 'admin') {
-    header("Location: ../index.php"); // Redirect non-admins to homepage
-    exit();
-}
+// if ($_SESSION['user_type'] !== 'admin') {
+//     header("Location: ../index.php"); // Redirect non-admins to homepage
+//     exit();
+// }
 
 
 // Default profile picture if none is uploaded
