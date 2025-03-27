@@ -5,7 +5,8 @@ $username = "root";
 $password = "";
 $database = "flexifit_db";
 include '../includes/header.php';
-
+require_once('../vendor/autoload.php'); // For TCPDF
+use TCPDF as TCPDF;
 // Create connection
 $conn = new mysqli($servername, $username, $password, $database);
 
@@ -50,16 +51,6 @@ $non_members_query = "SELECT COUNT(*) AS non_members FROM users WHERE user_type 
 $non_members_result = mysqli_query($conn, $non_members_query);
 $non_members = mysqli_fetch_assoc($non_members_result)['non_members'];
 
-// Fetch new memberships in the past week
-$new_members_week_query = "SELECT COUNT(*) AS new_members_week FROM members WHERE start_date >= CURDATE() - INTERVAL 1 WEEK";
-$new_members_week_result = mysqli_query($conn, $new_members_week_query);
-$new_members_week = mysqli_fetch_assoc($new_members_week_result)['new_members_week'];
-
-// Fetch new memberships in the past month
-$new_members_month_query = "SELECT COUNT(*) AS new_members_month FROM members WHERE start_date >= CURDATE() - INTERVAL 1 MONTH";
-$new_members_month_result = mysqli_query($conn, $new_members_month_query);
-$new_members_month = mysqli_fetch_assoc($new_members_month_result)['new_members_month'];
-
 // Fetch membership status distribution
 $status_distribution_query = "SELECT membership_status, COUNT(*) AS count FROM members GROUP BY membership_status";
 $status_distribution_result = mysqli_query($conn, $status_distribution_query);
@@ -68,34 +59,12 @@ while ($row = mysqli_fetch_assoc($status_distribution_result)) {
     $status_distribution[$row['membership_status']] = $row['count'];
 }
 
-// Fetch members with medical condition (yes/no)
-$medical_condition_query = "SELECT COUNT(*) AS medical_condition_yes FROM users WHERE medical_condition = 'yes'";
-$medical_condition_result = mysqli_query($conn, $medical_condition_query);
-$medical_condition_yes = mysqli_fetch_assoc($medical_condition_result)['medical_condition_yes'];
-
-// Fetch members without medical condition (no)
-$medical_condition_no_query = "SELECT COUNT(*) AS medical_condition_no FROM users WHERE medical_condition = 'no'";
-$medical_condition_no_result = mysqli_query($conn, $medical_condition_no_query);
-$medical_condition_no = mysqli_fetch_assoc($medical_condition_no_result)['medical_condition_no'];
-
 // Fetch gender distribution (male, female, other)
 $gender_distribution_query = "SELECT gender, COUNT(*) AS count FROM users WHERE user_type = 'member' GROUP BY gender";
 $gender_distribution_result = mysqli_query($conn, $gender_distribution_query);
 $gender_distribution = ['male' => 0, 'female' => 0, 'other' => 0];
 while ($row = mysqli_fetch_assoc($gender_distribution_result)) {
     $gender_distribution[$row['gender']] = $row['count'];
-}
-
-// Fetch payment data
-$total_revenue_query = "SELECT SUM(amount) AS total_revenue FROM membership_payments WHERE payment_status = 'completed'";
-$total_revenue_result = mysqli_query($conn, $total_revenue_query);
-$total_revenue = mysqli_fetch_assoc($total_revenue_result)['total_revenue'];
-
-$payment_breakdown_query = "SELECT payment_status, COUNT(*) AS count FROM membership_payments GROUP BY payment_status";
-$payment_breakdown_result = mysqli_query($conn, $payment_breakdown_query);
-$payment_breakdown = ['completed' => 0, 'pending' => 0, 'failed' => 0];
-while ($row = mysqli_fetch_assoc($payment_breakdown_result)) {
-    $payment_breakdown[$row['payment_status']] = $row['count'];
 }
 
 // Function to get image path
@@ -119,19 +88,19 @@ $most_booked_equipment_query = "
 $most_booked_equipment_result = mysqli_query($conn, $most_booked_equipment_query);
 $most_booked_equipment = mysqli_fetch_all($most_booked_equipment_result, MYSQLI_ASSOC);
 
-// Query to fetch Most Booked Trainer
-// Most Booked Trainer
-$most_booked_trainer_query = "
-    SELECT CONCAT(t.first_name, ' ', t.last_name) AS trainer_name, COUNT(st.trainer_id) AS trainer_bookings
-    FROM schedule_trainer st
-    JOIN trainers t ON st.trainer_id = t.trainer_id
-    GROUP BY st.trainer_id
-    ORDER BY trainer_bookings DESC
+// Query to fetch Highest Rated Trainer
+$highest_rated_trainer_query = "
+    SELECT t.trainer_id, CONCAT(t.first_name, ' ', t.last_name) AS trainer_name, 
+           AVG(tr.rating) AS avg_rating, COUNT(tr.trainer_id) AS total_reviews
+    FROM trainer_reviews tr
+    JOIN trainers t ON tr.trainer_id = t.trainer_id
+    GROUP BY tr.trainer_id
+    HAVING COUNT(tr.trainer_id) >= 3
+    ORDER BY avg_rating DESC
     LIMIT 5
 ";
-$most_booked_trainer_result = mysqli_query($conn, $most_booked_trainer_query);
-$most_booked_trainer = mysqli_fetch_all($most_booked_trainer_result, MYSQLI_ASSOC);
-
+$highest_rated_trainer_result = mysqli_query($conn, $highest_rated_trainer_query);
+$highest_rated_trainer = mysqli_fetch_all($highest_rated_trainer_result, MYSQLI_ASSOC);
 
 // Query to fetch Day with Most Schedules
 $most_scheduled_day_query = "
@@ -144,33 +113,19 @@ $most_scheduled_day_query = "
 $most_scheduled_day_result = mysqli_query($conn, $most_scheduled_day_query);
 $most_scheduled_day = mysqli_fetch_all($most_scheduled_day_result, MYSQLI_ASSOC);
 
-// Query to fetch Most Reviewed Content
-$most_reviewed_content_query = "
-    SELECT c.title, AVG(r.rating) AS average_rating, COUNT(r.review_id) AS review_count
+// Query to fetch Highest Rated Content
+$highest_rated_content_query = "
+    SELECT c.content_id, c.title, 
+           AVG(r.rating) AS avg_rating, COUNT(r.review_id) AS review_count
     FROM content c
     LEFT JOIN reviews r ON c.content_id = r.content_id
     GROUP BY c.content_id
-    ORDER BY review_count DESC, average_rating DESC
+    HAVING COUNT(r.review_id) >= 3
+    ORDER BY avg_rating DESC
     LIMIT 5
 ";
-$most_reviewed_content_result = mysqli_query($conn, $most_reviewed_content_query);
-$most_reviewed_content = mysqli_fetch_all($most_reviewed_content_result, MYSQLI_ASSOC);
-
-// Query to fetch Most Reviewed Trainer
-// Most Reviewed Trainer
-$most_reviewed_trainer_query = "
-    SELECT t.trainer_id, CONCAT(t.first_name, ' ', t.last_name) AS trainer_name, 
-           AVG(tr.rating) AS avg_rating, COUNT(tr.trainer_id) AS total_reviews
-    FROM trainer_reviews tr
-    JOIN trainers t ON tr.trainer_id = t.trainer_id
-    GROUP BY tr.trainer_id
-    ORDER BY total_reviews DESC, avg_rating DESC
-    LIMIT 5
-";
-$most_reviewed_trainer_result = mysqli_query($conn, $most_reviewed_trainer_query);
-$most_reviewed_trainer = mysqli_fetch_all($most_reviewed_trainer_result, MYSQLI_ASSOC);
-
-
+$highest_rated_content_result = mysqli_query($conn, $highest_rated_content_query);
+$highest_rated_content = mysqli_fetch_all($highest_rated_content_result, MYSQLI_ASSOC);
 
 ?>
 
@@ -182,135 +137,195 @@ $most_reviewed_trainer = mysqli_fetch_all($most_reviewed_trainer_result, MYSQLI_
     <title>Admin Dashboard - FlexiFit</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root {
+            --primary: #FFD700;
+            --primary-dark: #e0a800;
+            --dark: #222;
+            --darker: #111;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --success: #28a745;
+            --info: #17a2b8;
+            --warning: #ffc107;
+            --danger: #dc3545;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #222;
-            color: #FFD700;
-            text-align: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark);
+            color: var(--primary);
             margin: 0;
             padding: 0;
         }
 
         .container {
             width: 95%;
-            margin: auto;
+            margin: 0 auto;
+            padding: 20px 0;
+        }
+
+        h1, h2, h3 {
+            color: var(--primary);
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
         }
 
         .top-buttons {
-            display: flex;
-            justify-content: space-between;
-            margin: 20px 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
         }
 
         .top-buttons a {
-            padding: 10px 20px;
-            background-color: #FFD700;
-            color: #222;
+            padding: 12px 0;
+            background-color: var(--primary);
+            color: var(--dark);
             text-decoration: none;
             font-weight: bold;
-            border-radius: 5px;
-            transition: background-color 0.3s;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 2px solid transparent;
         }
 
         .top-buttons a:hover {
-            background-color: #e0a800;
+            background-color: var(--dark);
+            color: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(255, 215, 0, 0.2);
         }
 
         .dashboard-box {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
         }
 
         .box {
-            width: 48%;
             padding: 20px;
-            background-color: #333;
+            background-color: rgba(51, 51, 51, 0.8);
             border-radius: 10px;
-            box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
-            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.1);
+            transition: transform 0.3s ease;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+
+        .box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.2);
         }
 
         .profile-img {
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
-            margin-bottom: 10px;
+            margin: 0 auto 15px;
+            display: block;
+            object-fit: cover;
+            border: 3px solid var(--primary);
         }
 
-        canvas {
-            max-width: 100%;
-            height: 300px !important; /* Increased height for better visibility */
-            margin: 20px 0;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(255, 215, 0, 0.5);
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
         }
 
         .analytics-card {
-            width: 32%;
             padding: 20px;
-            background-color: #333;
-            color: #FFD700;
-            text-align: center;
+            background-color: rgba(51, 51, 51, 0.8);
             border-radius: 10px;
-            box-shadow: 3px 3px 10px rgba(255, 215, 0, 0.5);
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: center; /* Ensure the charts are centered */
-            align-items: center;
-            flex-direction: column;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+
+        .analytics-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.2);
         }
 
         .analytics-card h3 {
-            margin-bottom: 10px; /* Title spacing */
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        canvas {
+            width: 100% !important;
+            height: auto !important;
+            max-height: 300px;
+            margin: 0 auto;
         }
 
         .note {
             font-size: 12px;
-            color: #aaa;
+            color: var(--gray);
             margin-top: 10px;
+            font-style: italic;
         }
 
-        .first-row, .second-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .first-row .analytics-card {
-            width: 49%; /* Wider cards for line graphs */
-        }
-
-        .second-row .analytics-card {
-            height: 300px; /* Fixed height for circular graphs */
-            padding: 20px; /* Add padding to prevent overlapping */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #mostPopularPlanChart {
-            max-height: 250px; /* Match the height of circular graphs */
-            width: 100% !important; /* Ensure it fits within the container */
-        }
-
-        /* Responsive Styles */
         @media (max-width: 768px) {
-            .first-row, .second-row {
-                flex-direction: column;
+            .dashboard-box, .analytics-grid {
+                grid-template-columns: 1fr;
             }
-
-            .analytics-card {
-                width: 100%;
-                margin-bottom: 20px;
+            
+            .top-buttons {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
-        /* Payment Overview Styles */
-        .payment-overview-container .first-row .analytics-card,
-        .payment-overview-container .second-row .analytics-card {
-            margin-bottom: 0; /* Remove extra margin on payment overview charts */
+        @media (max-width: 480px) {
+            .top-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .report-modal {
+            display: none;
+            position: fixed;
+            z-index: 1050;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .report-modal-content {
+            background-color: var(--darker);
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid var(--primary);
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+        
+        .report-option {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: rgba(51, 51, 51, 0.5);
+            border-radius: 5px;
+        }
+        
+        .date-range-selector {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: rgba(51, 51, 51, 0.5);
+            border-radius: 5px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -357,29 +372,15 @@ $most_reviewed_trainer = mysqli_fetch_all($most_reviewed_trainer_result, MYSQLI_
         <div class="membership-overview-container">
             <h2>Membership Overview</h2>
 
-            <!-- First Row: Large Graphs -->
-            <div class="first-row">
+            <div class="analytics-grid">
                 <div class="analytics-card">
                     <h3>Total Members and Non-Members</h3>
                     <canvas id="totalMembersNonMembersChart"></canvas>
                 </div>
 
                 <div class="analytics-card">
-                    <h3>New Members (This Week/Month)</h3>
-                    <canvas id="newMembersLineChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Second Row: Smaller Charts -->
-            <div class="second-row">
-                <div class="analytics-card">
                     <h3>Membership Status</h3>
                     <canvas id="statusDistributionChart"></canvas>
-                </div>
-
-                <div class="analytics-card">
-                    <h3>Member Medical Conditions</h3>
-                    <canvas id="medicalConditionChart"></canvas>
                 </div>
 
                 <div class="analytics-card">
@@ -389,113 +390,183 @@ $most_reviewed_trainer = mysqli_fetch_all($most_reviewed_trainer_result, MYSQLI_
             </div>
         </div>
 
-        <!-- Payment Overview Analytics -->
-        <div class="payment-overview-container">
-            <h2>Payment Overview</h2>
-
-            <!-- First Row -->
-            <div class="first-row">
-                <div class="analytics-card">
-                    <h3>Total Revenue</h3>
-                    <canvas id="totalRevenueChart"></canvas>
-                </div>
-
-                <div class="analytics-card">
-                    <h3>Payment Breakdown</h3>
-                    <canvas id="paymentBreakdownChart"></canvas>
-                </div>
-
-                <div class="analytics-card">
-                    <h3>Most Popular Plan</h3>
-                    <canvas id="mostPopularPlanChart"></canvas>
-                </div>
-            </div>
-        </div>
-
         <!-- Trend Analytics -->
         <div class="trend-analytics-container">
             <h2>Trend Analytics</h2>
 
-            <!-- First Row: Bar Charts -->
-            <div class="first-row">
+            <div class="analytics-grid">
                 <div class="analytics-card">
                     <h3>Most Booked Equipment</h3>
                     <canvas id="mostBookedEquipmentChart"></canvas>
-                    <p class="note">Displays the top 5 most booked equipment based on booking data.</p>
+                    <p class="note">Top 5 most booked equipment</p>
                 </div>
 
                 <div class="analytics-card">
-                    <h3>Most Booked Trainer</h3>
-                    <canvas id="mostBookedTrainerChart"></canvas>
-                    <p class="note">Shows the top 5 trainers with the highest number of bookings.</p>
+                    <h3>Highest Rated Trainer</h3>
+                    <canvas id="highestRatedTrainerChart"></canvas>
+                    <p class="note">Trainers with highest average ratings (min. 3 reviews)</p>
                 </div>
-            </div>
 
-            <!-- Second Row: Line Chart and Bar Charts -->
-            <div class="second-row">
                 <div class="analytics-card">
                     <h3>Day with Most Schedules</h3>
                     <canvas id="mostScheduledDayChart"></canvas>
-                    <p class="note">Shows the day with the highest number of scheduled bookings.</p>
+                    <p class="note">Day with highest number of scheduled bookings</p>
                 </div>
 
                 <div class="analytics-card">
-                    <h3>Most Reviewed Content</h3>
-                    <canvas id="mostReviewedContentChart"></canvas>
-                    <p class="note">Displays content with the highest number of reviews and highest average ratings.</p>
-                </div>
-
-                <div class="analytics-card">
-                    <h3>Most Reviewed Trainer</h3>
-                    <canvas id="mostReviewedTrainerChart"></canvas>
-                    <p class="note">Displays the trainers with the highest number of reviews and average ratings.</p>
+                    <h3>Highest Rated Content</h3>
+                    <canvas id="highestRatedContentChart"></canvas>
+                    <p class="note">Content with highest average ratings (min. 3 reviews)</p>
                 </div>
             </div>
         </div>
-
     </div>
 
+    <div id="reportModal" class="report-modal">
+            <div class="report-modal-content">
+                <h2>Generate Analytics Report</h2>
+                
+                <form id="reportForm" action="generate_report.php" method="post">
+                    <div class="form-group">
+                        <label for="reportTitle">Report Title</label>
+                        <input type="text" class="form-control" id="reportTitle" name="reportTitle" required>
+                    </div>
+                    
+                    <h3>Select Analytics to Include</h3>
+                    
+                    <div class="report-option">
+                        <input type="checkbox" id="includeMembers" name="analytics[]" value="members" checked>
+                        <label for="includeMembers">Membership Overview</label>
+                    </div>
+                    
+                    <div class="report-option">
+                        <input type="checkbox" id="includeStatus" name="analytics[]" value="status" checked>
+                        <label for="includeStatus">Membership Status</label>
+                    </div>
+                    
+                    <div class="report-option">
+                        <input type="checkbox" id="includeGender" name="analytics[]" value="gender" checked>
+                        <label for="includeGender">Gender Distribution</label>
+                    </div>
+                    
+                    <div class="report-option">
+                        <input type="checkbox" id="includeEquipment" name="analytics[]" value="equipment">
+                        <label for="includeEquipment">Most Booked Equipment</label>
+                    </div>
+                    
+                    <div class="report-option">
+                        <input type="checkbox" id="includeTrainers" name="analytics[]" value="trainers">
+                        <label for="includeTrainers">Highest Rated Trainers</label>
+                    </div>
+                    
+                    <div class="report-option">
+                        <input type="checkbox" id="includeContent" name="analytics[]" value="content">
+                        <label for="includeContent">Highest Rated Content</label>
+                    </div>
+                    
+                    <div class="date-range-selector">
+                        <h3>Date Range Filter</h3>
+                        <div class="form-row">
+                            <div class="col">
+                                <label for="startDate">From</label>
+                                <input type="text" class="form-control datepicker" id="startDate" name="startDate">
+                            </div>
+                            <div class="col">
+                                <label for="endDate">To</label>
+                                <input type="text" class="form-control datepicker" id="endDate" name="endDate">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="reportNotes">Additional Notes</label>
+                        <textarea class="form-control" id="reportNotes" name="reportNotes" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="modal-buttons">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Generate Report</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Add report buttons to each analytics section -->
+        <div class="report-buttons" style="margin: 20px 0; text-align: center;">
+            <button class="btn btn-primary" onclick="openModal()">
+                <i class="fas fa-file-pdf"></i> Generate Full Report
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
     <script>
+        // Modal functions
+        function openModal() {
+            document.getElementById('reportModal').style.display = 'block';
+        }
+        
+        function closeModal() {
+            document.getElementById('reportModal').style.display = 'none';
+        }
+        
+        // Initialize datepicker
+        $(document).ready(function(){
+            $('.datepicker').datepicker({
+                format: 'yyyy-mm-dd',
+                autoclose: true,
+                todayHighlight: true
+            });
+        });
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('reportModal')) {
+                closeModal();
+            }
+        }
+    </script>
+    <script>
+
+
+
         // Total Members and Non-Members - Bar Chart
         var totalMembersNonMembersChart = new Chart(document.getElementById("totalMembersNonMembersChart"), {
             type: 'bar',
             data: {
                 labels: ['Members', 'Non-Members'],
                 datasets: [{
-                    label: 'Total Members vs Non-Members',
+                    label: 'Count',
                     data: [<?php echo $total_members; ?>, <?php echo $non_members; ?>],
-                    backgroundColor: 'rgba(255, 215, 0, 1)',
+                    backgroundColor: 'rgba(255, 215, 0, 0.7)',
                     borderColor: 'rgba(255, 215, 0, 1)',
                     borderWidth: 1
                 }]
             },
             options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        // New Members (This Week/Month) - Line Chart
-        var newMembersLineChart = new Chart(document.getElementById("newMembersLineChart"), {
-            type: 'line',
-            data: {
-                labels: ['This Week', 'This Month'],
-                datasets: [{
-                    label: 'New Members',
-                    data: [<?php echo $new_members_week; ?>, <?php echo $new_members_month; ?>],
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    fill: true,
-                }]
-            },
-            options: {
                 responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#FFF'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#FFF'
+                        }
                     }
                 }
             }
@@ -507,31 +578,25 @@ $most_reviewed_trainer = mysqli_fetch_all($most_reviewed_trainer_result, MYSQLI_
             data: {
                 labels: ['Active', 'Expired', 'Pending'],
                 datasets: [{
-                    label: 'Membership Status',
                     data: [
                         <?php echo isset($status_distribution['active']) ? $status_distribution['active'] : 0; ?>,
                         <?php echo isset($status_distribution['expired']) ? $status_distribution['expired'] : 0; ?>,
                         <?php echo isset($status_distribution['pending']) ? $status_distribution['pending'] : 0; ?>
                     ],
-                    backgroundColor: ['#17a2b8', '#e83e8c', '#ffc107'],
-                    borderColor: ['#17a2b8', '#e83e8c', '#ffc107'],
+                    backgroundColor: ['#17a2b8', '#e83e8c', '#FFD700'],
+                    borderColor: ['#111', '#111', '#111'],
                     borderWidth: 1
                 }]
-            }
-        });
-
-        // Member Medical Conditions - Pie Chart
-        var medicalConditionChart = new Chart(document.getElementById("medicalConditionChart"), {
-            type: 'pie',
-            data: {
-                labels: ['Medical Condition (Yes)', 'Medical Condition (No)'],
-                datasets: [{
-                    label: 'Medical Conditions',
-                    data: [<?php echo $medical_condition_yes; ?>, <?php echo $medical_condition_no; ?>],
-                    backgroundColor: ['#007bff', '#6f42c1'],
-                    borderColor: ['#007bff', '#6f42c1'],
-                    borderWidth: 1
-                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#FFF'
+                        }
+                    }
+                }
             }
         });
 
@@ -541,73 +606,29 @@ $most_reviewed_trainer = mysqli_fetch_all($most_reviewed_trainer_result, MYSQLI_
             data: {
                 labels: ['Male', 'Female', 'Other'],
                 datasets: [{
-                    label: 'Gender Distribution',
                     data: [
                         <?php echo $gender_distribution['male']; ?>,
                         <?php echo $gender_distribution['female']; ?>,
                         <?php echo $gender_distribution['other']; ?>
                     ],
                     backgroundColor: ['#007bff', '#28a745', '#6f42c1'],
-                    borderColor: ['#007bff', '#28a745', '#6f42c1'],
-                    borderWidth: 1
-                }]
-            }
-        });
-
-        // Total Revenue - Line Chart
-        var totalRevenueChart = new Chart(document.getElementById("totalRevenueChart"), {
-            type: 'line',
-            data: {
-                labels: ['2025-03-10', '2025-03-17'],
-                datasets: [{
-                    label: 'Total Revenue',
-                    data: [<?php echo $total_revenue; ?>],
-                    borderColor: 'rgba(0, 123, 255, 1)',
-                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
-                    fill: true,
-                }]
-            }
-        });
-
-        // Payment Breakdown - Pie Chart
-        var paymentBreakdownChart = new Chart(document.getElementById("paymentBreakdownChart"), {
-            type: 'pie',
-            data: {
-                labels: ['Successful', 'Pending', 'Failed'],
-                datasets: [{
-                    label: 'Payment Breakdown',
-                    data: [
-                        <?php echo $payment_breakdown['completed']; ?>,
-                        <?php echo $payment_breakdown['pending']; ?>,
-                        <?php echo $payment_breakdown['failed']; ?>
-                    ],
-                    backgroundColor: ['#28a745', '#ff7f00', '#dc3545'],
-                    borderColor: ['#28a745', '#ff7f00', '#dc3545'],
-                    borderWidth: 1
-                }]
-            }
-        });
-
-        // Most Popular Plan - Donut Chart
-        var mostPopularPlanChart = new Chart(document.getElementById("mostPopularPlanChart"), {
-            type: 'doughnut',
-            data: {
-                labels: ['7-Days Plan'],
-                datasets: [{
-                    label: 'Most Popular Plan',
-                    data: [100],
-                    backgroundColor: ['#ff5733'],
-                    borderColor: ['#ff5733'],
+                    borderColor: ['#111', '#111', '#111'],
                     borderWidth: 1
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, // Prevent chart from stretching
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#FFF'
+                        }
+                    }
+                }
             }
         });
 
-          // Fetch Most Booked Equipment
+        // Most Booked Equipment
         var mostBookedEquipmentData = <?php echo json_encode($most_booked_equipment); ?>;
         var mostBookedEquipmentChart = new Chart(document.getElementById("mostBookedEquipmentChart"), {
             type: 'bar',
@@ -616,75 +637,189 @@ $most_reviewed_trainer = mysqli_fetch_all($most_reviewed_trainer_result, MYSQLI_
                 datasets: [{
                     label: 'Bookings',
                     data: mostBookedEquipmentData.map(item => item.bookings_count),
-                    backgroundColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
                 }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#FFF'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#FFF'
+                        }
+                    }
+                }
             }
         });
 
-        // Fetch Most Booked Trainer
-        var mostBookedTrainerData = <?php echo json_encode($most_booked_trainer); ?>;
-        var mostBookedTrainerChart = new Chart(document.getElementById("mostBookedTrainerChart"), {
+        // Highest Rated Trainer
+        var highestRatedTrainerData = <?php echo json_encode($highest_rated_trainer); ?>;
+        var highestRatedTrainerChart = new Chart(document.getElementById("highestRatedTrainerChart"), {
             type: 'bar',
             data: {
-                labels: mostBookedTrainerData.map(item => item.trainer_name),
+                labels: highestRatedTrainerData.map(item => item.trainer_name),
                 datasets: [{
-                    label: 'Bookings',
-                    data: mostBookedTrainerData.map(item => item.trainer_bookings),
-                    backgroundColor: 'rgba(153, 102, 255, 1)',
+                    label: 'Average Rating',
+                    data: highestRatedTrainerData.map(item => item.avg_rating),
+                    backgroundColor: 'rgba(153, 102, 255, 0.7)',
                     borderColor: 'rgba(153, 102, 255, 1)',
                     borderWidth: 1
                 }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#FFF',
+                            stepSize: 1
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#FFF'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const trainer = highestRatedTrainerData[context.dataIndex];
+                                return `Reviews: ${trainer.total_reviews}`;
+                            }
+                        }
+                    }
+                }
             }
         });
 
-        // Fetch Day with Most Schedules
+        // Day with Most Schedules
         var mostScheduledDayData = <?php echo json_encode($most_scheduled_day); ?>;
         var mostScheduledDayChart = new Chart(document.getElementById("mostScheduledDayChart"), {
-            type: 'line',
+            type: 'bar',
             data: {
                 labels: mostScheduledDayData.map(item => item.schedule_date),
                 datasets: [{
                     label: 'Schedules',
                     data: mostScheduledDayData.map(item => item.schedule_count),
+                    backgroundColor: 'rgba(255, 159, 64, 0.7)',
                     borderColor: 'rgba(255, 159, 64, 1)',
-                    backgroundColor: 'rgba(255, 159, 64, 0.2)',
-                    fill: true
+                    borderWidth: 1
                 }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#FFF'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#FFF'
+                        }
+                    }
+                }
             }
         });
 
-        // Fetch Most Reviewed Content
-        var mostReviewedContentData = <?php echo json_encode($most_reviewed_content); ?>;
-        var mostReviewedContentChart = new Chart(document.getElementById("mostReviewedContentChart"), {
+        // Highest Rated Content
+        var highestRatedContentData = <?php echo json_encode($highest_rated_content); ?>;
+        var highestRatedContentChart = new Chart(document.getElementById("highestRatedContentChart"), {
             type: 'bar',
             data: {
-                labels: mostReviewedContentData.map(item => item.title),
+                labels: highestRatedContentData.map(item => item.title),
                 datasets: [{
-                    label: 'Reviews',
-                    data: mostReviewedContentData.map(item => item.review_count),
-                    backgroundColor: 'rgba(255, 99, 132, 1)',
+                    label: 'Average Rating',
+                    data: highestRatedContentData.map(item => item.avg_rating),
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
                     borderColor: 'rgba(255, 99, 132, 1)',
                     borderWidth: 1
                 }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#FFF',
+                            stepSize: 1
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#FFF'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const content = highestRatedContentData[context.dataIndex];
+                                return `Reviews: ${content.review_count}`;
+                            }
+                        }
+                    }
+                }
             }
-        });
 
-        // Fetch Most Reviewed Trainer
-        var mostReviewedTrainerData = <?php echo json_encode($most_reviewed_trainer); ?>;
-        var mostReviewedTrainerChart = new Chart(document.getElementById("mostReviewedTrainerChart"), {
-            type: 'bar',
-            data: {
-                labels: mostReviewedTrainerData.map(item => item.trainer_name),
-                datasets: [{
-                    label: 'Reviews',
-                    data: mostReviewedTrainerData.map(item => item.total_reviews),
-                    backgroundColor: 'rgba(0, 123, 255, 1)',
-                    borderColor: 'rgba(0, 123, 255, 1)',
-                    borderWidth: 1
-                }]
-            }
+            
         });
     </script>
 </body>
