@@ -1,11 +1,32 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id'])) {
-    // No user is logged in, redirect to main index.php
-    header("Location: ../index.php");
-    exit();
+// Check if user is logged in
+if (isset($_SESSION['user_id'])) {
+    require_once 'includes/config.php'; // Include your database connection
+    
+    // Get user and member status
+    $user_id = $_SESSION['user_id'];
+    $query = "SELECT m.member_id, m.membership_status 
+              FROM members m
+              JOIN users u ON m.user_id = u.user_id
+              WHERE m.user_id = ? AND m.membership_status = 'active'";
+    
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    // If active member found, redirect to member area
+    if ($result->num_rows > 0) {
+        $member = $result->fetch_assoc();
+        $_SESSION['member_id'] = $member['member_id'];
+        header("Location: member/index.php");
+        exit();
+    }
+    
+    $stmt->close();
+    $conn->close();
 }
-
 
 
 ?>

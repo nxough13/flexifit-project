@@ -33,7 +33,6 @@ $specialties = [];
 while ($row = $specialties_result->fetch_assoc()) {
     $specialties[] = $row['name'];
 }
-// neo
 ?>
 
 <!DOCTYPE html>
@@ -41,191 +40,393 @@ while ($row = $specialties_result->fetch_assoc()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Trainer</title>
+    <title>Edit Trainer | FlexiFit Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary: #FFC107;
+            --primary-dark: #FFA000;
+            --secondary: #212121;
+            --dark: #000000;
+            --light: #f8f9fa;
+            --danger: #dc3545;
+            --success: #28a745;
+            --warning: #fd7e14;
+            --info: #17a2b8;
+            --text-light: #ffffff;
+            --text-dark: #121212;
+            --bg-dark: #111111;
+            --bg-light: #1e1e1e;
+            --border-color: #333333;
+            --card-shadow: 0 4px 8px rgba(255, 193, 7, 0.1);
+        }
+        
         body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: yellow;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .main-container {
+            max-width: 1200px;
+            margin: 20px auto;
             padding: 20px;
         }
-        h2 {
-            color: yellow;
-            text-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
-            margin-bottom: 20px;
-            font-size: 30px;
-            font-weight: bold;
+        
+        .page-header {
             text-align: center;
-            margin-top: 50px;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--primary);
         }
-        .container {
-            display: flex;
-            justify-content: space-between;
-            max-width: 1200px;
-            margin: auto;
-            background: #1e1e1e;
-            padding: 40px;
-            border-radius: 10px;
-            border: 2px solid yellow;
-            box-shadow: 0 0 15px rgba(255, 255, 0, 0.8);
+        
+        .page-title {
+            font-size: 28px;
+            color: var(--primary);
+            margin: 0;
+            text-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
         }
+        
         .form-container {
-            flex: 1;
-            margin-right: 40px;
+            display: flex;
+            gap: 30px;
+            background-color: var(--bg-light);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--primary);
         }
-        .profile-container {
-            flex: 0 0 300px;
-            text-align: center;
+        
+        .form-section {
+            flex: 1;
+        }
+        
+        .profile-section {
+            flex: 0 0 350px;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
             align-items: center;
-            border: 2px solid yellow;
             padding: 20px;
-            border-radius: 8px;
+            border-left: 1px solid var(--border-color);
         }
-        label {
-            font-weight: bold;
-            margin-top: 10px;
-            display: block;
-        }
-        input, select {
-            width: 100%;
-            padding: 12px;
+        
+        .form-group {
             margin-bottom: 20px;
-            border: 1px solid yellow;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-color);
             border-radius: 4px;
-            background: #1e1e1e;
-            color: yellow;
+            color: var(--text-light);
+            font-size: 15px;
+            transition: all 0.3s;
         }
-        .btn, .back-btn, .specialty-btn {
-            background: yellow;
-            color: black;
-            padding: 12px;
-            border: none;
-            cursor: pointer;
-            width: 50%;
-            border-radius: 4px;
-            font-weight: bold;
-            box-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
-            margin-bottom: 10px;
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
         }
-        .btn:hover, .back-btn:hover, .specialty-btn:hover {
-            background: black;
-            color: yellow;
-            border: 2px solid yellow;
-            box-shadow: 0 0 15px rgba(255, 255, 0, 1);
-        }
+        
         .img-preview {
-            width: 250px;
-            height: 250px;
+            width: 200px;
+            height: 200px;
             object-fit: cover;
             border-radius: 50%;
-            margin-top: 10px;
-            margin-bottom: 10px;
+            border: 3px solid var(--primary);
+            margin: 20px 0;
         }
-        .specialty-container {
+        
+        .file-upload {
+            position: relative;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .file-upload-label {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
-            margin-bottom: 20px;
-        }
-        .specialty-input {
-            width: 80%;
-            margin-bottom: 10px;
-        }
-        .remove-btn {
-            background: red;
-            color: white;
-            border: none;
-            padding: 5px;
+            align-items: center;
+            padding: 15px;
+            background-color: var(--bg-dark);
+            border: 2px dashed var(--primary);
             border-radius: 4px;
             cursor: pointer;
-            margin-left: 5px;
+            transition: all 0.3s;
         }
-        .remove-btn:hover {
-            background: darkred;
+        
+        .file-upload-label:hover {
+            background-color: var(--secondary);
+        }
+        
+        .file-upload-icon {
+            color: var(--primary);
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .file-upload-text {
+            color: var(--text-light);
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--text-dark);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: var(--text-light);
+            border: 1px solid var(--primary);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--primary);
+            color: var(--text-dark);
+        }
+        
+        .specialty-container {
+            margin-bottom: 15px;
+        }
+        
+        .specialty-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn-add-specialty {
+            background-color: var(--info);
+            color: var(--text-light);
+            padding: 8px 15px;
+            margin-bottom: 15px;
+        }
+        
+        .btn-add-specialty:hover {
+            background-color: #138496;
+        }
+        
+        .btn-remove-specialty {
+            background-color: var(--danger);
+            color: var(--text-light);
+            padding: 8px 15px;
+        }
+        
+        .btn-remove-specialty:hover {
+            background-color: #c82333;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .alert-success {
+            background-color: rgba(40, 167, 69, 0.2);
+            border-left: 4px solid var(--success);
+            color: var(--success);
+        }
+        
+        .alert-error {
+            background-color: rgba(220, 53, 69, 0.2);
+            border-left: 4px solid var(--danger);
+            color: var(--danger);
+        }
+        
+        @media (max-width: 768px) {
+            .form-container {
+                flex-direction: column;
+            }
+            
+            .profile-section {
+                border-left: none;
+                border-top: 1px solid var(--border-color);
+                padding-top: 30px;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <br><br>
-<h2>Edit Trainer</h2>
-
-<div class="container">
-    <!-- Form container -->
-    <div class="form-container">
-        <form method="POST" action="update-trainers.php?trainer_id=<?php echo $trainer_id; ?>" enctype="multipart/form-data">
-            <label>First Name:</label>
-            <input type="text" name="first_name" value="<?php echo htmlspecialchars($trainer['first_name']); ?>" required>
-
-            <label>Last Name:</label>
-            <input type="text" name="last_name" value="<?php echo htmlspecialchars($trainer['last_name']); ?>" required>
-
-            <label>Email:</label>
-            <input type="email" name="email" value="<?php echo htmlspecialchars($trainer['email']); ?>" required>
-
-            <label>Age:</label>
-            <input type="number" name="age" min="18" value="<?php echo htmlspecialchars($trainer['age']); ?>" required>
-
-            <label>Gender:</label>
-            <select name="gender" required>
-                <option value="male" <?php if ($trainer['gender'] == 'male') echo 'selected'; ?>>Male</option>
-                <option value="female" <?php if ($trainer['gender'] == 'female') echo 'selected'; ?>>Female</option>
-                <option value="other" <?php if ($trainer['gender'] == 'other') echo 'selected'; ?>>Other</option>
-            </select>
-
-            <label>Specialty:</label>
-            <div class="specialty-container">
-                <?php
-                foreach ($specialties as $specialty) {
-                    echo "<div><input type='text' name='specialty[]' class='specialty-input' value='".htmlspecialchars($specialty)."'>
-                          <button type='button' class='remove-btn' onclick='removeSpecialty(this)'>Remove</button></div>";
-                }
-                ?>
-                <button type="button" class="specialty-btn" onclick="addSpecialty()">Add Specialty</button>
-            </div>
-
-            <label>Availability Status:</label>
-            <select name="availability_status" required>
-                <option value="available" <?php if ($trainer['availability_status'] == 'available') echo 'selected'; ?>>Available</option>
-                <option value="unavailable" <?php if ($trainer['availability_status'] == 'unavailable') echo 'selected'; ?>>Unavailable</option>
-            </select>
-
-            <button type="submit" class="btn">Update Trainer</button>
-        
+<div class="main-container">
+    <div class="page-header">
+        <h1 class="page-title"><i class="fas fa-user-edit"></i> Edit Trainer</h1>
     </div>
-
-    <!-- Profile container -->
-    <div class="profile-container">
-        <h3>Profile Image</h3>
-        <input type="file" name="image" id="imageInput">
-        <img id="preview" class="img-preview" src="uploads/<?php echo $trainer['image']; ?>" alt="Image Preview">
-                    <br><br><br><br><br>
-        <button type="button" class="back-btn" onclick="window.location.href='view-trainers.php'">Return</button>
-        </form>
+    
+    <?php if (isset($_SESSION['success_message'])): ?>
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> <?php echo $_SESSION['success_message']; unset($_SESSION['success_message']); ?>
+        </div>
+    <?php endif; ?>
+    
+    <?php if (isset($_SESSION['error_message'])): ?>
+        <div class="alert alert-error">
+            <i class="fas fa-exclamation-circle"></i> <?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?>
+        </div>
+    <?php endif; ?>
+    
+    <div class="form-container">
+        <div class="form-section">
+            <form method="POST" action="update-trainers.php?trainer_id=<?php echo $trainer_id; ?>" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label class="form-label">First Name</label>
+                    <input type="text" name="first_name" class="form-control" value="<?php echo htmlspecialchars($trainer['first_name']); ?>" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Last Name</label>
+                    <input type="text" name="last_name" class="form-control" value="<?php echo htmlspecialchars($trainer['last_name']); ?>" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" value="<?php echo htmlspecialchars($trainer['email']); ?>" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Age</label>
+                    <input type="number" name="age" class="form-control" min="18" value="<?php echo htmlspecialchars($trainer['age']); ?>" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Gender</label>
+                    <select name="gender" class="form-control" required>
+                        <option value="male" <?php if ($trainer['gender'] == 'male') echo 'selected'; ?>>Male</option>
+                        <option value="female" <?php if ($trainer['gender'] == 'female') echo 'selected'; ?>>Female</option>
+                        <option value="other" <?php if ($trainer['gender'] == 'other') echo 'selected'; ?>>Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Availability Status</label>
+                    <select name="availability_status" class="form-control" required>
+                        <option value="Available" <?php if ($trainer['availability_status'] == 'Available') echo 'selected'; ?>>Available</option>
+                        <option value="Unavailable" <?php if ($trainer['availability_status'] == 'Unavailable') echo 'selected'; ?>>Unavailable</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Specialties</label>
+                    <div class="specialty-container" id="specialtyContainer">
+                        <?php foreach ($specialties as $specialty): ?>
+                            <div class="specialty-input-group">
+                                <input type="text" name="specialty[]" class="form-control" value="<?php echo htmlspecialchars($specialty); ?>" required>
+                                <button type="button" class="btn btn-remove-specialty" onclick="removeSpecialty(this)">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <button type="button" class="btn btn-add-specialty" onclick="addSpecialty()">
+                        <i class="fas fa-plus"></i> Add Specialty
+                    </button>
+                </div>
+        </div>
+        
+        <div class="profile-section">
+            <div class="file-upload">
+                <label class="file-upload-label">
+                    <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
+                    <span class="file-upload-text">Change Profile Image</span>
+                    <input type="file" name="image" style="display: none;" onchange="previewImage(this)">
+                </label>
+            </div>
+            
+            <img id="preview" class="img-preview" src="uploads/<?php echo $trainer['image']; ?>" alt="Trainer Image">
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Update Trainer
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='view-trainers.php'">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                </button>
+            </div>
+            </form>
+        </div>
     </div>
 </div>
 
 <script>
+    // Image preview function
+    function previewImage(input) {
+        const preview = document.getElementById('preview');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    
+    // Add specialty field
     function addSpecialty() {
-        const specialtyContainer = document.querySelector('.specialty-container');
+        const container = document.getElementById('specialtyContainer');
         const div = document.createElement('div');
-        div.innerHTML = "<input type='text' name='specialty[]' class='specialty-input'> <button type='button' class='remove-btn' onclick='removeSpecialty(this)'>Remove</button>";
-        specialtyContainer.appendChild(div);
+        div.className = 'specialty-input-group';
+        div.innerHTML = `
+            <input type="text" name="specialty[]" class="form-control" required>
+            <button type="button" class="btn btn-remove-specialty" onclick="removeSpecialty(this)">
+                <i class="fas fa-minus"></i>
+            </button>
+        `;
+        container.appendChild(div);
     }
-
+    
+    // Remove specialty field
     function removeSpecialty(button) {
-        button.parentElement.remove();
+        const container = document.getElementById('specialtyContainer');
+        if (container.children.length > 1) {
+            button.parentElement.remove();
+        } else {
+            alert("At least one specialty is required.");
+        }
     }
-
-    document.getElementById('imageInput').addEventListener('change', function(e) {
-        const reader = new FileReader();
-        reader.onload = function() {
-            document.getElementById('preview').src = reader.result;
-        };
-        reader.readAsDataURL(e.target.files[0]);
-    });
 </script>
 
 </body>

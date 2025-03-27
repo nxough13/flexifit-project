@@ -26,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     header('Location: process-payment.php');
     exit();
 }
+// include '../includes/header.php';
 ?>
 
 <!DOCTYPE html>

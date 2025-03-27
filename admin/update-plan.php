@@ -1,20 +1,13 @@
 <?php
 session_start();
-include('../includes/header.php');
 include('../includes/config.php');
-
-// if (!isset($_SESSION['id']) || $_SESSION['user_type'] !== 'admin') {
-//     $_SESSION['message'] = "You need to log in first or are not authorized to access this page.";
-//     header("Location: ../users/login.php");
-//     exit();
-// }
 
 if (!isset($_POST['plan_id'])) {
     $_SESSION['message'] = "No plan selected for updating.";
     header("Location: index.php");
     exit();
 }
-// neo
+
 $plan_id = $_POST['plan_id'];
 $name = $_POST['name'];
 $duration_days = $_POST['duration_days'];
@@ -22,15 +15,33 @@ $price = $_POST['price'];
 $free_training_session = $_POST['free_training_session'];
 $description = $_POST['description'];
 $existing_image = $_POST['existing_image'];
-$new_image = $_FILES['image']['name'];
 
-// If a new image is uploaded, replace the old one; otherwise, keep the existing image
-$image_to_save = !empty($new_image) ? basename($new_image) : $existing_image;
+// Handle file upload
+$image_to_save = $existing_image; // Default to existing image
 
-if (!empty($new_image)) {
-    move_uploaded_file($_FILES['image']['tmp_name'], "uploads/" . $image_to_save);
+if (!empty($_FILES['image']['name'])) {
+    $target_dir = "uploads/";
+    if (!is_dir($target_dir)) {
+        mkdir($target_dir, 0777, true);
+    }
+    
+    // Generate unique filename
+    $file_ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+    $new_filename = "plan_" . $plan_id . "_" . time() . "." . $file_ext;
+    $target_file = $target_dir . $new_filename;
+    
+    // Check if upload is successful
+    if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file)) {
+        $image_to_save = $new_filename;
+        
+        // Delete old image if it exists and is different
+        if (!empty($existing_image) && $existing_image != $new_filename && file_exists($target_dir . $existing_image)) {
+            unlink($target_dir . $existing_image);
+        }
+    }
 }
 
+// Update database
 $sql = "UPDATE membership_plans SET 
         name = ?, 
         duration_days = ?, 
@@ -45,9 +56,9 @@ mysqli_stmt_bind_param($stmt, "siisssi", $name, $duration_days, $price, $free_tr
 if (mysqli_stmt_execute($stmt)) {
     $_SESSION['message'] = "Plan updated successfully.";
 } else {
-    $_SESSION['message'] = "Error updating plan.";
+    $_SESSION['message'] = "Error updating plan: " . mysqli_error($conn);
 }
 
-header("Location: index.php");
+header("Location: view-plans.php");
 exit();
 ?>

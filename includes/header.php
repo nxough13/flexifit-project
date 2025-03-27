@@ -322,6 +322,7 @@ if (isset($_SESSION['user_id'])) {
                         <li><a href="membership-plans.php">Membership</a></li>
                         <li><a href="view-equipments.php">Equipment</a></li>
                         <li><a href="create-schedule.php">Schedule</a></li>
+                        <li><a href="edit-schedule.php">View Schedule</a></li>
                     <?php endif; ?>
                 </ul>
             </nav>
@@ -329,14 +330,14 @@ if (isset($_SESSION['user_id'])) {
             <div class="user-controls">
                 <?php if ($user): ?>
                     <a href="<?= $profileLink ?>" class="profile-link">
-                        <img src="<?= $user['image'] ? 'images/' . $user['image'] : 'images/default-profile.png'; ?>" 
+                        <img src="<?= $user['image'] ? '/flexifit-project/images/' . $user['image'] : '/flexifit-project/images/default-profile.png'; ?>" 
                              alt="Profile">
                         <span><?= htmlspecialchars($user['first_name']) ?></span>
                     </a>
-                    <a href="logout.php" class="logout-link">Logout</a>
+                    <a href="/flexifit-project/logout.php" class="logout-link">Logout</a>
                 <?php else: ?>
-                    <a href="login.php" class="login-link">Login</a>
-                    <a href="register.php" class="register-link">Register</a>
+                    <a href="/flexifit-project/login.php" class="login-link">Login</a>
+                    <a href="/flexifit-project/register.php" class="register-link">Register</a>
                 <?php endif; ?>
             </div>
         </div>
