@@ -68,10 +68,11 @@ while ($row = mysqli_fetch_assoc($gender_distribution_result)) {
 }
 
 // Function to get image path
-function getImagePath($image) {
+function getImagePath($image)
+{
     $uploadPath = "../images/";
-    return !empty($image) && file_exists($uploadPath . $image) 
-        ? htmlspecialchars($uploadPath . $image) 
+    return !empty($image) && file_exists($uploadPath . $image)
+        ? htmlspecialchars($uploadPath . $image)
         : htmlspecialchars($uploadPath . "placeholder.png");
 }
 
@@ -127,10 +128,95 @@ $highest_rated_content_query = "
 $highest_rated_content_result = mysqli_query($conn, $highest_rated_content_query);
 $highest_rated_content = mysqli_fetch_all($highest_rated_content_result, MYSQLI_ASSOC);
 
+// [Add these new queries after your existing queries]
+
+// Get daily member registration data (for line graph)
+$daily_members_query = "
+    SELECT DATE(created_at) AS date, COUNT(*) AS count 
+    FROM users 
+    WHERE user_type = 'member'
+    GROUP BY DATE(created_at)
+    ORDER BY date
+";
+$daily_members = mysqli_fetch_all(mysqli_query($conn, $daily_members_query), MYSQLI_ASSOC);
+
+// Get daily non-member registration data
+$daily_non_members_query = "
+    SELECT DATE(created_at) AS date, COUNT(*) AS count 
+    FROM users 
+    WHERE user_type = 'non-member'
+    GROUP BY DATE(created_at)
+    ORDER BY date
+";
+$daily_non_members = mysqli_fetch_all(mysqli_query($conn, $daily_non_members_query), MYSQLI_ASSOC);
+
+// Get trainers count over time
+$daily_trainers_query = "
+    SELECT DATE(created_at) AS date, COUNT(*) AS count 
+    FROM trainers 
+    GROUP BY DATE(created_at)
+    ORDER BY date
+";
+$daily_trainers = mysqli_fetch_all(mysqli_query($conn, $daily_trainers_query), MYSQLI_ASSOC);
+
+// Get equipment count over time
+$daily_equipment_query = "
+    SELECT DATE(added_date) AS date, COUNT(*) AS count 
+    FROM equipment_inventory 
+    GROUP BY DATE(added_date)
+    ORDER BY date
+";
+$daily_equipment = mysqli_fetch_all(mysqli_query($conn, $daily_equipment_query), MYSQLI_ASSOC);
+
+// Get content count over time
+$daily_content_query = "
+    SELECT DATE(created_at) AS date, COUNT(*) AS count 
+    FROM content 
+    GROUP BY DATE(created_at)
+    ORDER BY date
+";
+$daily_content = mysqli_fetch_all(mysqli_query($conn, $daily_content_query), MYSQLI_ASSOC);
+
+// Get reviews count over time
+$daily_reviews_query = "
+    SELECT DATE(review_date) AS date, COUNT(*) AS count 
+    FROM reviews 
+    GROUP BY DATE(review_date)
+    ORDER BY date
+";
+$daily_reviews = mysqli_fetch_all(mysqli_query($conn, $daily_reviews_query), MYSQLI_ASSOC);
+
+// Get feedback count over time
+$daily_feedback_query = "
+    SELECT DATE(feedback_date) AS date, COUNT(*) AS count 
+    FROM feedback 
+    GROUP BY DATE(feedback_date)
+    ORDER BY date
+";
+$daily_feedback = mysqli_fetch_all(mysqli_query($conn, $daily_feedback_query), MYSQLI_ASSOC);
+
+// Get schedules count over time
+$daily_schedules_query = "
+    SELECT DATE(date) AS date, COUNT(*) AS count 
+    FROM schedules 
+    GROUP BY DATE(date)
+    ORDER BY date
+";
+$daily_schedules = mysqli_fetch_all(mysqli_query($conn, $daily_schedules_query), MYSQLI_ASSOC);
+
+// Get current totals for summary cards
+$total_trainers = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS count FROM trainers"))['count'];
+$total_equipment = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS count FROM equipment_inventory"))['count'];
+$total_content = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS count FROM content"))['count'];
+$total_reviews = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS count FROM reviews"))['count'];
+$total_feedback = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS count FROM feedback"))['count'];
+$total_schedules = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS count FROM schedules"))['count'];
+
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -164,7 +250,9 @@ $highest_rated_content = mysqli_fetch_all($highest_rated_content_result, MYSQLI_
             padding: 20px 0;
         }
 
-        h1, h2, h3 {
+        h1,
+        h2,
+        h3 {
             color: var(--primary);
             text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
         }
@@ -270,10 +358,12 @@ $highest_rated_content = mysqli_fetch_all($highest_rated_content_result, MYSQLI_
         }
 
         @media (max-width: 768px) {
-            .dashboard-box, .analytics-grid {
+
+            .dashboard-box,
+            .analytics-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .top-buttons {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -294,9 +384,9 @@ $highest_rated_content = mysqli_fetch_all($highest_rated_content_result, MYSQLI_
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
         }
-        
+
         .report-modal-content {
             background-color: var(--darker);
             margin: 5% auto;
@@ -306,29 +396,109 @@ $highest_rated_content = mysqli_fetch_all($highest_rated_content_result, MYSQLI_
             max-width: 600px;
             border-radius: 8px;
         }
-        
+
         .report-option {
             margin-bottom: 15px;
             padding: 10px;
             background-color: rgba(51, 51, 51, 0.5);
             border-radius: 5px;
         }
-        
+
         .date-range-selector {
             margin: 15px 0;
             padding: 10px;
             background-color: rgba(51, 51, 51, 0.5);
             border-radius: 5px;
         }
-        
+
         .modal-buttons {
             display: flex;
             justify-content: flex-end;
             gap: 10px;
             margin-top: 20px;
         }
+
+        /* Comprehensive Metrics Styles */
+        .comprehensive-metrics {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: rgba(51, 51, 51, 0.8);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--primary);
+        }
+
+        .summary-card h3 {
+            margin-top: 0;
+            font-size: 1rem;
+            color: var(--primary);
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .growth-section {
+            margin-bottom: 30px;
+        }
+
+        .growth-section h3 {
+            border-bottom: 1px solid var(--primary);
+            padding-bottom: 10px;
+        }
+
+        .detailed-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .metric-chart {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .metric-chart h3 {
+            margin-top: 0;
+            font-size: 1rem;
+            color: var(--primary);
+        }
+
+        .chart-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .detailed-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>Welcome to Admin Dashboard</h1>
@@ -423,80 +593,173 @@ $highest_rated_content = mysqli_fetch_all($highest_rated_content_result, MYSQLI_
     </div>
 
     <div id="reportModal" class="report-modal">
-            <div class="report-modal-content">
-                <h2>Generate Analytics Report</h2>
-                
-                <form id="reportForm" action="generate_report.php" method="post">
-                    <div class="form-group">
-                        <label for="reportTitle">Report Title</label>
-                        <input type="text" class="form-control" id="reportTitle" name="reportTitle" required>
-                    </div>
-                    
-                    <h3>Select Analytics to Include</h3>
-                    
-                    <div class="report-option">
-                        <input type="checkbox" id="includeMembers" name="analytics[]" value="members" checked>
-                        <label for="includeMembers">Membership Overview</label>
-                    </div>
-                    
-                    <div class="report-option">
-                        <input type="checkbox" id="includeStatus" name="analytics[]" value="status" checked>
-                        <label for="includeStatus">Membership Status</label>
-                    </div>
-                    
-                    <div class="report-option">
-                        <input type="checkbox" id="includeGender" name="analytics[]" value="gender" checked>
-                        <label for="includeGender">Gender Distribution</label>
-                    </div>
-                    
-                    <div class="report-option">
-                        <input type="checkbox" id="includeEquipment" name="analytics[]" value="equipment">
-                        <label for="includeEquipment">Most Booked Equipment</label>
-                    </div>
-                    
-                    <div class="report-option">
-                        <input type="checkbox" id="includeTrainers" name="analytics[]" value="trainers">
-                        <label for="includeTrainers">Highest Rated Trainers</label>
-                    </div>
-                    
-                    <div class="report-option">
-                        <input type="checkbox" id="includeContent" name="analytics[]" value="content">
-                        <label for="includeContent">Highest Rated Content</label>
-                    </div>
-                    
-                    <div class="date-range-selector">
-                        <h3>Date Range Filter</h3>
-                        <div class="form-row">
-                            <div class="col">
-                                <label for="startDate">From</label>
-                                <input type="text" class="form-control datepicker" id="startDate" name="startDate">
-                            </div>
-                            <div class="col">
-                                <label for="endDate">To</label>
-                                <input type="text" class="form-control datepicker" id="endDate" name="endDate">
-                            </div>
+        <div class="report-modal-content">
+            <h2>Generate Analytics Report</h2>
+
+            <form id="reportForm" action="generate_report.php" method="post">
+                <div class="form-group">
+                    <label for="reportTitle">Report Title</label>
+                    <input type="text" class="form-control" id="reportTitle" name="reportTitle" required>
+                </div>
+
+                <h3>Select Analytics to Include</h3>
+
+                <div class="report-option">
+                    <input type="checkbox" id="includeMembers" name="analytics[]" value="members" checked>
+                    <label for="includeMembers">Membership Overview</label>
+                </div>
+
+                <div class="report-option">
+                    <input type="checkbox" id="includeStatus" name="analytics[]" value="status" checked>
+                    <label for="includeStatus">Membership Status</label>
+                </div>
+
+                <div class="report-option">
+                    <input type="checkbox" id="includeGender" name="analytics[]" value="gender" checked>
+                    <label for="includeGender">Gender Distribution</label>
+                </div>
+
+                <div class="report-option">
+                    <input type="checkbox" id="includeEquipment" name="analytics[]" value="equipment">
+                    <label for="includeEquipment">Most Booked Equipment</label>
+                </div>
+
+                <div class="report-option">
+                    <input type="checkbox" id="includeTrainers" name="analytics[]" value="trainers">
+                    <label for="includeTrainers">Highest Rated Trainers</label>
+                </div>
+
+                <div class="report-option">
+                    <input type="checkbox" id="includeContent" name="analytics[]" value="content">
+                    <label for="includeContent">Highest Rated Content</label>
+                </div>
+
+                <!-- Add these new checkboxes to your report modal form -->
+                <div class="report-option">
+                    <input type="checkbox" id="includeTrainerGrowth" name="analytics[]" value="trainer_growth">
+                    <label for="includeTrainerGrowth">Trainer Growth</label>
+                </div>
+
+                <div class="report-option">
+                    <input type="checkbox" id="includeEquipmentGrowth" name="analytics[]" value="equipment_growth">
+                    <label for="includeEquipmentGrowth">Equipment Additions</label>
+                </div>
+
+                <div class="report-option">
+                    <input type="checkbox" id="includeContentGrowth" name="analytics[]" value="content_growth">
+                    <label for="includeContentGrowth">Content Additions</label>
+                </div>
+
+                <div class="date-range-selector">
+                    <h3>Date Range Filter</h3>
+                    <div class="form-row">
+                        <div class="col">
+                            <label for="startDate">From</label>
+                            <input type="text" class="form-control datepicker" id="startDate" name="startDate">
+                        </div>
+                        <div class="col">
+                            <label for="endDate">To</label>
+                            <input type="text" class="form-control datepicker" id="endDate" name="endDate">
                         </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="reportNotes">Additional Notes</label>
-                        <textarea class="form-control" id="reportNotes" name="reportNotes" rows="3"></textarea>
-                    </div>
-                    
-                    <div class="modal-buttons">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Generate Report</button>
-                    </div>
-                </form>
+                </div>
+
+                <div class="form-group">
+                    <label for="reportNotes">Additional Notes</label>
+                    <textarea class="form-control" id="reportNotes" name="reportNotes" rows="3"></textarea>
+                </div>
+
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Generate Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Comprehensive Metrics Section -->
+    <div class="comprehensive-metrics">
+        <h2>System-Wide Metrics</h2>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h3>Total Trainers</h3>
+                <div class="summary-value"><?= $total_trainers ?></div>
+            </div>
+            <div class="summary-card">
+                <h3>Total Equipment</h3>
+                <div class="summary-value"><?= $total_equipment ?></div>
+            </div>
+            <div class="summary-card">
+                <h3>Total Content</h3>
+                <div class="summary-value"><?= $total_content ?></div>
+            </div>
+            <div class="summary-card">
+                <h3>Total Reviews</h3>
+                <div class="summary-value"><?= $total_reviews ?></div>
+            </div>
+            <div class="summary-card">
+                <h3>Total Feedback</h3>
+                <div class="summary-value"><?= $total_feedback ?></div>
+            </div>
+            <div class="summary-card">
+                <h3>Total Schedules</h3>
+                <div class="summary-value"><?= $total_schedules ?></div>
             </div>
         </div>
-        
-        <!-- Add report buttons to each analytics section -->
-        <div class="report-buttons" style="margin: 20px 0; text-align: center;">
-            <button class="btn btn-primary" onclick="openModal()">
-                <i class="fas fa-file-pdf"></i> Generate Full Report
-            </button>
+
+        <!-- Growth Over Time Section -->
+        <div class="growth-section">
+            <h3>Growth Over Time</h3>
+            <div class="chart-container">
+                <canvas id="growthChart"></canvas>
+            </div>
         </div>
+
+        <!-- Detailed Metrics Section -->
+        <div class="detailed-metrics">
+            <div class="metric-chart">
+                <h3>Member Registrations</h3>
+                <canvas id="memberGrowthChart"></canvas>
+            </div>
+            <div class="metric-chart">
+                <h3>Non-Member Registrations</h3>
+                <canvas id="nonMemberGrowthChart"></canvas>
+            </div>
+            <div class="metric-chart">
+                <h3>Trainer Additions</h3>
+                <canvas id="trainerGrowthChart"></canvas>
+            </div>
+            <div class="metric-chart">
+                <h3>Equipment Additions</h3>
+                <canvas id="equipmentGrowthChart"></canvas>
+            </div>
+            <div class="metric-chart">
+                <h3>Content Additions</h3>
+                <canvas id="contentGrowthChart"></canvas>
+            </div>
+            <div class="metric-chart">
+                <h3>Daily Reviews</h3>
+                <canvas id="reviewGrowthChart"></canvas>
+            </div>
+            <div class="metric-chart">
+                <h3>Trainer Feedback</h3>
+                <canvas id="feedbackGrowthChart"></canvas>
+            </div>
+            <div class="metric-chart">
+                <h3>Scheduled Sessions</h3>
+                <canvas id="scheduleGrowthChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add report buttons to each analytics section -->
+    <div class="report-buttons" style="margin: 20px 0; text-align: center;">
+        <button class="btn btn-primary" onclick="openModal()">
+            <i class="fas fa-file-pdf"></i> Generate Full Report
+        </button>
+    </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
@@ -505,20 +768,20 @@ $highest_rated_content = mysqli_fetch_all($highest_rated_content_result, MYSQLI_
         function openModal() {
             document.getElementById('reportModal').style.display = 'block';
         }
-        
+
         function closeModal() {
             document.getElementById('reportModal').style.display = 'none';
         }
-        
+
         // Initialize datepicker
-        $(document).ready(function(){
+        $(document).ready(function() {
             $('.datepicker').datepicker({
                 format: 'yyyy-mm-dd',
                 autoclose: true,
                 todayHighlight: true
             });
         });
-        
+
         // Close modal when clicking outside
         window.onclick = function(event) {
             if (event.target == document.getElementById('reportModal')) {
@@ -527,9 +790,6 @@ $highest_rated_content = mysqli_fetch_all($highest_rated_content_result, MYSQLI_
         }
     </script>
     <script>
-
-
-
         // Total Members and Non-Members - Bar Chart
         var totalMembersNonMembersChart = new Chart(document.getElementById("totalMembersNonMembersChart"), {
             type: 'bar',
@@ -819,8 +1079,187 @@ $highest_rated_content = mysqli_fetch_all($highest_rated_content_result, MYSQLI_
                 }
             }
 
-            
+
         });
+
+        // Combined Growth Chart
+        var growthCtx = document.getElementById('growthChart').getContext('2d');
+        var growthChart = new Chart(growthCtx, {
+            type: 'line',
+            data: {
+                labels: <?= json_encode(array_column($daily_members, 'date')) ?>,
+                datasets: [{
+                        label: 'Members',
+                        data: <?= json_encode(array_column($daily_members, 'count')) ?>,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Non-Members',
+                        data: <?= json_encode(array_column($daily_non_members, 'count')) ?>,
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Trainers',
+                        data: <?= json_encode(array_column($daily_trainers, 'count')) ?>,
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'System Growth Over Time',
+                        color: '#FFD700'
+                    },
+                    legend: {
+                        labels: {
+                            color: '#FFF'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#FFF'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#FFF'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Individual Metric Charts
+        function createMetricChart(elementId, label, dates, counts, color) {
+            var ctx = document.getElementById(elementId).getContext('2d');
+            return new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: label,
+                        data: counts,
+                        backgroundColor: color,
+                        borderColor: color.replace('0.2', '1'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#FFF'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#FFF'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create all individual charts
+        createMetricChart(
+            'memberGrowthChart',
+            'Member Registrations',
+            <?= json_encode(array_column($daily_members, 'date')) ?>,
+            <?= json_encode(array_column($daily_members, 'count')) ?>,
+            'rgba(75, 192, 192, 0.7)'
+        );
+
+        createMetricChart(
+            'nonMemberGrowthChart',
+            'Non-Member Registrations',
+            <?= json_encode(array_column($daily_non_members, 'date')) ?>,
+            <?= json_encode(array_column($daily_non_members, 'count')) ?>,
+            'rgba(153, 102, 255, 0.7)'
+        );
+
+        createMetricChart(
+            'trainerGrowthChart',
+            'Trainer Additions',
+            <?= json_encode(array_column($daily_trainers, 'date')) ?>,
+            <?= json_encode(array_column($daily_trainers, 'count')) ?>,
+            'rgba(255, 159, 64, 0.7)'
+        );
+
+        createMetricChart(
+            'equipmentGrowthChart',
+            'Equipment Additions',
+            <?= json_encode(array_column($daily_equipment, 'date')) ?>,
+            <?= json_encode(array_column($daily_equipment, 'count')) ?>,
+            'rgba(54, 162, 235, 0.7)'
+        );
+
+        createMetricChart(
+            'contentGrowthChart',
+            'Content Additions',
+            <?= json_encode(array_column($daily_content, 'date')) ?>,
+            <?= json_encode(array_column($daily_content, 'count')) ?>,
+            'rgba(255, 99, 132, 0.7)'
+        );
+
+        createMetricChart(
+            'reviewGrowthChart',
+            'Content Reviews',
+            <?= json_encode(array_column($daily_reviews, 'date')) ?>,
+            <?= json_encode(array_column($daily_reviews, 'count')) ?>,
+            'rgba(255, 206, 86, 0.7)'
+        );
+
+        createMetricChart(
+            'feedbackGrowthChart',
+            'Trainer Feedback',
+            <?= json_encode(array_column($daily_feedback, 'date')) ?>,
+            <?= json_encode(array_column($daily_feedback, 'count')) ?>,
+            'rgba(75, 192, 192, 0.7)'
+        );
+
+        createMetricChart(
+            'scheduleGrowthChart',
+            'Scheduled Sessions',
+            <?= json_encode(array_column($daily_schedules, 'date')) ?>,
+            <?= json_encode(array_column($daily_schedules, 'count')) ?>,
+            'rgba(153, 102, 255, 0.7)'
+        );
     </script>
 </body>
+
 </html>
