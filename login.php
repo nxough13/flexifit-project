@@ -1,45 +1,36 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
-
-
-// Database connection
 $host = "localhost";
 $user = "root";
 $password = "";
 $dbname = "flexifit_db";
-
-
 $conn = new mysqli($host, $user, $password, $dbname);
 
 
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+
+
+// Include the header
+include 'includes/header.php';
+
+
 
 
 // Login logic
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Validate CSRF token
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        die("Invalid CSRF token.");
-    }
-
-
     $email = trim($_POST['email']);
     $password = trim($_POST['password']);
 
 
+
+
     if (!empty($email) && !empty($password)) {
         $stmt = $conn->prepare("SELECT user_id, first_name, last_name, password, user_type FROM users WHERE email = ?");
-        if (!$stmt) {
-            die("Prepare failed: " . $conn->error);
-        }
-
-
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $stmt->store_result();
+
+
 
 
         if ($stmt->num_rows > 0) {
@@ -47,43 +38,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->fetch();
 
 
+
+
             if (password_verify($password, $hashed_password)) {
-                // Regenerate session ID for security
-                session_regenerate_id(true);
-
-
-                // Store user data in session
                 $_SESSION['user_id'] = $user_id;
                 $_SESSION['first_name'] = $first_name;
                 $_SESSION['last_name'] = $last_name;
                 $_SESSION['user_type'] = $user_type;
 
 
-                // Redirect based on user type
-                if ($user_type === 'admin') {
-                    header("Location: admin/index.php");
-                } else {
-                    header("Location: index.php");
-                }
-                exit();
-            } else {
-                $error = "Invalid email or password!";
-            }
-        } else {
-            $error = "User not found!";
-        }
-        $stmt->close();
-    } else {
-        $error = "All fields are required!";
-    }
+
+
+               // Redirect based on user type
+if ($user_type === 'admin') {
+    header("Location: admin/index.php");
+} elseif ($user_type === 'trainer') {
+    header("Location: member/index.php");
+} elseif ($user_type === 'member') {
+    header("Location: member/index.php");
+} else {
+    header("Location: index.php");
 }
-
-
-// Generate CSRF token
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+exit();
+} else {
+    $error = "Invalid email or password!";
+}
+} else {
+    $error = "User not found!";
+}
+$stmt->close();
+} else {
+    $error = "All fields are required!";
+}
 }
 ?>
+
+
 
 
 <!DOCTYPE html>
@@ -92,76 +82,41 @@ if (empty($_SESSION['csrf_token'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - FlexiFit</title>
-    <style>
+    <!-- Link to your global CSS file (if you have one) -->
+    <link rel="stylesheet" href="styles/global.css">
+    <style type="text/css">
+        /* Login-specific styles */
         body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            background-image: url('../images/background.jpg'); /* Add your image path */
-            background-size: cover; /* Cover the entire screen */
-            background-position: center; /* Center the image */
-            background-repeat: no-repeat; /* Prevent image repetition */
-            color: white;
-            margin: 0;
-            padding: 0;
+            background-color: #000;
+            color: #FFD700;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            min-height: 100vh; /* Ensure the body takes at least the full viewport height */
+            min-height: 100vh;
         }
-
-
-        /* Header styling */
-        header {
-            width: 100%;
-            background: rgba(17, 17, 17, 0.9);
-            padding: 20px 0;
-            text-align: center;
-            position: absolute;
-            top: 0;
-        }
-
-
-        /* Login container styling */
         .login-container {
-            background: rgba(17, 17, 17, 0.9);
+            background: #111;
             padding: 50px;
             border-radius: 15px;
-            box-shadow: 0px 0px 30px rgba(255, 215, 0, 0.5);
+            box-shadow: 0px 0px 20px #FFD700;
             text-align: center;
-            width: 100%;
-            max-width: 600px;
+            width: 600px;
+            margin-top: 40px; /* Add margin to separate from the header */
         }
-
-
         h2 {
             margin-bottom: 30px;
             font-size: 32px;
-            font-weight: bold;
-            color: #FFD700;
         }
-
-
-        /* Input field styling */
         input {
             width: 100%;
             padding: 20px;
             margin: 20px 0;
             border: 2px solid #FFD700;
-            background: rgba(34, 34, 34, 0.8);
+            background: #222;
             color: #FFD700;
             border-radius: 10px;
-            font-size: 18px;
-            transition: border-color 0.3s ease;
+            font-size: 20px;
         }
-
-
-        input:focus {
-            border-color: #ffcc00;
-            outline: none;
-        }
-
-
-        /* Button styling */
         button {
             background: #FFD700;
             color: #000;
@@ -173,60 +128,40 @@ if (empty($_SESSION['csrf_token'])) {
             font-weight: bold;
             font-size: 22px;
             margin-top: 20px;
-            transition: background-color 0.3s ease;
         }
-
-
         button:hover {
             background: #ffcc00;
         }
-
-
-        /* Error message styling */
         .error {
-            color: #ff4444;
+            color: red;
             margin-top: 20px;
             font-size: 18px;
-        }
-
-
-        /* Responsive design */
-        @media (max-width: 768px) {
-            .login-container {
-                padding: 30px;
-                margin: 20px;
-            }
-
-
-            h2 {
-                font-size: 28px;
-            }
-
-
-            input {
-                padding: 15px;
-                font-size: 16px;
-            }
-
-
-            button {
-                padding: 15px;
-                font-size: 18px;
-            }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h2>Login</h2>
-        <form method="post">
-            <input type="email" name="email" placeholder="Email" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <!-- CSRF Token -->
-            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-            <button type="submit">Login</button>
-        </form>
-        <p class="error"><?php echo isset($error) ? htmlspecialchars($error) : ''; ?></p>
-    </div>
+
+
+
+
+<!-- Header is already included via includes/header.php -->
+
+
+
+
+<div class="login-container">
+    <h2>Login</h2>
+    <form method="post">
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit">Login</button>
+    </form>
+    <p class="error"><?php echo isset($error) ? $error : ''; ?></p>
+</div>
+
+
+
+
 </body>
 </html>
+<?php ob_end_flush(); // At the end of file ?>

@@ -1,5 +1,7 @@
 <?php
 session_start();
+
+
 // Check if user is logged in
 if (isset($_SESSION['user_id'])) {
     require_once 'includes/config.php'; // Include your database connection
@@ -27,9 +29,9 @@ if (isset($_SESSION['user_id'])) {
     $stmt->close();
     $conn->close();
 }
-
-
 ?>
+
+
 
 
 <!DOCTYPE html>
@@ -38,7 +40,8 @@ if (isset($_SESSION['user_id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlexiFit Gym</title>
-    
+   
+
 
     <style>
         body {
@@ -49,6 +52,7 @@ if (isset($_SESSION['user_id'])) {
     color: white;
  
 }
+
 
 .logo img {
     height: 50px;
@@ -170,10 +174,48 @@ nav ul li a {
     font-size: 1rem;
 }
 
+
+.services {
+    text-align: center;
+    padding: 50px;
+    background: black;
+}
+.services h2 {
+    color: yellow;
+    font-size: 30px;
+    margin-bottom: 20px;
+}
+.services .grid {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.services .service-item {
+    background: #222;
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+    color: white;
+}
+.services .service-item h3 {
+    color: yellow;
+    font-size: 22px;
+    margin-bottom: 10px;
+}
+.services .service-item img {
+    width: 120px;
+    height: auto;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+   
     </style>
 </head>
 <body>
     <?php include 'includes/header.php'; ?>
+
 
     <!-- Home Section -->
     <section class="home" id="home">
@@ -182,32 +224,37 @@ nav ul li a {
         <a href="member/membership-plans.php" class="btn">JOIN TODAY</a>
     </section>
 
-    <!-- About Section -->
-    <section class="about" id="about">
-        <div class="text">
-            <h2>ABOUT OUR FIT FAMILY</h2>
-            <p>FlexiFit was founded in 2001 by a husband and wife team, Neo and Emma Graff. Since then, we have expanded to over 115 locations nationwide!</p>
+
+ <!-- Services Section -->
+ <section class="services" id="services">
+        <h2>OUR MEMBERSHIP PLANS</h2>
+        <div class="grid">
+            <?php
+            $query = "SELECT * FROM membership_plans";
+            $result = mysqli_query($conn, $query);
+            if (mysqli_num_rows($result) > 0) {
+                while ($row = mysqli_fetch_assoc($result)) {
+                    echo '<div class="service-item">';
+                    echo '<img src="images/' . htmlspecialchars($row['image']) . '" alt="' . htmlspecialchars($row['name']) . '" style="width: 259px; height: auto;">';
+                    echo '<h3>' . htmlspecialchars($row['name']) . '</h3>';
+                    echo '<p>' . htmlspecialchars($row['description']) . '</p>';
+                    echo '<p><strong>Price:</strong> $' . htmlspecialchars($row['price']) . '</p>';
+                    echo '</div>';
+                }
+            } else {
+                echo '<p>No membership plans available.</p>';
+            }
+            ?>
         </div>
-        <img src="images/about1.jpg" alt="Trainer">
-        <img src="images/about2.jpg" alt="Workout">
     </section>
 
-    <!-- Offers Section -->
-    <section class="offers" id="offers">
-        <h2>WHAT WE OFFER</h2>
-        <p>We're committed to bringing you the best workout experience.</p>
-        <div class="grid">
-            <img src="images/offers1.jpg" alt="Tour Our Gym">
-            <img src="images/offers2.jpg" alt="Group Classes">
-            <img src="images/offers3.jpg" alt="Personal Training">
-        </div>
-    </section>
 
     <!-- Contact Section -->
     <section id="contact">
         <div class="contact-container">
             <h2 class="contact-title">Get In Touch Today</h2>
         </div>
+
 
         <div class="contact-info-container">
             <div class="contact-item">
@@ -224,6 +271,18 @@ nav ul li a {
             </div>
         </div>
     </section>
+
+
+     <!-- About Section -->
+     <section class="about" id="about">
+        <div class="text">
+            <h2>ABOUT OUR FIT FAMILY</h2>
+            <p>FlexiFit was founded in 2001 by a husband and wife team, Neo and Emma Graff. Since then, we have expanded to over 115 locations nationwide!</p>
+        </div>
+        <img src="images/about1.jpg" alt="Trainer">
+        <img src="images/about2.jpg" alt="Workout">
+    </section>
+
 
     <?php include 'includes/footer.php'; ?>
 </body>

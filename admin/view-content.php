@@ -6,7 +6,15 @@ include '../includes/header.php';
 
 
 
+
+
+
+
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
+
+
+
+
 
 
 
@@ -15,6 +23,9 @@ $conn = new mysqli("localhost", "root", "", "flexifit_db");
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
+
+
+
 
 
 
@@ -27,8 +38,13 @@ $result = $conn->query($sql);
 
 
 
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
+
 
 <head>
     <meta charset="UTF-8">
@@ -51,6 +67,10 @@ $result = $conn->query($sql);
 
 
 
+
+
+
+
         .container {
             max-width: 1100px;
             width: 90%;
@@ -58,6 +78,10 @@ $result = $conn->query($sql);
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0px 0px 15px rgba(255, 193, 7, 0.8);
+
+
+
+
 
 
 
@@ -70,9 +94,14 @@ $result = $conn->query($sql);
 
 
 
+
+
+
+
         h2 {
             color: #ffc107;
         }
+
 
         table {
             width: 100%;
@@ -81,11 +110,13 @@ $result = $conn->query($sql);
             background: #2c2c2c;
         }
 
+
         table,
         th,
         td {
             border: 1px solid #ffc107;
         }
+
 
         th,
         td {
@@ -94,14 +125,17 @@ $result = $conn->query($sql);
             color: white;
         }
 
+
         th {
             background: #ffc107;
             color: black;
         }
 
+
         tr:nth-child(even) {
             background: #3c3c3c;
         }
+
 
         .action-btn {
             text-decoration: none;
@@ -111,18 +145,22 @@ $result = $conn->query($sql);
             font-size: 16px;
         }
 
+
         .edit-btn {
             background: #28a745;
         }
+
 
         .delete-btn {
             background: #dc3545;
         }
 
+
         .enable-btn {
             background: #007BFF;
             display: none;
         }
+
 
         .add-btn {
             display: inline-block;
@@ -135,10 +173,15 @@ $result = $conn->query($sql);
             font-weight: bold;
         }
 
+
         .add-btn:hover {
             background: #e0a800;
         }
     </style>
+
+
+
+
 
 
 
@@ -154,6 +197,10 @@ $result = $conn->query($sql);
 
 
 
+
+
+
+
         function enableContent(contentId) {
             if (confirm("Do you want to enable this content again?")) {
                 document.getElementById('enable-' + contentId).style.display = 'none';
@@ -163,7 +210,12 @@ $result = $conn->query($sql);
     </script>
 </head>
 
+
 <body>
+
+
+
+
 
 
 
@@ -179,6 +231,10 @@ $result = $conn->query($sql);
                 <th>Description</th>
                 <th>Action</th>
             </tr>
+
+
+
+
 
 
 
@@ -215,7 +271,12 @@ $result = $conn->query($sql);
 
 
 
+
+
+
+
 </body>
+
 
 </html>
 
@@ -226,7 +287,19 @@ $result = $conn->query($sql);
 
 
 
+
+
+
+
+
+
+
+
 <?php
+
+
+
+
 
 
 
