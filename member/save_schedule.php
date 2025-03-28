@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 $host = "localhost";
 $user = "root";
 $password = "";
@@ -40,3 +41,4 @@ foreach ($equipment as $item) {
 // If all insertions succeed
 echo json_encode(["success" => true, "message" => "Schedule successfully saved."]);
 ?>
+<?php ob_end_flush(); // At the end of file ?>

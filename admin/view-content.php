@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 include '../includes/header.php';
 
@@ -714,3 +715,4 @@ if ($result->num_rows > 0) {
 $conn->close();
 include '../includes/footer.php'; 
 ?>
+<?php ob_end_flush(); // At the end of file ?>

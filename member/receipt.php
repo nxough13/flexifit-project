@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 include '../includes/header.php';
 
@@ -611,3 +612,4 @@ HTML;
 $conn->close();
 include "../includes/footer.php"; 
 ?>
+<?php ob_end_flush(); // At the end of file ?>

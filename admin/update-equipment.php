@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 $host = "localhost";
 $user = "root";
@@ -118,3 +119,4 @@ $stmt->close();
     echo "Invalid request!";
 }
 ?>
+<?php ob_end_flush(); // At the end of file ?>

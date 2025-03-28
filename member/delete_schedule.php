@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 header("Content-Type: application/json");
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
 
@@ -10,3 +11,5 @@ $stmt->bind_param("i", $schedule_id);
 $stmt->execute();
 
 echo json_encode(["status" => "success", "message" => "Schedule deleted."]);
+?>
+<?php ob_end_flush(); // At the end of file ?>

@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 $host = "localhost";
 $user = "root";
@@ -122,3 +123,4 @@ $conn->close();
     </div>
 </body>
 </html>
+<?php ob_end_flush(); // At the end of file ?>

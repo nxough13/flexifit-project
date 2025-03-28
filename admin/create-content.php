@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start(); // Start session to access the logged-in user's details
 include '../includes/header.php';
 $host = "localhost";
@@ -537,3 +538,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 
 <?php include '../includes/footer.php'; // neo ?>
+<?php ob_end_flush(); // At the end of file ?>

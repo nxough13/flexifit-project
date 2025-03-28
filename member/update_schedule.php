@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 header("Content-Type: application/json");
 session_start();
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
@@ -24,3 +25,5 @@ if ($trainer_id) {
 }
 
 echo json_encode(["status" => "success", "message" => "Schedule updated successfully."]);
+?>
+<?php ob_end_flush(); // At the end of file ?>

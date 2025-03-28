@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start(); // Start session to access the logged-in user's details
 include '../includes/header.php';
 
@@ -446,3 +447,4 @@ $query->close();
 $review_query->close();
 $conn->close();
 ?>
+<?php ob_end_flush(); // At the end of file ?>

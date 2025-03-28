@@ -1062,3 +1062,4 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
 </html>
 
 <?php $conn->close(); ?>
+<?php ob_end_flush(); // At the end of file ?>

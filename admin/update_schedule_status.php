@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 $host = "localhost";
 $user = "root";
@@ -33,3 +34,4 @@ if (isset($_POST['schedule_id']) && isset($_POST['status'])) {
     echo json_encode(["status" => "error", "message" => "Invalid request."]);
 }
 ?>
+<?php ob_end_flush(); // At the end of file ?>

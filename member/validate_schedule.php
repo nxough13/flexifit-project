@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 header("Content-Type: application/json");
@@ -177,3 +178,4 @@ if ((!$equipment || count($equipment) === 0) && !isset($_POST['trainer_id'])) {
 
 echo json_encode(["conflict" => false, "message" => "Schedule is valid."]);
 ?>
+<?php ob_end_flush(); // At the end of file ?>

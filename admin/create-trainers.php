@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 include '../includes/header.php';
 $host = "localhost";
 $user = "root";
@@ -662,3 +663,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 $conn->close();
 ob_end_flush(); 
 ?>
+<?php ob_end_flush(); // At the end of file ?>

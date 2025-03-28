@@ -1,5 +1,6 @@
 <?php
 // neo
+ob_start(); // Turn on output buffering
 session_start();
 include '../includes/header.php';
 include '../includes/config.php';
@@ -279,3 +280,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 </body>
 </html>
+<?php ob_end_flush(); // At the end of file ?>

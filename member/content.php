@@ -1,4 +1,6 @@
 <?php
+ob_start(); // Turn on output buffering
+
 session_start(); // Start session to access the logged-in user's details
 include '../includes/header.php';
 
@@ -155,3 +157,4 @@ $result = $conn->query($sql);
 $conn->close();
 ?>
 <?php include '../includes/footer.php'; // neo?>
+<?php ob_end_flush(); // At the end of file ?>

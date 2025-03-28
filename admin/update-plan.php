@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 include('../includes/config.php');
 
@@ -62,3 +63,4 @@ if (mysqli_stmt_execute($stmt)) {
 header("Location: view-plans.php");
 exit();
 ?>
+<?php ob_end_flush(); // At the end of file ?>

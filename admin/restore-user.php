@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 $host = "localhost";
 $user = "root";
@@ -157,3 +158,4 @@ $result = $conn->query($sql);
 </html>
 
 <?php $conn->close(); ?>
+<?php ob_end_flush(); // At the end of file ?>

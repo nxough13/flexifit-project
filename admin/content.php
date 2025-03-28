@@ -1,4 +1,6 @@
 <?php
+ob_start(); // Turn on output buffering
+
 session_start();
 include '../includes/header.php';
 
@@ -276,3 +278,4 @@ include '../includes/footer.php';
 ?>
 </body>
 </html>
+<?php ob_end_flush(); // At the end of file ?>

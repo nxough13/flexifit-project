@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 
 // Include database connection and header
@@ -470,3 +471,4 @@ while ($row = $specialties_result->fetch_assoc()) {
 
 </body>
 </html>
+<?php ob_end_flush(); // At the end of file ?>

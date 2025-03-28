@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 include '../includes/header.php';
 $host = "localhost";
@@ -448,3 +449,4 @@ $conn->close();
 
 </body>
 </html>
+<?php ob_end_flush(); // At the end of file ?>

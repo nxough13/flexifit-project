@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 include('../includes/header.php');
 include('../includes/config.php');
@@ -308,3 +309,4 @@ $existing_image = !empty($plan['image']) ? 'uploads/' . htmlspecialchars($plan['
     </script>
 </body>
 </html>
+<?php ob_end_flush(); // At the end of file ?>

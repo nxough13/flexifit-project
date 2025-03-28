@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 // Connect to database
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
 include '../includes/header.php';
@@ -737,3 +738,4 @@ while ($row = $specialtyResult->fetch_assoc()) {
 
 </body>
 </html>
+<?php ob_end_flush(); // At the end of file ?>

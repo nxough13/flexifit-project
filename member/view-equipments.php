@@ -1,4 +1,6 @@
 <?php
+ob_start(); // Turn on output buffering
+
 session_start();
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
 include "../includes/header.php";
@@ -350,3 +352,4 @@ $result = $conn->query($sql);
 </html>
 
 <?php $conn->close(); ?>
+<?php ob_end_flush(); // At the end of file ?>

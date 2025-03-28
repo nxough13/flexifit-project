@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 $host = "localhost";
 $user = "root";
 $password = "";
@@ -21,3 +22,4 @@ if (isset($_GET["id"])) {
 // neo
 $conn->close();
 ?>
+<?php ob_end_flush(); // At the end of file ?>

@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 // neo
 session_start();
 include '../includes/header.php';
@@ -230,3 +231,4 @@ $profile_image = !empty($user['image']) ? "../images/" . htmlspecialchars($user[
 
 </body>
 </html>
+<?php ob_end_flush(); // At the end of file ?>

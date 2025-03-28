@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 header("Content-Type: application/json");
@@ -155,3 +156,4 @@ try {
     $conn->autocommit(TRUE); // Restore autocommit mode
 }
 ?>
+<?php ob_end_flush(); // At the end of file ?>

@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 header("Content-Type: application/json");
 
@@ -57,3 +58,4 @@ if ($result->num_rows > 0) {
 
 $conn->close();
 ?>
+<?php ob_end_flush(); // At the end of file ?>

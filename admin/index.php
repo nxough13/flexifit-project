@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 $servername = "localhost";
 $username = "root";
@@ -1263,3 +1264,4 @@ $total_schedules = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS co
 </body>
 
 </html>
+<?php ob_end_flush(); // At the end of file ?>

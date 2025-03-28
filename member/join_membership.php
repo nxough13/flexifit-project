@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
 
@@ -44,3 +45,4 @@ if ($duration_days) {
     echo "Invalid plan.";
 }
 ?>
+<?php ob_end_flush(); // At the end of file ?>

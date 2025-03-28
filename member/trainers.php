@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 include '../includes/header.php';
 
@@ -772,3 +773,4 @@ if (isset($schedule_query)) $schedule_query->close();
 if (isset($review_query)) $review_query->close();
 $conn->close();
 ?>
+<?php ob_end_flush(); // At the end of file ?>

@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 
 
@@ -287,3 +288,4 @@ nav ul li a {
     <?php include 'includes/footer.php'; ?>
 </body>
 </html>
+<?php ob_end_flush(); // At the end of file ?>

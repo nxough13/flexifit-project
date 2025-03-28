@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 // Database connection
 $host = "localhost";
 $user = "root";
@@ -47,3 +48,5 @@ while ($row = mysqli_fetch_assoc($result)) {
 echo json_encode(["conflict" => false, "equipment" => $availableEquipment]);
 $stmt->close();
 ?>
+<?php ob_end_flush(); // At the end of file ?>
+

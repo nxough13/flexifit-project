@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 session_start();
 $host = "localhost";
 $user = "root";
@@ -42,3 +43,4 @@ $conn->close();
 header("Location: view-equipments.php");
 exit();
 ?>
+<?php ob_end_flush(); // At the end of file ?>

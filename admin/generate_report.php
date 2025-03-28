@@ -213,3 +213,7 @@ function generate_chart_image($data, $title, $width = 600, $height = 400) {
     ];
     return $chartUrl . urlencode(json_encode($chartConfig));
 }
+
+?>
+
+<?php ob_end_flush(); // At the end of file ?>
