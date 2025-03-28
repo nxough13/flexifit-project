@@ -1,99 +1,193 @@
 <?php
 session_start();
-$conn = new mysqli("localhost", "root", "", "flexifit_db");
+$host = "localhost";
+$user = "root";
+$password = "";
+$dbname = "flexifit_db";
+$conn = new mysqli($host, $user, $password, $dbname);
 
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+// Check admin permissions
+if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
+    $_SESSION['error_message'] = "You must be logged in as an admin to update trainers.";
+    header("Location: ../index.php");
+    exit();
 }
 
 // Ensure trainer ID is present
 if (!isset($_GET['trainer_id']) || empty($_GET['trainer_id'])) {
-    die("Error: Trainer ID is missing.");
-}
-$trainer_id = $_GET['trainer_id'];
-
-// Fetch existing trainer data to keep the old image if no new one is uploaded
-$sql = "SELECT image FROM trainers WHERE trainer_id = '$trainer_id'";
-$result = $conn->query($sql);
-
-if ($result->num_rows == 0) {
-    $_SESSION['error_message'] = "Trainer not found.";
-    header("Location: view-trainers.php"); // Redirect to view-trainers.php in case of an error
+    $_SESSION['error_message'] = "Trainer ID is missing.";
+    header("Location: view-trainers.php");
     exit();
 }
 
-$trainer = $result->fetch_assoc();
-$existing_image = $trainer['image'];
+$trainer_id = $_GET['trainer_id'];
 
-// Handle form submission
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $first_name = $conn->real_escape_string($_POST["first_name"]);
-    $last_name = $conn->real_escape_string($_POST["last_name"]);
-    $email = $conn->real_escape_string($_POST["email"]);
-    $age = $conn->real_escape_string($_POST["age"]);
-    $gender = $conn->real_escape_string($_POST["gender"]);
-    $availability_status = $conn->real_escape_string($_POST["availability_status"]);
+try {
+    // Fetch existing trainer data
+    $stmt = $conn->prepare("SELECT * FROM trainers WHERE trainer_id = ?");
+    $stmt->bind_param("i", $trainer_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows == 0) {
+        throw new Exception("Trainer not found.");
+    }
+    
+    $trainer = $result->fetch_assoc();
+    $existing_image = $trainer['image'];
 
-    // Handle Image Upload (keeping the old one if no new image is provided)
-    if (!empty($_FILES["image"]["name"])) {
-        $image = basename($_FILES["image"]["name"]);
-        $target_path = "uploads/" . $image; // Save in the `uploads` folder directly
+    // Handle form submission
+    if ($_SERVER["REQUEST_METHOD"] == "POST") {
+        // Sanitize inputs
+        $first_name = trim($_POST["first_name"]);
+        $last_name = trim($_POST["last_name"]);
+        $email = trim($_POST["email"]);
+        $age = intval($_POST["age"]);
+        $gender = $_POST["gender"];
+        $availability_status = $_POST["availability_status"];
         
-        // Check if image is uploaded successfully before updating the database
-        if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_path)) {
-            // Image uploaded successfully, use the new image name
-        } else {
-            $_SESSION['error_message'] = "Error uploading image.";
-            header("Location: edit-trainers.php?trainer_id=$trainer_id"); // Redirect to edit page in case of error
-            exit();
+        // Handle password update
+        $password_hash = $trainer['password']; // Default to existing password
+        if (!empty($_POST['password'])) {
+            $password_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
         }
-    } else {
-        // If no new image is uploaded, keep the old image
-        $image = $existing_image;
-    }
-
-    // Update trainer details
-    $sql = "UPDATE trainers SET 
-            first_name = '$first_name', 
-            last_name = '$last_name', 
-            email = '$email', 
-            age = '$age', 
-            gender = '$gender', 
-            availability_status = '$availability_status',
-            image = '$image'
-            WHERE trainer_id = '$trainer_id'";
-
-    if ($conn->query($sql) === TRUE) {
-        // Update specialties
-        if (!empty($_POST['specialty'])) {
-            $conn->query("DELETE FROM trainer_specialty WHERE trainer_id = '$trainer_id'");
-
-            foreach ($_POST['specialty'] as $specialty_name) {
-                $specialty_name = $conn->real_escape_string($specialty_name);
-                $check_sql = "SELECT specialty_id FROM specialty WHERE name = '$specialty_name'";
-                $result = $conn->query($check_sql);
-
-                if ($result->num_rows > 0) {
-                    $row = $result->fetch_assoc();
-                    $specialty_id = $row['specialty_id'];
-                } else {
-                    $conn->query("INSERT INTO specialty (name) VALUES ('$specialty_name')");
-                    $specialty_id = $conn->insert_id;
-                }
-
-                $conn->query("INSERT INTO trainer_specialty (trainer_id, specialty_id) VALUES ('$trainer_id', '$specialty_id')");
+        
+        // Handle image upload
+        $image = $existing_image; // Default to existing image
+        $target_dir = "../uploads/trainers/";
+        
+        // Create directory if it doesn't exist
+        if (!file_exists($target_dir)) {
+            mkdir($target_dir, 0755, true);
+        }
+        
+        if (isset($_FILES['image']) && $_FILES['image']['error'] == UPLOAD_ERR_OK) {
+            // Validate new image
+            $check = getimagesize($_FILES["image"]["tmp_name"]);
+            if ($check === false) {
+                throw new Exception("File is not an image.");
             }
+            
+            // Check file size (max 2MB)
+            if ($_FILES["image"]["size"] > 2000000) {
+                throw new Exception("Image size must be less than 2MB.");
+            }
+            
+            // Allow certain file formats
+            $allowed_extensions = ["jpg", "jpeg", "png", "gif"];
+            $file_extension = strtolower(pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION));
+            if (!in_array($file_extension, $allowed_extensions)) {
+                throw new Exception("Only JPG, JPEG, PNG & GIF files are allowed.");
+            }
+            
+            // Generate unique filename
+            $image = uniqid("trainer_") . "." . $file_extension;
+            $target_path = $target_dir . $image;
+            
+            // Delete old image if it exists and is not default
+            if (!empty($existing_image) && $existing_image != "default.png" && file_exists($target_dir . $existing_image)) {
+                unlink($target_dir . $existing_image);
+            }
+            
+            // Upload new image
+            if (!move_uploaded_file($_FILES["image"]["tmp_name"], $target_path)) {
+                throw new Exception("Error uploading image.");
+            }
+        } elseif (isset($_POST['existing_image']) && !empty($_POST['existing_image'])) {
+            // Keep existing image if no new one was uploaded
+            $image = $_POST['existing_image'];
+        } else {
+            // Fallback to default image if none provided
+            $image = "default.png";
         }
-// neo
-        $_SESSION['success_message'] = "Trainer updated successfully!";
-        header("Location: view-trainers.php"); // Redirect to the view-trainers.php page
-        exit();
-    } else {
-        $_SESSION['error_message'] = "Error updating trainer: " . $conn->error;
-        header("Location: view-trainers.php"); // Redirect to view-trainers.php in case of error
-        exit();
+        
+        // Begin transaction
+        $conn->begin_transaction();
+        
+        try {
+            // Update trainer details - now includes password in the correct position
+            $sql = "UPDATE trainers SET 
+                    first_name = ?, 
+                    last_name = ?, 
+                    email = ?, 
+                    password = ?,
+                    age = ?, 
+                    gender = ?, 
+                    availability_status = ?,
+                    image = ?
+                    WHERE trainer_id = ?";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ssssisssi", 
+                $first_name, 
+                $last_name, 
+                $email, 
+                $password_hash,
+                $age, 
+                $gender, 
+                $availability_status, 
+                $image, 
+                $trainer_id
+            );
+            
+            if (!$stmt->execute()) {
+                throw new Exception("Error updating trainer: " . $conn->error);
+            }
+            
+            // Update specialties
+            $stmt = $conn->prepare("DELETE FROM trainer_specialty WHERE trainer_id = ?");
+            $stmt->bind_param("i", $trainer_id);
+            $stmt->execute();
+            
+            if (!empty($_POST['specialty'])) {
+                foreach ($_POST['specialty'] as $specialty_name) {
+                    $specialty_name = trim($specialty_name);
+                    if (empty($specialty_name)) continue;
+                    
+                    // Check if specialty exists
+                    $check_stmt = $conn->prepare("SELECT specialty_id FROM specialty WHERE name = ?");
+                    $check_stmt->bind_param("s", $specialty_name);
+                    $check_stmt->execute();
+                    $result = $check_stmt->get_result();
+                    
+                    if ($result->num_rows > 0) {
+                        $row = $result->fetch_assoc();
+                        $specialty_id = $row['specialty_id'];
+                    } else {
+                        $insert_stmt = $conn->prepare("INSERT INTO specialty (name) VALUES (?)");
+                        $insert_stmt->bind_param("s", $specialty_name);
+                        if (!$insert_stmt->execute()) {
+                            throw new Exception("Error saving specialty: " . $conn->error);
+                        }
+                        $specialty_id = $conn->insert_id;
+                    }
+                    
+                    // Link trainer to specialty
+                    $relation_stmt = $conn->prepare("INSERT INTO trainer_specialty (trainer_id, specialty_id) VALUES (?, ?)");
+                    $relation_stmt->bind_param("ii", $trainer_id, $specialty_id);
+                    if (!$relation_stmt->execute()) {
+                        throw new Exception("Error linking specialty: " . $conn->error);
+                    }
+                }
+            }
+            
+            // Commit transaction
+            $conn->commit();
+            
+            $_SESSION['success_message'] = "Trainer updated successfully!";
+            header("Location: view-trainers.php");
+            exit();
+            
+        } catch (Exception $e) {
+            $conn->rollback();
+            throw $e;
+        }
     }
+    
+} catch (Exception $e) {
+    $_SESSION['error_message'] = $e->getMessage();
+    header("Location: edit-trainers.php?trainer_id=" . $trainer_id);
+    exit();
 }
 
 $conn->close();

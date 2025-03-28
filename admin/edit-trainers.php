@@ -289,6 +289,18 @@ while ($row = $specialties_result->fetch_assoc()) {
                 width: 100%;
             }
         }
+        .password-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 35px;
+            cursor: pointer;
+            color: var(--primary);
+        }
     </style>
 </head>
 <body>
@@ -325,6 +337,12 @@ while ($row = $specialties_result->fetch_assoc()) {
                 <div class="form-group">
                     <label class="form-label">Email</label>
                     <input type="email" name="email" class="form-control" value="<?php echo htmlspecialchars($trainer['email']); ?>" required>
+                </div>
+
+                <div class="form-group password-container">
+                    <label class="form-label">New Password (leave blank to keep current)</label>
+                    <input type="password" name="password" class="form-control">
+                    <i class="fas fa-eye password-toggle" onclick="togglePassword(this)"></i>
                 </div>
                 
                 <div class="form-group">
@@ -371,12 +389,18 @@ while ($row = $specialties_result->fetch_assoc()) {
             <div class="file-upload">
                 <label class="file-upload-label">
                     <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
-                    <span class="file-upload-text">Change Profile Image</span>
-                    <input type="file" name="image" style="display: none;" onchange="previewImage(this)">
+                    <span class="file-upload-text">Upload Profile Image</span>
+                    <input type="file" name="image" style="display: none;" onchange="previewImage(this)" accept="image/*">
                 </label>
             </div>
             
-            <img id="preview" class="img-preview" src="uploads/<?php echo $trainer['image']; ?>" alt="Trainer Image">
+            <?php if (!empty($trainer['image']) && $trainer['image'] != 'default.png'): ?>
+                <img id="preview" class="img-preview" src="../uploads/trainers/<?php echo htmlspecialchars($trainer['image']); ?>" alt="Current Trainer Image">
+                <input type="hidden" name="existing_image" value="<?php echo htmlspecialchars($trainer['image']); ?>">
+                <small>Leave empty to keep current image</small>
+            <?php else: ?>
+                <img id="preview" class="img-preview" src="#" alt="Image Preview" style="display: none;">
+            <?php endif; ?>
             
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
@@ -386,8 +410,9 @@ while ($row = $specialties_result->fetch_assoc()) {
                     <i class="fas fa-arrow-left"></i> Back to List
                 </button>
             </div>
-            </form>
         </div>
+    </form>
+</div>
     </div>
 </div>
 
@@ -427,6 +452,20 @@ while ($row = $specialties_result->fetch_assoc()) {
             alert("At least one specialty is required.");
         }
     }
+
+    function togglePassword(icon) {
+        const passwordField = icon.previousElementSibling;
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            passwordField.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+
 </script>
 
 </body>

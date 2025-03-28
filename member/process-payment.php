@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 include '../includes/header.php';
 
 $host = "localhost";
@@ -7,12 +8,9 @@ $password = "";
 $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 
-
 if (!isset($_SESSION['user_id'])) {
-    // No user is logged in, redirect to main index.php
     header("Location: ../index.php");
     exit();
-
 }
 
 // Fetch the selected plan from the session
@@ -36,16 +34,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $_SESSION['payment_gmail'] = $gmail;
 
+    // Handle file upload
+    $proof_of_payment = null;
+    if (isset($_FILES['proofImage']) && $_FILES['proofImage']['error'] == UPLOAD_ERR_OK) {
+        $upload_dir = '../uploads/payment_proofs/';
+        if (!file_exists($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+        
+        $file_name = uniqid() . '_' . basename($_FILES['proofImage']['name']);
+        $target_path = $upload_dir . $file_name;
+        
+        if (move_uploaded_file($_FILES['proofImage']['tmp_name'], $target_path)) {
+            $proof_of_payment = $file_name;
+        }
+    }
+
     // Set the payment status based on the payment method
     if ($payment_method == 'payOnSite') {
         $status = 'pending';
-        $payment_mode = 'cash';  // Set payment mode as 'cash' for pay on site
+        $payment_mode = 'cash';
     } else {
         $status = 'completed';
-        $payment_mode = $payment_method;  // Otherwise, use the selected payment method
+        $payment_mode = $payment_method;
     }
     
-
     $gcash_number = $_POST['gcashNumber'] ?? null;
     $reference_number = $_POST['referenceNumber'] ?? null;
     $card_type = $_POST['cardType'] ?? null;
@@ -84,8 +97,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->bind_param("iisssi", $_SESSION['user_id'], $selected_plan, $start_date, $end_date, $status, $plan['free_training_session']);
         $stmt->execute();
 
-        
-
         // Get the member_id of the inserted record and store it in the session
         $member_id = $stmt->insert_id;
         $_SESSION['member_id'] = $member_id;
@@ -103,26 +114,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $member_id = $member['member_id'];
     }
 
-    // Insert payment details (ensure the member_id is valid here)
-    $payment_query = "INSERT INTO membership_payments (member_id, plan_id, amount, gmail, payment_mode, gcash_reference_number, gcash_phone_number, card_type, card_id_number, payment_status, payment_date) 
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+    // Insert payment details
+    $payment_query = "INSERT INTO membership_payments (member_id, plan_id, amount, gmail, payment_mode, gcash_reference_number, gcash_phone_number, card_type, card_id_number, payment_status, proof_of_payment, payment_date) 
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
     $stmt = $conn->prepare($payment_query);
-    $stmt->bind_param("iidsssssss", $member_id, $selected_plan, $amount_paid, $gmail, $payment_mode, $reference_number, $gcash_number, $card_type, $card_id, $status);
+    $stmt->bind_param("iidssssssss", $member_id, $selected_plan, $amount_paid, $gmail, $payment_mode, $reference_number, $gcash_number, $card_type, $card_id, $status, $proof_of_payment);
     $stmt->execute();
 
     // Get the payment_id of the inserted record and store it in the session
     $payment_id = $stmt->insert_id;
-    $_SESSION['payment_id'] = $payment_id;  // Store the payment_id for use in the receipt page
+    $_SESSION['payment_id'] = $payment_id;
     $stmt->close();
-/*
 
+    unset($_SESSION['email_sent']);
+    unset($_SESSION['fresh_receipt_page']);
 
-*/
-    // Add this to process-payment.php before redirecting to receipt.php
-unset($_SESSION['email_sent']); // Clear any previous email sent flag
-unset($_SESSION['fresh_receipt_page']); // Ensure fresh page load
-
-    // Close the connection
     $conn->close();
 
     echo "<script>alert('Payment processed successfully!'); window.location.href='receipt.php';</script>";
@@ -135,291 +141,408 @@ unset($_SESSION['fresh_receipt_page']); // Ensure fresh page load
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment - FlexiFit</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
-            width: 100%;
-            background-color: #121212;
-            font-family: 'Roboto', sans-serif;
-        }
+    :root {
+        --primary: #FFD700;
+        --primary-dark: #FFC000;
+        --dark: #121212;
+        --darker: #0A0A0A;
+        --light: #F5F5F5;
+        --gray: #333333;
+        --yellow-glow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
 
-        .ads-image {
-            position: fixed;
-            top: 80px;
-            left: 0;
-            width: 200px;
-            height: 100vh;
-            background-image: url('../admin/uploads/Left-image.jpg');
-            background-size: cover;
-            background-position: center;
-            border-right: 5px solid yellow;
-            z-index: 99;
-        }
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
 
-        select[name="cardType"] {
-            width: 90%;
-            padding: 12px;
-            border: 2px solid yellow;
-            border-radius: 5px;
-            background-color: black;
-            color: yellow;
-            font-size: 16px;
-            font-weight: bold;
-            text-align: center;
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            margin-bottom: 20px;
-        }
+    body {
+        font-family: 'Poppins', sans-serif;
+        background-color: var(--dark);
+        color: var(--light);
+        line-height: 1.6;
+        overflow-x: hidden;
+    }
 
-        select[name="cardType"]::-ms-expand {
-            display: none;
-        }
+    .payment-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 2rem;
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 2rem auto;
+    }
 
-        select[name="cardType"]:focus {
-            border-color: yellow;
-            outline: none;
-        }
+    .plan-summary {
+        flex: 0 0 48%; /* Fixed width to prevent shrinking */
+        min-width: 0; /* Prevent flex item from growing beyond container */
+        background: linear-gradient(135deg, var(--darker) 0%, var(--gray) 100%);
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: var(--yellow-glow);
+        border: 2px solid var(--primary);
+        transition: transform 0.3s ease;
+    }
 
-        .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin: 5% auto;
-            width: 75%;
-            gap: 30px;
-        }
+    .plan-summary:hover {
+        transform: translateY(-5px);
+    }
 
-        .left-box {
-            width: 48%;
-            background-color: black;
-            padding: 30px;
-            border-radius: 10px;
-            color: yellow;
-            box-shadow: 0 0 15px rgba(255, 255, 0, 0.5);
-            font-size: 18px;
-        }
+    .plan-summary h2 {
+        color: var(--primary);
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        border-bottom: 2px solid var(--primary);
+        padding-bottom: 0.5rem;
+    }
 
-        .left-box h2 {
-            font-size: 32px;
-            font-weight: bold;
-        }
+    .plan-details {
+        margin-bottom: 2rem;
+    }
 
-        .left-box input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid yellow;
-            border-radius: 5px;
-            background-color: black;
-            color: yellow;
-            font-size: 16px;
-            text-align: center;
-            margin-top: 10px;
-        }
+    .plan-details p {
+        margin: 0.8rem 0;
+        font-size: 1.1rem;
+        display: flex;
+        justify-content: space-between;
+    }
 
-        .right-box {
-            width: 48%;
-            background-color: #222;
-            padding: 25px;
-            border-radius: 10px;
-            border: 2px solid yellow;
-            box-shadow: 0 0 15px rgba(255, 255, 0, 0.5);
-            color: white;
-            text-align: center;
-        }
+    .plan-details span {
+        color: var(--primary);
+        font-weight: 600;
+    }
 
-        .right-box h2 {
-            color: yellow;
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
+    .back-btn {
+        display: inline-block;
+        background-color: var(--primary);
+        color: var(--dark);
+        padding: 0.8rem 1.5rem;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 600;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 2px solid var(--primary);
+        width: 100%;
+        margin-top: 1rem;
+    }
 
-        .radio-container {
-            display: flex;
+    .back-btn:hover {
+        background-color: transparent;
+        color: var(--primary);
+    }
+
+    .payment-methods {
+        flex: 0 0 48%; /* Fixed width to match plan summary */
+        min-width: 0; /* Prevent flex item from growing beyond container */
+        background: linear-gradient(135deg, var(--darker) 0%, var(--gray) 100%);
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: var(--yellow-glow);
+        border: 2px solid var(--primary);
+    }
+
+    .payment-methods h2 {
+        color: var(--primary);
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        border-bottom: 2px solid var(--primary);
+        padding-bottom: 0.5rem;
+    }
+
+    .method-options {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .method-option {
+        position: relative;
+    }
+
+    .method-option input {
+        position: absolute;
+        opacity: 0;
+    }
+
+    .method-option label {
+        display: block;
+        padding: 1rem;
+        background-color: var(--primary);
+        color: var(--dark);
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 2px solid var(--primary);
+    }
+
+    .method-option input:checked + label {
+        background-color: transparent;
+        color: var(--primary);
+    }
+
+    .method-option input:focus + label {
+        box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+    }
+
+    .payment-fields-container {
+        min-height: 200px; /* Fixed height container */
+        position: relative;
+    }
+
+    .payment-fields {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .payment-fields.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--primary);
+        font-weight: 500;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.8rem 1rem;
+        background-color: var(--darker);
+        border: 2px solid var(--primary);
+        border-radius: 6px;
+        color: var(--light);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+        border-color: var(--primary-dark);
+    }
+
+    .form-control::placeholder {
+        color: #777;
+    }
+
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FFD700'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1.5rem;
+    }
+
+    .proof-upload {
+        margin-top: 1.5rem;
+        padding: 1.5rem;
+        border: 2px dashed var(--primary);
+        border-radius: 6px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .proof-upload:hover {
+        background-color: rgba(255, 215, 0, 0.1);
+    }
+
+    .proof-upload i {
+        font-size: 2rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+
+    .proof-upload p {
+        margin-bottom: 0.5rem;
+    }
+
+    .proof-upload input {
+        display: none;
+    }
+
+    .file-name {
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--primary);
+        font-style: italic;
+    }
+
+    .submit-btn {
+        display: block;
+        width: 100%;
+        padding: 1rem;
+        background-color: var(--primary);
+        color: var(--dark);
+        border: none;
+        border-radius: 6px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 1.5rem;
+    }
+
+    .submit-btn:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+
+    .warning-note {
+        color: var(--primary);
+        background-color: rgba(255, 215, 0, 0.1);
+        padding: 1rem;
+        border-radius: 6px;
+        margin-top: 1rem;
+        border-left: 4px solid var(--primary);
+        display: none;
+    }
+
+    @media (max-width: 768px) {
+        .payment-container {
             flex-direction: column;
-            align-items: center;
-            gap: 10px;
+            padding: 1rem;
         }
-
-        .radio-container input {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            margin-right: 10px;
+        
+        .plan-summary, .payment-methods {
+            width: 100%;
+            flex: 1 1 100%;
         }
-
-        .radio-container label {
-            background-color: yellow;
-            color: black;
-            padding: 10px 20px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 5px;
-            width: 60%;
-            text-align: center;
-            border: 2px solid black;
+        
+        .payment-fields-container {
+            min-height: auto;
+            position: static;
         }
-
-        .radio-container input:checked + label {
-            background-color: black;
-            color: yellow;
-            border: 2px solid yellow;
-        }
-
+        
         .payment-fields {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            gap: 15px;
-        }
-
-        .payment-fields input {
-            width: 90%;
-            padding: 12px;
-            border: 2px solid yellow;
-            border-radius: 5px;
-            background-color: black;
-            color: yellow;
-            text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .payment-fields input:disabled {
-            background-color: #555;
-            color: gray;
-            border: 2px solid gray;
-        }
-
-        #payOnSiteWarning {
+            position: static;
+            opacity: 1;
+            visibility: visible;
             display: none;
-            color: white;
-            font-style: italic;
-            margin-top: 10px;
-            font-size: larger;
         }
-
-        .submit-btn {
-            background-color: yellow;
-            color: black;
-            font-size: 16px;
-            font-weight: bold;
-            padding: 12px;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            width: 40%;
+        
+        .payment-fields.active {
+            display: block;
         }
-
-        .submit-btn:hover {
-            background-color: black;
-            color: yellow;
-            border: 2px solid yellow;
-        }
-
-        .back-to-plans-btn {
-            background-color: yellow;
-            color: black;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            width: 30%;
-            margin-top: 10px;
-        }
-
-        .back-to-plans-btn:hover {
-            background-color: black;
-            color: yellow;
-        }
-
-        .right-box input[name="gmail"] {
-            width: 90%;
-            padding: 12px;
-            border: 2px solid yellow;
-            border-radius: 5px;
-            background-color: black;
-            color: yellow;
-            font-size: 16px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-    </style>
+    }
+</style>
 </head>
 <body>
-
-    <div class="ads-image"></div>
-
-    <div class="container">
-        <div class="left-box">
-            <h2>Chosen Plan: <?php echo htmlspecialchars($plan['name']); ?></h2>
-            <p>Price: ₱<?php echo number_format($plan['price'], 2); ?></p>
-            <p>Starting Date: <?php echo $start_date; ?></p>
-            <p>End Date: <?php echo $end_date; ?></p>
-            <br><br>
-            <button class="back-to-plans-btn" onclick="window.location.href='membership-plans.php'">Back to Plans</button>
+    <div class="payment-container">
+        <div class="plan-summary">
+            <h2>Plan Summary</h2>
+            <div class="plan-details">
+                <p><strong>Plan:</strong> <span><?php echo htmlspecialchars($plan['name']); ?></span></p>
+                <p><strong>Price:</strong> <span>₱<?php echo number_format($plan['price'], 2); ?></span></p>
+                <p><strong>Duration:</strong> <span><?php echo $plan['duration_days'] ?> days</span></p>
+                <p><strong>Start Date:</strong> <span><?php echo $start_date; ?></span></p>
+                <p><strong>End Date:</strong> <span><?php echo $end_date; ?></span></p>
+                <?php if ($plan['free_training_session'] > 0): ?>
+                    <p><strong>Free Sessions:</strong> <span><?php echo $plan['free_training_session'] ?></span></p>
+                <?php endif; ?>
+            </div>
+            <a href="membership-plans.php" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Choose Different Plan
+            </a>
         </div>
 
-        <div class="right-box">
-            <h2>Choose Your Payment Method</h2>
-            <form method="POST">
-                <div class="radio-container">
-                    <input type="radio" id="payOnSite" name="paymentMethod" value="payOnSite" checked>
-                    <label for="payOnSite">Pay On Site</label>
-                    <input type="radio" id="gcash" name="paymentMethod" value="gcash">
-                    <label for="gcash">G-Cash</label>
-                    <input type="radio" id="payWithCard" name="paymentMethod" value="credit_card">
-                    <label for="payWithCard">Pay With Card</label>
+        <div class="payment-methods">
+            <h2>Payment Details</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="method-options">
+                    <div class="method-option">
+                        <input type="radio" id="payOnSite" name="paymentMethod" value="payOnSite" checked>
+                        <label for="payOnSite"><i class="fas fa-money-bill-wave"></i> Pay On Site</label>
+                    </div>
+                    <div class="method-option">
+                        <input type="radio" id="gcash" name="paymentMethod" value="gcash">
+                        <label for="gcash"><i class="fas fa-mobile-alt"></i> GCash</label>
+                    </div>
+                    <div class="method-option">
+                        <input type="radio" id="payWithCard" name="paymentMethod" value="credit_card">
+                        <label for="payWithCard"><i class="fas fa-credit-card"></i> Credit/Debit Card</label>
+                    </div>
                 </div>
 
-                <div id="payOnSiteWarning">
-                    <br>
-                    <p>NOTE: Membership Application will be set as pending until paid and activated by an Admin.</p>
-                    <br>
+                <div class="warning-note" id="payOnSiteWarning">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>NOTE: Membership will be pending until payment is verified by an admin at our facility.</p>
                 </div>
 
-                <div class="payment-fields" id="gcashFields" style="display: none;">
-                    <br>
-                    <input type="text" name="gcashNumber" placeholder="Enter GCash Number">
-                    <br><br>
-                    <input type="text" name="referenceNumber" placeholder="Enter Reference Number">
-                    <br><br><br>
+                <div class="payment-fields" id="gcashFields">
+                    <div class="form-group">
+                        <label for="gcashNumber">GCash Number</label>
+                        <input type="text" id="gcashNumber" name="gcashNumber" class="form-control" placeholder="09XX XXX XXXX">
+                    </div>
+                    <div class="form-group">
+                        <label for="referenceNumber">Reference Number</label>
+                        <input type="text" id="referenceNumber" name="referenceNumber" class="form-control" placeholder="Enter transaction reference">
+                    </div>
                 </div>
 
-                <div class="payment-fields" id="cardFields" style="display: none;">
-                    <br>
-                    <select name="cardType">
-                        <option value="">Select Card Type</option>
-                        <option value="Visa">Visa</option>
-                        <option value="Mastercard">Mastercard</option>
-                        <option value="Amex">Amex</option>
-                        <option value="Other">Other</option>
-                        <option value="Debit">Debit</option>
-                        <option value="Credit">Credit</option>
-                    </select>
-
-                    <br><br>
-                    <input type="text" name="cardID" placeholder="Enter Card ID Number">
-                    <br><br><br>
+                <div class="payment-fields" id="cardFields">
+                    <div class="form-group">
+                        <label for="cardType">Card Type</label>
+                        <select id="cardType" name="cardType" class="form-control">
+                            <option value="">Select Card Type</option>
+                            <option value="Visa">Visa</option>
+                            <option value="Mastercard">Mastercard</option>
+                            <option value="Amex">American Express</option>
+                            <option value="Debit">Debit Card</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardID">Card Number (Last 4 digits)</label>
+                        <input type="text" id="cardID" name="cardID" class="form-control" placeholder="XXXX XXXX XXXX XXXX">
+                    </div>
                 </div>
-                <p style="font-size: large;">Enter Gmail for Receipt:</p>
-                <input type="email" name="gmail" placeholder="Enter your Gmail" required>
-                <br>
-                <button type="submit" class="submit-btn">Submit</button>
+
+                <div class="form-group">
+                    <label for="gmail">Email for Receipt</label>
+                    <input type="email" id="gmail" name="gmail" class="form-control" placeholder="your.email@example.com" required>
+                </div>
+
+                <div class="proof-upload" onclick="document.getElementById('proofImage').click()">
+                    <input type="file" id="proofImage" name="proofImage" accept="image/*">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Upload Proof of Payment</p>
+                    <small>(Screenshot, Photo of receipt, etc.)</small>
+                    <div class="file-name" id="fileName"></div>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-paper-plane"></i> Submit Payment
+                </button>
             </form>
         </div>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
+            // Payment method toggle
             const paymentMethods = document.querySelectorAll('input[name="paymentMethod"]');
             const gcashFields = document.getElementById("gcashFields");
             const cardFields = document.getElementById("cardFields");
@@ -427,19 +550,19 @@ unset($_SESSION['fresh_receipt_page']); // Ensure fresh page load
 
             function toggleFields() {
                 const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
-
+                
+                // Hide all fields first
+                gcashFields.classList.remove("active");
+                cardFields.classList.remove("active");
+                payOnSiteWarning.style.display = "none";
+                
+                // Show relevant fields
                 if (selectedMethod === "gcash") {
-                    gcashFields.style.display = "block";
-                    cardFields.style.display = "none";
-                    payOnSiteWarning.style.display = "none";
+                    gcashFields.classList.add("active");
                 } else if (selectedMethod === "credit_card") {
-                    cardFields.style.display = "block";
-                    gcashFields.style.display = "none";
-                    payOnSiteWarning.style.display = "none";
+                    cardFields.classList.add("active");
                 } else {
                     payOnSiteWarning.style.display = "block";
-                    gcashFields.style.display = "none";
-                    cardFields.style.display = "none";
                 }
             }
 
@@ -447,11 +570,18 @@ unset($_SESSION['fresh_receipt_page']); // Ensure fresh page load
                 method.addEventListener("change", toggleFields);
             });
 
+            // Initial setup
             toggleFields();
+
+            // File upload display
+            document.getElementById('proofImage').addEventListener('change', function(e) {
+                const fileName = e.target.files[0] ? e.target.files[0].name : 'No file selected';
+                document.getElementById('fileName').textContent = fileName;
+            });
         });
     </script>
-<br><br>
 </body>
 </html>
 
 <?php include "../includes/footer.php"; ?>
+<?php ob_end_flush(); // At the end of file ?>

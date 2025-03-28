@@ -1,8 +1,6 @@
 <?php
-session_start();
+session_start(); // Start session to access the logged-in user's details
 include '../includes/header.php';
-
-
 $host = "localhost";
 $user = "root";
 $password = "";
@@ -10,27 +8,83 @@ $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 
 
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../index.php");
+
+
+// Initialize a variable to store the success message
+$content_creation_successful = false;
+
+
+
+
+// Check if the user is logged in and has an admin type
+if (isset($_SESSION['user_id']) && $_SESSION['user_type'] == 'admin') {
+    $user_id = $_SESSION['user_id'];  // Retrieve the logged-in admin's user_id
+} else {
+    // Redirect to login page or show an error message if the user is not logged in as admin
+    echo "You must be logged in as an admin to create content.";
     exit();
 }
 
 
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+
+
+// Check if the form is submitted
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Capture user input
+    $title = $_POST['title'];
+    $description = $_POST['description'];
+    $content_type = $_POST['content_type'];
+
+
+
+
+    // Handle image upload (Make this optional)
+    $image_name = $_FILES['image']['name'];
+    $image_tmp = $_FILES['image']['tmp_name'];
+    $image_path = "";
+
+
+    // Handle file upload (Make this optional)
+    $file_name = $_FILES['file']['name'];
+    $file_tmp = $_FILES['file']['tmp_name'];
+    $file_path = "";
+
+
+    if (!empty($image_name)) {
+        $image_path = "uploads/" . basename($image_name);
+        if (!move_uploaded_file($image_tmp, $image_path)) {
+            echo "Error uploading the image.";
+            exit();
+        }
+    }
+
+
+    if (!empty($file_name)) {
+        $file_path = "uploads/" . basename($file_name);
+        if (!move_uploaded_file($file_tmp, $file_path)) {
+            echo "Error uploading the file.";
+            exit();
+        }
+    }
+
+
+    // Insert content data into the database using the logged-in user's user_id
+    $query = "INSERT INTO content (admin_id, title, description, content_type, image, file_path)
+              VALUES ('$user_id', '$title', '$description', '$content_type', '$image_path', '$file_path')";
+
+
+    if (mysqli_query($conn, $query)) {
+        // Set success flag if content is created successfully
+        $content_creation_successful = true;
+
+
+        // Redirect to content.php after success
+        header("Location: content.php");
+        exit(); // Ensure that the script stops after the redirect
+    } else {
+        echo "Error: " . mysqli_error($conn);
+    }
 }
-
-
-$user_id = $_SESSION['user_id']; // Logged-in user ID
-
-
-// Fetch content from database including both image and file_path columns
-$sql = "SELECT c.content_id, c.title, c.description, c.content_type, c.image, c.file_path, c.created_at,
-               c.admin_id, u.first_name, u.last_name
-        FROM content c
-        JOIN users u ON c.admin_id = u.user_id
-        ORDER BY c.created_at DESC";
-$result = $conn->query($sql);
 ?>
 
 
@@ -39,298 +93,447 @@ $result = $conn->query($sql);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Content Feed | FlexiFit</title>
+    <title>Create Content</title>
     <style>
-        :root {
-            --primary-bg: #000;
-            --primary-text: #FFD700;
-            --secondary-bg: #222;
-            --accent: #FFD700;
-            --accent-hover: #FFC000;
-            --card-bg: #1a1a1a;
-            --border-color: #333;
-            --text-light: #e0e0e0;
-            --text-muted: #999;
+    :root {
+        --primary: #FFD700;
+        --primary-dark: #FFC000;
+        --primary-light: rgba(255, 215, 0, 0.1);
+        --dark: #121212;
+        --darker: #0A0A0A;
+        --dark-gray: #1E1E1E;
+        --light: #F5F5F5;
+        --lighter: #FFFFFF;
+        --gray: #333333;
+        --light-gray: #444;
+        --yellow-glow: 0 0 15px rgba(255, 215, 0, 0.5);
+        --success: #4CAF50;
+        --danger: #F44336;
+        --info: #2196F3;
+        --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        --border-radius: 8px;
+        --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        background-color: var(--dark);
+        color: var(--light);
+        line-height: 1.6;
+        min-height: 100vh;
+        padding: 20px;
+        background-image: 
+            radial-gradient(circle at 10% 20%, rgba(255, 215, 0, 0.03) 0%, transparent 20%),
+            radial-gradient(circle at 90% 80%, rgba(255, 215, 0, 0.03) 0%, transparent 20%);
+    }
+
+    .container {
+        max-width: 1200px;
+        width: 95%;
+        margin: 2rem auto;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+        position: relative;
+    }
+
+    .page-header h2 {
+        color: var(--primary);
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .page-header h2::after {
+        content: '';
+        position: absolute;
+        bottom: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 150px;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+        border-radius: 2px;
+    }
+
+    .content-form {
+        background: var(--dark-gray);
+        border-radius: var(--border-radius);
+        padding: 3rem;
+        box-shadow: var(--box-shadow);
+        border: 1px solid var(--light-gray);
+        transition: var(--transition);
+    }
+
+    .content-form:hover {
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        border-color: var(--primary);
+    }
+
+    .form-group {
+        margin-bottom: 2rem;
+        position: relative;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.8rem;
+        color: var(--primary);
+        font-weight: 600;
+        font-size: 1.1rem;
+        letter-spacing: 0.3px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 1.2rem;
+        background-color: var(--darker);
+        border: 2px solid var(--light-gray);
+        border-radius: var(--border-radius);
+        color: var(--lighter);
+        font-size: 1.1rem;
+        transition: var(--transition);
+    }
+
+    .form-control:hover {
+        border-color: var(--primary);
+    }
+
+    .form-control:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px var(--primary-light);
+        border-color: var(--primary);
+        background-color: var(--gray);
+    }
+
+    textarea.form-control {
+        min-height: 200px;
+        resize: vertical;
+        line-height: 1.6;
+    }
+
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FFD700'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1.5rem;
+        cursor: pointer;
+    }
+
+    .file-upload-wrapper {
+        position: relative;
+        margin-top: 1.5rem;
+    }
+
+    .file-upload {
+        padding: 2.5rem;
+        border: 2px dashed var(--light-gray);
+        border-radius: var(--border-radius);
+        text-align: center;
+        cursor: pointer;
+        transition: var(--transition);
+        background-color: var(--darker);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .file-upload:hover {
+        background-color: var(--primary-light);
+        border-color: var(--primary);
+        transform: translateY(-2px);
+    }
+
+    .file-upload i {
+        font-size: 2.5rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+        transition: var(--transition);
+    }
+
+    .file-upload:hover i {
+        transform: scale(1.1);
+    }
+
+    .file-upload p {
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--light);
+    }
+
+    .file-upload small {
+        color: var(--light-gray);
+        font-size: 0.85rem;
+    }
+
+    .file-upload input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .file-name {
+        margin-top: 1rem;
+        padding: 0.8rem;
+        background-color: var(--darker);
+        border-radius: var(--border-radius);
+        color: var(--primary);
+        font-size: 0.9rem;
+        text-align: center;
+        border: 1px dashed var(--primary);
+        transition: var(--transition);
+    }
+
+    .submit-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.8rem;
+        width: 100%;
+        padding: 1.3rem;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: var(--dark);
+        border: none;
+        border-radius: var(--border-radius);
+        font-size: 1.2rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: var(--transition);
+        margin-top: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .submit-btn:hover {
+        background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+        transform: translateY(-3px);
+        box-shadow: 0 7px 14px rgba(255, 215, 0, 0.3);
+    }
+
+    .submit-btn:active {
+        transform: translateY(1px);
+    }
+
+    .message {
+        padding: 1.2rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 2rem;
+        text-align: center;
+        font-weight: 500;
+        animation: slideDown 0.4s ease-out;
+    }
+
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .success-message {
+        color: var(--success);
+        background-color: rgba(76, 175, 80, 0.1);
+        border-left: 4px solid var(--success);
+    }
+
+    .error-message {
+        color: var(--danger);
+        background-color: rgba(244, 67, 54, 0.1);
+        border-left: 4px solid var(--danger);
+    }
+
+    /* Floating label effect */
+    .floating-label-group {
+        position: relative;
+        margin-bottom: 1.8rem;
+    }
+
+    .floating-label {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        color: var(--light-gray);
+        transition: var(--transition);
+        pointer-events: none;
+    }
+
+    .form-control:focus + .floating-label,
+    .form-control:not(:placeholder-shown) + .floating-label {
+        top: -0.8rem;
+        left: 0.8rem;
+        font-size: 0.8rem;
+        color: var(--primary);
+        background-color: var(--dark-gray);
+        padding: 0 0.5rem;
+    }
+
+    /* Animation for form elements */
+    .form-group {
+        animation: fadeInUp 0.5s ease-out forwards;
+        opacity: 0;
+    }
+
+    .form-group:nth-child(1) { animation-delay: 0.1s; }
+    .form-group:nth-child(2) { animation-delay: 0.2s; }
+    .form-group:nth-child(3) { animation-delay: 0.3s; }
+    .form-group:nth-child(4) { animation-delay: 0.4s; }
+    .form-group:nth-child(5) { animation-delay: 0.5s; }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+        .container {
+            max-width: 1000px;
         }
-       
+    }
+
+    @media (max-width: 992px) {
+        .container {
+            max-width: 900px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 0 1.5rem;
+            max-width: 100%;
+        }
+        
+        .content-form {
+            padding: 2.5rem;
+        }
+        
+        .page-header h2 {
+            font-size: 2.2rem;
+        }
+    }
+
+    @media (max-width: 576px) {
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--primary-bg);
-            color: var(--primary-text);
-            margin: 0;
-            padding: 0;
+            padding: 15px;
         }
-
-
-        .feed-container {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 0 15px;
+        
+        .content-form {
+            padding: 2rem;
         }
-
-
-        .top-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
+        
+        .page-header h2 {
+            font-size: 2rem;
         }
-
-
-        .create-btn {
-            background-color: var(--accent);
-            color: #000;
-            padding: 8px 15px;
-            border-radius: 5px;
-            font-weight: bold;
-            text-decoration: none;
-            display: inline-block;
+        
+        .form-control {
+            padding: 1rem;
         }
-
-
-        .create-btn:hover {
-            background-color: var(--accent-hover);
+        
+        .file-upload {
+            padding: 2rem;
         }
-
-
-        .post-card {
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(255, 215, 0, 0.1);
-            margin-bottom: 20px;
-            border: 1px solid var(--border-color);
-            padding: 16px;
-        }
-
-
-        .post-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-
-
-        .user-info {
-            display: flex;
-            align-items: center;
-        }
-
-
-        .user-initials {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: var(--accent);
-            color: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 12px;
-        }
-
-
-        .post-user {
-            font-weight: 600;
-            color: var(--accent);
-        }
-
-
-        .post-time {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-
-        .post-title {
-            font-size: 1.2rem;
-            margin-bottom: 8px;
-            color: var(--accent);
-        }
-
-
-        .post-text {
-            color: var(--text-light);
-            line-height: 1.4;
-            margin-bottom: 12px;
-        }
-
-
-        .post-image {
-            width: 100%;
-            max-height: 500px;
-            object-fit: contain;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            border: 1px solid var(--border-color);
-        }
-
-
-        .post-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding-top: 12px;
-            border-top: 1px solid var(--border-color);
-        }
-
-
-        .post-type {
-            display: inline-block;
-            padding: 4px 8px;
-            background-color: rgba(255, 215, 0, 0.2);
-            color: var(--accent);
-            border-radius: 4px;
-            font-size: 0.8rem;
-        }
-
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-        }
-
-
-        .view-btn, .edit-btn {
-            background-color: var(--accent);
-            color: #000;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-weight: 600;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-
-        .edit-btn {
-            background-color: #28a745;
-            color: #fff;
-        }
-
-
-        .edit-btn:hover {
-            background-color: #218838;
-        }
-
-
-        .view-btn:hover {
-            background-color: var(--accent-hover);
-        }
-
-
-        .empty-feed {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-light);
-        }
-
-
-        .download-btn {
-            background-color: #28a745;
-            color: #fff;
-            padding: 6px 12px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-
-        .download-btn:hover {
-            background-color: #218838;
-        }
-
-
-        .file-name {
-            color: var(--text-light);
-            font-size: 0.9rem;
-            margin-top: 5px;
-        }
-    </style>
+    }
+</style>
 </head>
 <body>
 
+<br><br><br><b></b>
+<div class="container">
+    <div class="page-header">
+        <h2>Create New Content</h2>
+    </div>
 
-    <div class="feed-container">
-        <div class="top-actions">
-            <h1 style="color: var(--accent);">FlexiFit Content Feed</h1>
-            <a href="create-content.php" class="create-btn">+ Create Content</a>
+    <?php if ($content_creation_successful): ?>
+        <div class="success-message">
+            Content created successfully! You will be redirected to the content page.
+        </div>
+    <?php endif; ?>
+
+    <form class="content-form" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" class="form-control" name="title" id="title" placeholder="Enter content title" required>
         </div>
 
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea class="form-control" name="description" id="description" placeholder="Enter content description" required></textarea>
+        </div>
 
-        <?php if ($result->num_rows > 0): ?>
-            <?php while($row = $result->fetch_assoc()): ?>
-                <div class="post-card">
-                    <!-- Post Header -->
-                    <div class="post-header">
-                        <div class="user-info">
-                            <div class="user-initials">
-                                <?php
-                                    $initials = substr($row['first_name'], 0, 1) . substr($row['last_name'], 0, 1);
-                                    echo strtoupper($initials);
-                                ?>
-                            </div>
-                            <div>
-                                <div class="post-user"><?php echo htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?></div>
-                                <div class="post-time"><?php echo date('F j, Y \a\t g:i A', strtotime($row['created_at'])); ?></div>
-                            </div>
-                        </div>
+        <div class="form-group">
+            <label for="content_type">Content Type</label>
+            <select class="form-control" name="content_type" id="content_type" required>
+                <option value="guide">Guide</option>
+                <option value="tip">Tip</option>
+                <option value="announcement">Announcement</option>
+                <option value="workout_plan">Workout Plan</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
 
-
-                        <?php if ($row['admin_id'] == $user_id): ?>
-                            <a href="edit-content.php?content_id=<?php echo $row['content_id']; ?>" class="edit-btn">Edit</a>
-                        <?php endif; ?>
-                    </div>
-                   
-                    <!-- Post Content -->
-                    <h3 class="post-title"><?php echo htmlspecialchars($row['title']); ?></h3>
-                    <p class="post-text"><?php echo nl2br(htmlspecialchars($row['description'])); ?></p>
-                   
-                    <?php
-                    // Check for image in either column with fallback logic
-                    $image_path = '';
-                    if (!empty($row['image'])) {
-                        $image_path = "uploads/" . basename($row['image']);
-                    } elseif (!empty($row['file_path'])) {
-                        $image_path = $row['file_path'];
-                    }
-
-
-                    if (!empty($image_path)): ?>
-                        <img src="<?php echo htmlspecialchars($image_path); ?>" class="post-image" alt="Post Image">
-                    <?php endif; ?>
-                   
-                    <!-- Post Footer -->
-                    <div class="post-footer">
-                        <span class="post-type"><?php echo htmlspecialchars($row['content_type']); ?></span>
-                       
-                        <?php if (!empty($row['file_path'])): ?>
-                            <div class="btn-group">
-                                <a href="uploads/<?php echo basename($row['file_path']); ?>" class="download-btn" download>Download File</a>
-                                <div class="file-name"><?php echo basename($row['file_path']); ?></div>
-                            </div>
-                        <?php endif; ?>
-                       
-                        <!-- View Details Button Redirecting to content-details.php -->
-                        <a href="content-details.php?content_id=<?php echo $row['content_id']; ?>" class="view-btn">View Details</a>
-                    </div>
-                </div>
-            <?php endwhile; ?>
-        <?php else: ?>
-            <div class="empty-feed">
-                <h3>No content available yet</h3>
-                <p>Check back later for updates!</p>
+        <div class="form-group">
+            <label>Content Image (Optional)</label>
+            <div class="file-upload" onclick="document.getElementById('image').click()">
+                <input type="file" name="image" id="image" accept="image/*">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click to upload image</p>
+                <small>(JPG, PNG, GIF - Max 5MB)</small>
+                <div class="file-name" id="imageFileName"></div>
             </div>
-        <?php endif; ?>
-    </div>
+        </div>
+
+        <div class="form-group">
+            <label>Additional File (Optional)</label>
+            <div class="file-upload" onclick="document.getElementById('file').click()">
+                <input type="file" name="file" id="file">
+                <i class="fas fa-file-upload"></i>
+                <p>Click to upload file</p>
+                <small>(PDF, DOCX, etc. - Max 10MB)</small>
+                <div class="file-name" id="fileFileName"></div>
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn">
+            <i class="fas fa-plus"></i> Create Content
+        </button>
+    </form>
+</div>
+
+<script>
+    // Display file names when selected
+    document.getElementById('image').addEventListener('change', function(e) {
+        const fileName = e.target.files[0] ? e.target.files[0].name : 'No file selected';
+        document.getElementById('imageFileName').textContent = fileName;
+    });
+
+    document.getElementById('file').addEventListener('change', function(e) {
+        const fileName = e.target.files[0] ? e.target.files[0].name : 'No file selected';
+        document.getElementById('fileFileName').textContent = fileName;
+    });
+</script>
 
 
 </body>
 </html>
 
 
-<?php
-$conn->close();
-include '../includes/footer.php';
-?>
+<?php include '../includes/footer.php'; // neo ?>

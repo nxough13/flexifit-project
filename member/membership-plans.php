@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 include '../includes/header.php';
 // Database connection
 $host = "localhost";
@@ -557,5 +558,5 @@ $result = $conn->query($sql);
 </script>
 </body>
 </html>
-
+<?php ob_end_flush(); // At the end of file ?>
 <?php $conn->close(); ?>

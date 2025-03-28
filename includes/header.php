@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Turn on output buffering
 // Start session only if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -6,14 +7,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Correct the path dynamically
 $base_path = __DIR__; // Gets the directory of the current file
-$config_path = $base_path . '/config.php'; // Path to config.php
+$host = "localhost";
+$user = "root";
+$password = "";
+$dbname = "flexifit_db";
+$conn = new mysqli($host, $user, $password, $dbname);
 
-// Check if the config file exists
-if (file_exists($config_path)) {
-    require_once $config_path; // Include the config file
-} else {
-    die("Config file not found. Please check the path: " . $config_path);
-}
 
 // Check if user is logged in and fetch user details
 $user = null;
@@ -309,7 +308,7 @@ if (isset($_SESSION['user_id'])) {
                     
                     <?php if ($user && $user['user_type'] === 'admin'): ?>
                         <!-- Admin Navigation Links -->
-                        <li><a href="content.php">Content</a></li>
+                        <li><a href="view-content.php">Content</a></li>
                         <li><a href="view-trainers.php">Trainers</a></li>
                         <li><a href="view-users.php">Users</a></li>
                         <li><a href="view-plans.php">Plans</a></li>
@@ -346,3 +345,4 @@ if (isset($_SESSION['user_id'])) {
     <div class="header-spacer"></div>
 </body>
 </html>
+<?php ob_end_flush(); // At the end of file ?>
