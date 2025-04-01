@@ -14,16 +14,16 @@ if ($conn->connect_error) {
 }
 
 // Authentication checks
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../index.php");
-    exit();
-} elseif ($_SESSION['user_type'] == 'non-member') {
-    header("Location: ../index.php");
-    exit();
-} elseif ($_SESSION['user_type'] == 'admin') {
-    header("Location: ../admin/index.php");
-    exit();
-}
+// if (!isset($_SESSION['user_id'])) {
+//     header("Location: ../index.php");
+//     exit();
+// } elseif ($_SESSION['user_type'] == 'non-member') {
+//     header("Location: ../index.php");
+//     exit();
+// } elseif ($_SESSION['user_type'] == 'admin') {
+//     header("Location: ../admin/index.php");
+//     exit();
+// }
 
 // Validate trainer_id
 if (!isset($_GET['trainer_id']) || !is_numeric($_GET['trainer_id'])) {

@@ -40,7 +40,7 @@ $statusQuery = "SELECT status, COUNT(*) as count FROM schedules GROUP BY status"
 $statusResult = $conn->query($statusQuery);
 $statusData = [];
 while ($row = $statusResult->fetch_assoc()) {
-    $statusData[$row['status'] = $row['count']];
+    $statusData[$row['status']] = $row['count'];
 }
 
 $equipmentQuery = "SELECT e.name, COUNT(s.schedule_id) as count 

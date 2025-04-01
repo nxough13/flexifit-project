@@ -9,7 +9,12 @@ use PHPMailer\PHPMailer\Exception;
 require '../vendor/autoload.php';
 
 // Database connection
-require '../includes/db.php';
+$host = "localhost";
+$user = "root";
+$password = "";
+$dbname = "flexifit_db";
+$conn = new mysqli($host, $user, $password, $dbname);
+
 
 // Reset email_sent flag when first accessing receipt.php
 if (!isset($_SESSION['fresh_receipt_page']) || $_SESSION['fresh_receipt_page'] !== true) {

@@ -479,3 +479,30 @@ Inserted schedule ID: 6
 Equipment status update result: success
 Trainer schedule insert result: success
 All schedules processed successfully
+--- New Request 2025-03-28 04:50:27 ---
+POST data: Array
+(
+    [date] => 2025-03-28
+    [equipment] => [{"id":"1","name":"TreadMill (ID: TreadMill-01)","start":"11:49","end":"11:54"}]
+    [trainer_id] => 2
+    [member_id] => 3
+)
+
+User ID: 6, Member ID: 3
+Date: 2025-03-28
+Equipment: Array
+(
+    [0] => Array
+        (
+            [id] => 1
+            [name] => TreadMill (ID: TreadMill-01)
+            [start] => 11:49
+            [end] => 11:54
+        )
+
+)
+
+Trainer ID: 2
+Processing equipment: ID=1, Start=11:49, End=11:54
+Inserted schedule ID: 7
+All schedules processed successfully

@@ -509,7 +509,7 @@ while ($row = $specialtyResult->fetch_assoc()) {
                         <td><?php echo $trainer['trainer_id']; ?></td>
                         <td>
                             <?php if (!empty($trainer['image'])): ?>
-                                <img src="uploads/?php echo htmlspecialchars($trainer['image']); ?>" 
+                                <img src="uploads/trainers<?php echo htmlspecialchars($trainer['image']); ?>"
                                      class="trainer-image" 
                                      alt="<?php echo htmlspecialchars($trainer['first_name'] . ' ' . $trainer['last_name']); ?>">
                             <?php else: ?>

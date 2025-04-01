@@ -396,7 +396,7 @@ while ($row = $specialties_result->fetch_assoc()) {
             </div>
             
             <?php if (!empty($trainer['image']) && $trainer['image'] != 'default.png'): ?>
-                <img id="preview" class="img-preview" src="../uploads/trainers/<?php echo htmlspecialchars($trainer['image']); ?>" alt="Current Trainer Image">
+                <img id="preview" class="img-preview" src="uploads/trainers/<?php echo htmlspecialchars($trainer['image']); ?>" alt="Current Trainer Image">
                 <input type="hidden" name="existing_image" value="<?php echo htmlspecialchars($trainer['image']); ?>">
                 <small>Leave empty to keep current image</small>
             <?php else: ?>

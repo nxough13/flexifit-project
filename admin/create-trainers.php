@@ -42,7 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Process image upload
         $image = "default.png";
         if (!empty($_FILES["image"]["name"])) {
-            $target_dir = "../uploads/trainers/";
+            $target_dir = "uploads/trainers/";
             if (!file_exists($target_dir)) {
                 mkdir($target_dir, 0777, true);
             }
