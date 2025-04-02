@@ -377,47 +377,57 @@ $total_schedules = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS co
         }
 
         .report-modal {
-            display: none;
-            position: fixed;
-            z-index: 1050;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* Darken the background */
+    padding: 20px;
+    box-sizing: border-box;
+}
 
-        .report-modal-content {
-            background-color: var(--darker);
-            margin: 5% auto;
-            padding: 20px;
-            border: 1px solid var(--primary);
-            width: 80%;
-            max-width: 600px;
-            border-radius: 8px;
-        }
+.report-modal-content {
+    background-color: var(--darker);
+    width: 90%;
+    max-width: 700px;
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 10px;
+    border: 1px solid var(--primary);
+    color: var(--light);
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+    max-height: 80vh; /* Limit height */
+    overflow-y: auto; /* Allow scrolling */
+}
 
-        .report-option {
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: rgba(51, 51, 51, 0.5);
-            border-radius: 5px;
-        }
+.report-option {
+    margin-bottom: 15px;
+    padding: 12px;
+    background-color: rgba(51, 51, 51, 0.7);
+    border-radius: 8px;
+    transition: background-color 0.3s;
+}
 
-        .date-range-selector {
-            margin: 15px 0;
-            padding: 10px;
-            background-color: rgba(51, 51, 51, 0.5);
-            border-radius: 5px;
-        }
+.report-option:hover {
+    background-color: rgba(51, 51, 51, 0.9);
+}
 
-        .modal-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
-        }
+.date-range-selector {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: rgba(51, 51, 51, 0.7);
+    border-radius: 8px;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 20px;
+}
 
         /* Comprehensive Metrics Styles */
         .comprehensive-metrics {
@@ -497,6 +507,64 @@ $total_schedules = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS co
                 grid-template-columns: 1fr;
             }
         }
+
+        button.btn-primary,
+button.btn-secondary {
+    padding: 12px 20px;
+    background-color: var(--primary);
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+button.btn-primary:hover {
+    background-color: var(--primary-dark);
+    box-shadow: 0 4px 10px rgba(255, 215, 0, 0.4);
+}
+
+button.btn-secondary:hover {
+    background-color: var(--gray);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+button:active {
+    transform: translateY(2px);
+}
+    
+    /* Active/click effect */
+    button.btn-primary:active {
+        transform: translateY(1px);
+        box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+    }
+    
+    /* Optional: Add a subtle gold glow animation */
+    @keyframes goldPulse {
+        0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+        50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+        100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+    }
+    
+    button.btn-primary {
+        animation: goldPulse 3s infinite;
+    }
+
+    input[type="text"], input[type="date"], textarea {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--darker);
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    color: var(--light);
+    margin-top: 10px;
+    font-size: 16px;
+}
+
+input[type="checkbox"] {
+    margin-right: 10px;
+}
     </style>
 </head>
 
@@ -594,89 +662,74 @@ $total_schedules = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS co
     </div>
 
     <div id="reportModal" class="report-modal">
-        <div class="report-modal-content">
-            <h2>Generate Analytics Report</h2>
+    <div class="report-modal-content">
+        <h2>Generate Analytics Report</h2>
 
-            <form id="reportForm" action="generate_report.php" method="post">
-                <div class="form-group">
-                    <label for="reportTitle">Report Title</label>
-                    <input type="text" class="form-control" id="reportTitle" name="reportTitle" required>
-                </div>
+        <form id="reportForm" action="generate_report.php" method="post">
+            <!-- Report Title -->
+            <div class="form-group">
+                <label for="reportTitle">Report Title</label>
+                <input type="text" class="form-control" id="reportTitle" name="reportTitle" required>
+            </div>
 
-                <h3>Select Analytics to Include</h3>
+            <h3>Select Analytics to Include</h3>
 
-                <div class="report-option">
-                    <input type="checkbox" id="includeMembers" name="analytics[]" value="members" checked>
-                    <label for="includeMembers">Membership Overview</label>
-                </div>
+            <!-- Analytics Checkboxes -->
+            <div class="report-option">
+                <input type="checkbox" id="includeMembers" name="analytics[]" value="members" checked>
+                <label for="includeMembers">Membership Overview</label>
+            </div>
+            <div class="report-option">
+                <input type="checkbox" id="includeStatus" name="analytics[]" value="status" checked>
+                <label for="includeStatus">Membership Status</label>
+            </div>
+            <div class="report-option">
+                <input type="checkbox" id="includeGender" name="analytics[]" value="gender" checked>
+                <label for="includeGender">Gender Distribution</label>
+            </div>
+            <div class="report-option">
+                <input type="checkbox" id="includeEquipment" name="analytics[]" value="equipment">
+                <label for="includeEquipment">Most Booked Equipment</label>
+            </div>
+            <div class="report-option">
+                <input type="checkbox" id="includeTrainers" name="analytics[]" value="trainers">
+                <label for="includeTrainers">Highest Rated Trainers</label>
+            </div>
+            <div class="report-option">
+                <input type="checkbox" id="includeContent" name="analytics[]" value="content">
+                <label for="includeContent">Highest Rated Content</label>
+            </div>
 
-                <div class="report-option">
-                    <input type="checkbox" id="includeStatus" name="analytics[]" value="status" checked>
-                    <label for="includeStatus">Membership Status</label>
-                </div>
-
-                <div class="report-option">
-                    <input type="checkbox" id="includeGender" name="analytics[]" value="gender" checked>
-                    <label for="includeGender">Gender Distribution</label>
-                </div>
-
-                <div class="report-option">
-                    <input type="checkbox" id="includeEquipment" name="analytics[]" value="equipment">
-                    <label for="includeEquipment">Most Booked Equipment</label>
-                </div>
-
-                <div class="report-option">
-                    <input type="checkbox" id="includeTrainers" name="analytics[]" value="trainers">
-                    <label for="includeTrainers">Highest Rated Trainers</label>
-                </div>
-
-                <div class="report-option">
-                    <input type="checkbox" id="includeContent" name="analytics[]" value="content">
-                    <label for="includeContent">Highest Rated Content</label>
-                </div>
-
-                <!-- Add these new checkboxes to your report modal form -->
-                <div class="report-option">
-                    <input type="checkbox" id="includeTrainerGrowth" name="analytics[]" value="trainer_growth">
-                    <label for="includeTrainerGrowth">Trainer Growth</label>
-                </div>
-
-                <div class="report-option">
-                    <input type="checkbox" id="includeEquipmentGrowth" name="analytics[]" value="equipment_growth">
-                    <label for="includeEquipmentGrowth">Equipment Additions</label>
-                </div>
-
-                <div class="report-option">
-                    <input type="checkbox" id="includeContentGrowth" name="analytics[]" value="content_growth">
-                    <label for="includeContentGrowth">Content Additions</label>
-                </div>
-
-                <div class="date-range-selector">
-                    <h3>Date Range Filter</h3>
-                    <div class="form-row">
-                        <div class="col">
-                            <label for="startDate">From</label>
-                            <input type="text" class="form-control datepicker" id="startDate" name="startDate">
-                        </div>
-                        <div class="col">
-                            <label for="endDate">To</label>
-                            <input type="text" class="form-control datepicker" id="endDate" name="endDate">
-                        </div>
+            <!-- Date Range Filter -->
+            <div class="date-range-selector">
+                <h3>Date Range Filter</h3>
+                <div class="form-row">
+                    <div class="col">
+                        <label for="startDate">From</label>
+                        <input type="date" class="form-control" id="startDate" name="startDate">
+                    </div>
+                    <div class="col">
+                        <label for="endDate">To</label>
+                        <input type="date" class="form-control" id="endDate" name="endDate">
                     </div>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label for="reportNotes">Additional Notes</label>
-                    <textarea class="form-control" id="reportNotes" name="reportNotes" rows="3"></textarea>
-                </div>
+            <!-- Additional Notes -->
+            <div class="form-group">
+                <label for="reportNotes">Additional Notes</label>
+                <textarea class="form-control" id="reportNotes" name="reportNotes" rows="3"></textarea>
+            </div>
 
-                <div class="modal-buttons">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Generate Report</button>
-                </div>
-            </form>
-        </div>
+            <!-- Modal Action Buttons -->
+            <div class="modal-buttons">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Generate Report</button>
+            </div>
+        </form>
     </div>
+</div>
+
 
     <!-- Comprehensive Metrics Section -->
     <div class="comprehensive-metrics">
@@ -757,8 +810,21 @@ $total_schedules = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS co
 
     <!-- Add report buttons to each analytics section -->
     <div class="report-buttons" style="margin: 20px 0; text-align: center;">
-    <button class="btn btn-primary" onclick="openModal()">
-    <i class="fas fa-file-excel"></i> Generate Excel Report
+    <button class="btn btn-primary" onclick="openModal()" style="
+    background: linear-gradient(135deg, #FFD700 0%, #FFC000 100%);
+    color: #121212;
+    border: 2px solid #FFD700;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+">
+    <i class="fas fa-file-pdf" style="margin-right: 8px;"></i> Generate PDF Report
 </button>
     </div>
     </div>

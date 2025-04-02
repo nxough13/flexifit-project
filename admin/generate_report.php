@@ -3,8 +3,7 @@ ob_start();
 session_start();
 require_once('../vendor/autoload.php');
 
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use TCPDF as TCPDF;
 
 // Database configuration
 $servername = "localhost";
@@ -30,143 +29,146 @@ try {
     die("Database connection error: " . $e->getMessage());
 }
 
-// Create new Spreadsheet object
-$spreadsheet = new Spreadsheet();
-$sheet = $spreadsheet->getActiveSheet();
+// Create new PDF document
+$pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 
-// Set document properties
-$spreadsheet->getProperties()
-    ->setCreator('FlexiFit Gym System')
-    ->setTitle('Analytics Report')
-    ->setSubject('Gym Analytics');
+// Set document information
+$pdf->SetCreator('FlexiFit Gym System');
+$pdf->SetAuthor('FlexiFit Admin');
+$pdf->SetTitle('Analytics Report');
+$pdf->SetSubject('Gym Analytics');
 
-// Set report title
-$sheet->setCellValue('A1', $_POST['reportTitle']);
-$sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-$sheet->mergeCells('A1:F1');
+// Set default header data
+$pdf->SetHeaderData('', 0, 'FlexiFit Analytics Report', '');
+
+// Set header and footer fonts
+$pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
+$pdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+
+// Set margins
+$pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
+$pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+$pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+
+// Set auto page breaks
+$pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
+
+// Add a page
+$pdf->AddPage();
+
+// Set font
+$pdf->SetFont('helvetica', 'B', 16);
+
+// Report title
+$pdf->Cell(0, 10, $_POST['reportTitle'], 0, 1, 'C');
+$pdf->Ln(10);
+
+// Set smaller font for content
+$pdf->SetFont('helvetica', '', 12);
 
 // Add date if range is specified
-$currentRow = 3;
 if (!empty($_POST['startDate'])) {
     $dateRange = "Date Range: " . $_POST['startDate'];
     if (!empty($_POST['endDate'])) {
         $dateRange .= " to " . $_POST['endDate'];
     }
-    $sheet->setCellValue('A'.$currentRow, $dateRange);
-    $currentRow += 2;
+    $pdf->Cell(0, 10, $dateRange, 0, 1);
+    $pdf->Ln(5);
 }
 
 // Include selected analytics
 if (in_array('members', $_POST['analytics'])) {
-    $currentRow = include_excel_section($sheet, $conn, 'Membership Overview', get_membership_data($conn, $_POST), $currentRow);
+    include_pdf_section($pdf, $conn, 'Membership Overview', get_membership_data($conn, $_POST));
 }
 
 if (in_array('status', $_POST['analytics'])) {
-    $currentRow = include_excel_section($sheet, $conn, 'Membership Status', get_membership_status_data($conn, $_POST), $currentRow);
+    include_pdf_section($pdf, $conn, 'Membership Status', get_membership_status_data($conn, $_POST));
 }
 
 if (in_array('gender', $_POST['analytics'])) {
-    $currentRow = include_excel_section($sheet, $conn, 'Gender Distribution', get_gender_data($conn, $_POST), $currentRow);
+    include_pdf_section($pdf, $conn, 'Gender Distribution', get_gender_data($conn, $_POST));
 }
 
 if (in_array('equipment', $_POST['analytics'])) {
-    $currentRow = include_excel_section($sheet, $conn, 'Most Booked Equipment', get_equipment_data($conn, $_POST), $currentRow);
+    include_pdf_table($pdf, $conn, 'Most Booked Equipment', get_equipment_data($conn, $_POST), ['Equipment', 'Bookings']);
 }
 
 if (in_array('trainers', $_POST['analytics'])) {
-    $currentRow = include_excel_section($sheet, $conn, 'Highest Rated Trainers', get_trainer_data($conn, $_POST), $currentRow);
+    include_pdf_table($pdf, $conn, 'Highest Rated Trainers', get_trainer_data($conn, $_POST), ['Trainer', 'Rating']);
 }
 
 if (in_array('content', $_POST['analytics'])) {
-    $currentRow = include_excel_section($sheet, $conn, 'Highest Rated Content', get_content_data($conn, $_POST), $currentRow);
+    include_pdf_table($pdf, $conn, 'Highest Rated Content', get_content_data($conn, $_POST), ['Content', 'Rating']);
 }
 
 if (in_array('trainer_growth', $_POST['analytics'])) {
-    $currentRow = include_excel_section($sheet, $conn, 'Trainer Growth', get_trainer_growth_data($conn, $_POST), $currentRow, true);
+    include_pdf_table($pdf, $conn, 'Trainer Growth', get_trainer_growth_data($conn, $_POST), ['Date', 'New Trainers']);
 }
 
 if (in_array('equipment_growth', $_POST['analytics'])) {
-    $currentRow = include_excel_section($sheet, $conn, 'Equipment Additions', get_equipment_growth_data($conn, $_POST), $currentRow, true);
+    include_pdf_table($pdf, $conn, 'Equipment Additions', get_equipment_growth_data($conn, $_POST), ['Date', 'New Equipment']);
 }
 
 if (in_array('content_growth', $_POST['analytics'])) {
-    $currentRow = include_excel_section($sheet, $conn, 'Content Additions', get_content_growth_data($conn, $_POST), $currentRow, true);
+    include_pdf_table($pdf, $conn, 'Content Additions', get_content_growth_data($conn, $_POST), ['Date', 'New Content']);
 }
 
 // Add notes if provided
 if (!empty($_POST['reportNotes'])) {
-    $sheet->setCellValue('A'.$currentRow, 'Notes:');
-    $sheet->getStyle('A'.$currentRow)->getFont()->setBold(true);
-    $currentRow++;
-    $sheet->setCellValue('A'.$currentRow, $_POST['reportNotes']);
-    $sheet->mergeCells('A'.$currentRow.':F'.$currentRow);
-    $sheet->getStyle('A'.$currentRow)->getAlignment()->setWrapText(true);
+    $pdf->Ln(10);
+    $pdf->SetFont('helvetica', 'I', 10);
+    $pdf->MultiCell(0, 10, "Notes: " . $_POST['reportNotes']);
 }
 
-// Auto-size columns
-foreach(range('A','F') as $columnID) {
-    $sheet->getColumnDimension($columnID)->setAutoSize(true);
-}
-
-// Generate and output Excel file
-$filename = 'flexifit_report_'.date('Ymd').'.xlsx';
-
-header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header('Content-Disposition: attachment;filename="'.$filename.'"');
-header('Cache-Control: max-age=0');
-
-$writer = new Xlsx($spreadsheet);
-$writer->save('php://output');
+// Output PDF
+$pdf->Output('flexifit_report_'.date('Ymd').'.pdf', 'D');
 exit();
 
 // ==================== HELPER FUNCTIONS ====================
 
-function include_excel_section($sheet, $conn, $title, $data, $startRow, $isTabular = false) {
-    $currentRow = $startRow;
+function include_pdf_section($pdf, $conn, $title, $data) {
+    $pdf->SetFont('helvetica', 'B', 14);
+    $pdf->Cell(0, 10, $title, 0, 1);
+    $pdf->SetFont('helvetica', '', 12);
     
-    // Add section title
-    $sheet->setCellValue('A'.$currentRow, $title);
-    $sheet->getStyle('A'.$currentRow)->getFont()->setBold(true)->setSize(14);
-    $currentRow++;
-    
-    if ($isTabular) {
-        // For tabular data (like growth data)
-        if (!empty($data)) {
-            // Add headers
-            $headers = array_keys($data[0]);
-            $col = 'A';
-            foreach ($headers as $header) {
-                $sheet->setCellValue($col.$currentRow, ucwords(str_replace('_', ' ', $header)));
-                $sheet->getStyle($col.$currentRow)->getFont()->setBold(true);
-                $col++;
-            }
-            $currentRow++;
-            
-            // Add data rows
-            foreach ($data as $row) {
-                $col = 'A';
-                foreach ($row as $value) {
-                    $sheet->setCellValue($col.$currentRow, $value);
-                    $col++;
-                }
-                $currentRow++;
-            }
-        } else {
-            $sheet->setCellValue('A'.$currentRow, 'No data found for this section');
-            $currentRow++;
-        }
-    } else {
-        // For key-value data
-        foreach ($data as $label => $value) {
-            $sheet->setCellValue('A'.$currentRow, $label);
-            $sheet->setCellValue('B'.$currentRow, $value);
-            $currentRow++;
-        }
+    foreach ($data as $label => $value) {
+        $pdf->Cell(0, 10, "$label: $value", 0, 1);
     }
-    
-    $currentRow += 2; // Add some space between sections
-    return $currentRow;
+    $pdf->Ln(10);
 }
+
+function include_pdf_table($pdf, $conn, $title, $data, $headers) {
+    $pdf->SetFont('helvetica', 'B', 14);
+    $pdf->Cell(0, 10, $title, 0, 1);
+    $pdf->SetFont('helvetica', '', 12);
+    
+    // Calculate column widths
+    $colWidths = array(90, 90); // Equal width for two columns
+    
+    // Table header
+    $pdf->SetFillColor(200, 220, 255);
+    foreach ($headers as $key => $header) {
+        $pdf->Cell($colWidths[$key], 7, $header, 1, 0, 'C', 1);
+    }
+    $pdf->Ln();
+    
+    // Table data
+    $pdf->SetFillColor(255, 255, 255);
+    $pdf->SetTextColor(0);
+    $fill = false;
+    
+    foreach ($data as $key => $value) {
+        $pdf->Cell($colWidths[0], 6, $key, 'LR', 0, 'L', $fill);
+        $pdf->Cell($colWidths[1], 6, $value, 'LR', 0, 'L', $fill);
+        $pdf->Ln();
+        $fill = !$fill;
+    }
+    $pdf->Cell(array_sum($colWidths), 0, '', 'T');
+    $pdf->Ln(10);
+}
+
+// (Keep all your existing get_*_data() functions exactly as they were in the Excel version)
+// (Keep build_date_condition() function exactly as it was)
 
 function get_membership_data($conn, $params) {
     $dateCondition = build_date_condition($conn, 'm.start_date', $params);
@@ -293,7 +295,11 @@ function get_trainer_growth_data($conn, $params) {
               ORDER BY date";
     
     $result = $conn->query($query);
-    return $result->fetch_all(MYSQLI_ASSOC);
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[$row['date']] = $row['count'];
+    }
+    return $data;
 }
 
 function get_equipment_growth_data($conn, $params) {
@@ -306,7 +312,11 @@ function get_equipment_growth_data($conn, $params) {
               ORDER BY date";
     
     $result = $conn->query($query);
-    return $result->fetch_all(MYSQLI_ASSOC);
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[$row['date']] = $row['count'];
+    }
+    return $data;
 }
 
 function get_content_growth_data($conn, $params) {
@@ -319,7 +329,11 @@ function get_content_growth_data($conn, $params) {
               ORDER BY date";
     
     $result = $conn->query($query);
-    return $result->fetch_all(MYSQLI_ASSOC);
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[$row['date']] = $row['count'];
+    }
+    return $data;
 }
 
 function build_date_condition($conn, $column, $params) {
