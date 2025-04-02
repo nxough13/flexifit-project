@@ -35,8 +35,8 @@ if (isset($_SESSION['user_id'])) {
         $logoLink = ($userType === 'admin') ? "index.php" : "index.php";
     } else {
         // Default for non-logged-in users
-        $profileLink = "login.php";
-        $logoLink = "index.php";
+        $profileLink = "/flexifit-project/login.php";
+        $logoLink = "/flexifit-project/index.php";
     }
 }
 ?>

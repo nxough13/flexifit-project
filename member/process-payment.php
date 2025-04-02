@@ -133,6 +133,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     echo "<script>alert('Payment processed successfully!'); window.location.href='receipt.php';</script>";
 }
+
+$gmail_query = "SELECT email FROM users WHERE user_id = ?";
+$stmt = $conn->prepare($gmail_query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$gmail_result = $stmt->get_result();
+$user_email = '';
+if ($gmail_result->num_rows > 0) {
+    $user_row = $gmail_result->fetch_assoc();
+    $user_email = $user_row['email']; // Store the user's Gmail
+}
+$stmt->close();
 ?>
 
 <!DOCTYPE html>
@@ -356,14 +368,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     .proof-upload {
-        margin-top: 1.5rem;
-        padding: 1.5rem;
-        border: 2px dashed var(--primary);
-        border-radius: 6px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    border: 2px dashed var(--primary);
+    border-radius: 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    height: 0;
+    padding: 0;
+    overflow: hidden;
+    border: none;
+}
+
+.proof-upload.active {
+    opacity: 1;
+    visibility: visible;
+    height: auto;
+    padding: 1.5rem;
+    border: 2px dashed var(--primary);
+    margin-top: 1.5rem;
+}
 
     .proof-upload:hover {
         background-color: rgba(255, 215, 0, 0.1);
@@ -468,118 +495,129 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </a>
         </div>
 
-        <div class="payment-methods">
-            <h2>Payment Details</h2>
-            <form method="POST" enctype="multipart/form-data">
-                <div class="method-options">
-                    <div class="method-option">
-                        <input type="radio" id="payOnSite" name="paymentMethod" value="payOnSite" checked>
-                        <label for="payOnSite"><i class="fas fa-money-bill-wave"></i> Pay On Site</label>
-                    </div>
-                    <div class="method-option">
-                        <input type="radio" id="gcash" name="paymentMethod" value="gcash">
-                        <label for="gcash"><i class="fas fa-mobile-alt"></i> GCash</label>
-                    </div>
-                    <div class="method-option">
-                        <input type="radio" id="payWithCard" name="paymentMethod" value="credit_card">
-                        <label for="payWithCard"><i class="fas fa-credit-card"></i> Credit/Debit Card</label>
-                    </div>
-                </div>
-
-                <div class="warning-note" id="payOnSiteWarning">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <p>NOTE: Membership will be pending until payment is verified by an admin at our facility.</p>
-                </div>
-
-                <div class="payment-fields" id="gcashFields">
-                    <div class="form-group">
-                        <label for="gcashNumber">GCash Number</label>
-                        <input type="text" id="gcashNumber" name="gcashNumber" class="form-control" placeholder="09XX XXX XXXX">
-                    </div>
-                    <div class="form-group">
-                        <label for="referenceNumber">Reference Number</label>
-                        <input type="text" id="referenceNumber" name="referenceNumber" class="form-control" placeholder="Enter transaction reference">
-                    </div>
-                </div>
-
-                <div class="payment-fields" id="cardFields">
-                    <div class="form-group">
-                        <label for="cardType">Card Type</label>
-                        <select id="cardType" name="cardType" class="form-control">
-                            <option value="">Select Card Type</option>
-                            <option value="Visa">Visa</option>
-                            <option value="Mastercard">Mastercard</option>
-                            <option value="Amex">American Express</option>
-                            <option value="Debit">Debit Card</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="cardID">Card Number (Last 4 digits)</label>
-                        <input type="text" id="cardID" name="cardID" class="form-control" placeholder="XXXX XXXX XXXX XXXX">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="gmail">Email for Receipt</label>
-                    <input type="email" id="gmail" name="gmail" class="form-control" placeholder="your.email@example.com" required>
-                </div>
-
-                <div class="proof-upload" onclick="document.getElementById('proofImage').click()">
-                    <input type="file" id="proofImage" name="proofImage" accept="image/*">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Upload Proof of Payment</p>
-                    <small>(Screenshot, Photo of receipt, etc.)</small>
-                    <div class="file-name" id="fileName"></div>
-                </div>
-
-                <button type="submit" class="submit-btn">
-                    <i class="fas fa-paper-plane"></i> Submit Payment
-                </button>
-            </form>
+        <!-- In the payment-methods div (replace the existing one) -->
+<div class="payment-methods">
+    <h2>Payment Details</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="method-options">
+            <div class="method-option">
+                <input type="radio" id="payOnSite" name="paymentMethod" value="payOnSite" checked>
+                <label for="payOnSite"><i class="fas fa-money-bill-wave"></i> Pay On Site</label>
+            </div>
+            <div class="method-option">
+                <input type="radio" id="gcash" name="paymentMethod" value="gcash">
+                <label for="gcash"><i class="fas fa-mobile-alt"></i> GCash</label>
+            </div>
+            <div class="method-option">
+                <input type="radio" id="payWithCard" name="paymentMethod" value="credit_card">
+                <label for="payWithCard"><i class="fas fa-credit-card"></i> Credit/Debit Card</label>
+            </div>
         </div>
-    </div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Payment method toggle
-            const paymentMethods = document.querySelectorAll('input[name="paymentMethod"]');
-            const gcashFields = document.getElementById("gcashFields");
-            const cardFields = document.getElementById("cardFields");
-            const payOnSiteWarning = document.getElementById("payOnSiteWarning");
+        <div class="warning-note" id="payOnSiteWarning">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>NOTE: Membership will be pending until payment is verified by an admin at our facility.</p>
+        </div>
 
-            function toggleFields() {
-                const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
-                
-                // Hide all fields first
-                gcashFields.classList.remove("active");
-                cardFields.classList.remove("active");
-                payOnSiteWarning.style.display = "none";
-                
-                // Show relevant fields
-                if (selectedMethod === "gcash") {
-                    gcashFields.classList.add("active");
-                } else if (selectedMethod === "credit_card") {
-                    cardFields.classList.add("active");
-                } else {
-                    payOnSiteWarning.style.display = "block";
-                }
+        <div class="payment-fields-container">
+            <!-- GCash Fields -->
+            <div class="payment-fields" id="gcashFields">
+                <div class="form-group">
+                    <label for="gcashNumber">GCash Number</label>
+                    <input type="text" id="gcashNumber" name="gcashNumber" class="form-control" placeholder="09XX XXX XXXX">
+                </div>
+                <div class="form-group">
+                    <label for="referenceNumber">Reference Number</label>
+                    <input type="text" id="referenceNumber" name="referenceNumber" class="form-control" placeholder="Enter transaction reference">
+                </div>
+            </div>
+
+            <!-- Credit Card Fields -->
+            <div class="payment-fields" id="cardFields">
+                <div class="form-group">
+                    <label for="cardType">Card Type</label>
+                    <select id="cardType" name="cardType" class="form-control">
+                        <option value="">Select Card Type</option>
+                        <option value="Visa">Visa</option>
+                        <option value="Mastercard">Mastercard</option>
+                        <option value="Amex">American Express</option>
+                        <option value="Debit">Debit Card</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="cardID">Card Number (Last 4 digits)</label>
+                    <input type="text" id="cardID" name="cardID" class="form-control" placeholder="XXXX XXXX XXXX XXXX">
+                </div>
+            </div>
+        </div>
+
+        <!-- Gmail Input (Email for receipt) -->
+        <div class="form-group">
+            <label for="gmail">Email for Receipt</label>
+            <input type="email" id="gmail" name="gmail" class="form-control" value="<?php echo htmlspecialchars($user_email); ?>" placeholder="your.email@example.com" required>
+        </div>
+
+        <!-- Proof of Payment -->
+        <div class="proof-upload" id="proofUpload">
+            <input type="file" id="proofImage" name="proofImage" accept="image/*">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>Upload Proof of Payment</p>
+            <small>(Screenshot, Photo of receipt, etc.)</small>
+            <div class="file-name" id="fileName"></div>
+        </div>
+
+        <button type="submit" class="submit-btn">
+            <i class="fas fa-paper-plane"></i> Submit Payment
+        </button>
+    </form>
+</div>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Payment method toggle
+        const paymentMethods = document.querySelectorAll('input[name="paymentMethod"]');
+        const gcashFields = document.getElementById("gcashFields");
+        const cardFields = document.getElementById("cardFields");
+        const proofUpload = document.getElementById("proofUpload");
+        const payOnSiteWarning = document.getElementById("payOnSiteWarning");
+
+        function toggleFields() {
+            const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+            
+            // Hide all fields first
+            gcashFields.classList.remove("active");
+            cardFields.classList.remove("active");
+            proofUpload.classList.remove("active");
+            payOnSiteWarning.style.display = "none";
+            
+            // Show relevant fields
+            if (selectedMethod === "gcash") {
+                gcashFields.classList.add("active");
+                proofUpload.classList.add("active");
+            } else if (selectedMethod === "credit_card") {
+                cardFields.classList.add("active");
+                proofUpload.classList.add("active");
+            } else {
+                payOnSiteWarning.style.display = "block";
             }
+        }
 
-            paymentMethods.forEach(method => {
-                method.addEventListener("change", toggleFields);
-            });
-
-            // Initial setup
-            toggleFields();
-
-            // File upload display
-            document.getElementById('proofImage').addEventListener('change', function(e) {
-                const fileName = e.target.files[0] ? e.target.files[0].name : 'No file selected';
-                document.getElementById('fileName').textContent = fileName;
-            });
+        paymentMethods.forEach(method => {
+            method.addEventListener("change", toggleFields);
         });
-    </script>
+
+        // Initial setup
+        toggleFields();
+
+        // File upload display
+        document.getElementById('proofImage').addEventListener('change', function(e) {
+            const fileName = e.target.files[0] ? e.target.files[0].name : 'No file selected';
+            document.getElementById('fileName').textContent = fileName;
+        });
+    });
+</script>
 </body>
 </html>
 

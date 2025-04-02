@@ -757,9 +757,9 @@ $total_schedules = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS co
 
     <!-- Add report buttons to each analytics section -->
     <div class="report-buttons" style="margin: 20px 0; text-align: center;">
-        <button class="btn btn-primary" onclick="openModal()">
-            <i class="fas fa-file-pdf"></i> Generate Full Report
-        </button>
+    <button class="btn btn-primary" onclick="openModal()">
+    <i class="fas fa-file-excel"></i> Generate Excel Report
+</button>
     </div>
     </div>
 

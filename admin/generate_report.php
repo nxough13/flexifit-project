@@ -1,9 +1,10 @@
 <?php
-// Start output buffering immediately with no whitespace before
 ob_start();
-
 session_start();
 require_once('../vendor/autoload.php');
+
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 // Database configuration
 $servername = "localhost";
@@ -12,13 +13,13 @@ $password = "";
 $database = "flexifit_db";
 
 // Verify admin access
-if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
+if (!isset($_SESSION['user_id'])) {
     ob_end_clean();
     header("Location: ../index.php");
     exit();
 }
 
-// Create connection with error handling
+// Create connection
 try {
     $conn = new mysqli($servername, $username, $password, $database);
     if ($conn->connect_error) {
@@ -29,107 +30,142 @@ try {
     die("Database connection error: " . $e->getMessage());
 }
 
-// Include the TCPDF library
-use TCPDF as TCPDF;
+// Create new Spreadsheet object
+$spreadsheet = new Spreadsheet();
+$sheet = $spreadsheet->getActiveSheet();
 
-// Create PDF document
-$pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+// Set document properties
+$spreadsheet->getProperties()
+    ->setCreator('FlexiFit Gym System')
+    ->setTitle('Analytics Report')
+    ->setSubject('Gym Analytics');
 
-// Set document information
-$pdf->SetCreator('FlexiFit Gym System');
-$pdf->SetAuthor('FlexiFit Admin');
-$pdf->SetTitle('Analytics Report');
-$pdf->SetSubject('Gym Analytics');
-
-// Add a page
-$pdf->AddPage();
-
-// Set font
-$pdf->SetFont('helvetica', 'B', 16);
-
-// Report title
-$pdf->Cell(0, 10, $_POST['reportTitle'], 0, 1, 'C');
-$pdf->Ln(10);
-
-// Set smaller font for content
-$pdf->SetFont('helvetica', '', 12);
+// Set report title
+$sheet->setCellValue('A1', $_POST['reportTitle']);
+$sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+$sheet->mergeCells('A1:F1');
 
 // Add date if range is specified
+$currentRow = 3;
 if (!empty($_POST['startDate'])) {
     $dateRange = "Date Range: " . $_POST['startDate'];
     if (!empty($_POST['endDate'])) {
         $dateRange .= " to " . $_POST['endDate'];
     }
-    $pdf->Cell(0, 10, $dateRange, 0, 1);
-    $pdf->Ln(5);
+    $sheet->setCellValue('A'.$currentRow, $dateRange);
+    $currentRow += 2;
 }
 
 // Include selected analytics
 if (in_array('members', $_POST['analytics'])) {
-    include_report_section($pdf, $conn, 'Membership Overview', get_membership_data($conn, $_POST));
+    $currentRow = include_excel_section($sheet, $conn, 'Membership Overview', get_membership_data($conn, $_POST), $currentRow);
 }
 
 if (in_array('status', $_POST['analytics'])) {
-    include_report_section($pdf, $conn, 'Membership Status', get_membership_status_data($conn, $_POST));
+    $currentRow = include_excel_section($sheet, $conn, 'Membership Status', get_membership_status_data($conn, $_POST), $currentRow);
+}
+
+if (in_array('gender', $_POST['analytics'])) {
+    $currentRow = include_excel_section($sheet, $conn, 'Gender Distribution', get_gender_data($conn, $_POST), $currentRow);
+}
+
+if (in_array('equipment', $_POST['analytics'])) {
+    $currentRow = include_excel_section($sheet, $conn, 'Most Booked Equipment', get_equipment_data($conn, $_POST), $currentRow);
+}
+
+if (in_array('trainers', $_POST['analytics'])) {
+    $currentRow = include_excel_section($sheet, $conn, 'Highest Rated Trainers', get_trainer_data($conn, $_POST), $currentRow);
+}
+
+if (in_array('content', $_POST['analytics'])) {
+    $currentRow = include_excel_section($sheet, $conn, 'Highest Rated Content', get_content_data($conn, $_POST), $currentRow);
 }
 
 if (in_array('trainer_growth', $_POST['analytics'])) {
-    $pdf->AddPage();
-    $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 10, 'Trainer Growth Over Time', 0, 1);
-    $pdf->SetFont('helvetica', '', 12);
-    
-    $trainerData = get_trainer_growth_data($conn, $_POST);
-    if (!empty($trainerData)) {
-        $pdf->Ln(5);
-        foreach ($trainerData as $row) {
-            $pdf->Cell(0, 10, $row['date'] . ': ' . $row['count'] . ' new trainers', 0, 1);
-        }
-    } else {
-        $pdf->Cell(0, 10, 'No trainer data found for selected period', 0, 1);
-    }
+    $currentRow = include_excel_section($sheet, $conn, 'Trainer Growth', get_trainer_growth_data($conn, $_POST), $currentRow, true);
 }
 
 if (in_array('equipment_growth', $_POST['analytics'])) {
-    $pdf->AddPage();
-    $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 10, 'Equipment Additions Over Time', 0, 1);
-    $pdf->SetFont('helvetica', '', 12);
-    
-    $equipmentData = get_equipment_growth_data($conn, $_POST);
-    if (!empty($equipmentData)) {
-        $pdf->Ln(5);
-        foreach ($equipmentData as $row) {
-            $pdf->Cell(0, 10, $row['date'] . ': ' . $row['count'] . ' new equipment', 0, 1);
-        }
-    } else {
-        $pdf->Cell(0, 10, 'No equipment data found for selected period', 0, 1);
-    }
+    $currentRow = include_excel_section($sheet, $conn, 'Equipment Additions', get_equipment_growth_data($conn, $_POST), $currentRow, true);
+}
+
+if (in_array('content_growth', $_POST['analytics'])) {
+    $currentRow = include_excel_section($sheet, $conn, 'Content Additions', get_content_growth_data($conn, $_POST), $currentRow, true);
 }
 
 // Add notes if provided
 if (!empty($_POST['reportNotes'])) {
-    $pdf->Ln(10);
-    $pdf->SetFont('helvetica', 'I', 10);
-    $pdf->MultiCell(0, 10, "Notes: " . $_POST['reportNotes']);
+    $sheet->setCellValue('A'.$currentRow, 'Notes:');
+    $sheet->getStyle('A'.$currentRow)->getFont()->setBold(true);
+    $currentRow++;
+    $sheet->setCellValue('A'.$currentRow, $_POST['reportNotes']);
+    $sheet->mergeCells('A'.$currentRow.':F'.$currentRow);
+    $sheet->getStyle('A'.$currentRow)->getAlignment()->setWrapText(true);
 }
 
-// Clean buffer and output PDF
-ob_end_clean();
-$pdf->Output('flexifit_report_'.date('Ymd').'.pdf', 'D');
+// Auto-size columns
+foreach(range('A','F') as $columnID) {
+    $sheet->getColumnDimension($columnID)->setAutoSize(true);
+}
+
+// Generate and output Excel file
+$filename = 'flexifit_report_'.date('Ymd').'.xlsx';
+
+header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+header('Content-Disposition: attachment;filename="'.$filename.'"');
+header('Cache-Control: max-age=0');
+
+$writer = new Xlsx($spreadsheet);
+$writer->save('php://output');
 exit();
 
 // ==================== HELPER FUNCTIONS ====================
 
-function include_report_section($pdf, $conn, $title, $data) {
-    $pdf->SetFont('helvetica', 'B', 14);
-    $pdf->Cell(0, 10, $title, 0, 1);
-    $pdf->SetFont('helvetica', '', 12);
+function include_excel_section($sheet, $conn, $title, $data, $startRow, $isTabular = false) {
+    $currentRow = $startRow;
     
-    foreach ($data as $label => $value) {
-        $pdf->Cell(0, 10, "$label: $value", 0, 1);
+    // Add section title
+    $sheet->setCellValue('A'.$currentRow, $title);
+    $sheet->getStyle('A'.$currentRow)->getFont()->setBold(true)->setSize(14);
+    $currentRow++;
+    
+    if ($isTabular) {
+        // For tabular data (like growth data)
+        if (!empty($data)) {
+            // Add headers
+            $headers = array_keys($data[0]);
+            $col = 'A';
+            foreach ($headers as $header) {
+                $sheet->setCellValue($col.$currentRow, ucwords(str_replace('_', ' ', $header)));
+                $sheet->getStyle($col.$currentRow)->getFont()->setBold(true);
+                $col++;
+            }
+            $currentRow++;
+            
+            // Add data rows
+            foreach ($data as $row) {
+                $col = 'A';
+                foreach ($row as $value) {
+                    $sheet->setCellValue($col.$currentRow, $value);
+                    $col++;
+                }
+                $currentRow++;
+            }
+        } else {
+            $sheet->setCellValue('A'.$currentRow, 'No data found for this section');
+            $currentRow++;
+        }
+    } else {
+        // For key-value data
+        foreach ($data as $label => $value) {
+            $sheet->setCellValue('A'.$currentRow, $label);
+            $sheet->setCellValue('B'.$currentRow, $value);
+            $currentRow++;
+        }
     }
-    $pdf->Ln(10);
+    
+    $currentRow += 2; // Add some space between sections
+    return $currentRow;
 }
 
 function get_membership_data($conn, $params) {
@@ -141,6 +177,11 @@ function get_membership_data($conn, $params) {
     $query = "SELECT COUNT(*) AS total FROM members m WHERE 1 $dateCondition";
     $result = $conn->query($query);
     $data['Total Members'] = $result->fetch_assoc()['total'];
+    
+    // Active members
+    $query = "SELECT COUNT(*) AS total FROM members m WHERE membership_status = 'active' $dateCondition";
+    $result = $conn->query($query);
+    $data['Active Members'] = $result->fetch_assoc()['total'];
     
     return $data;
 }
@@ -161,13 +202,95 @@ function get_membership_status_data($conn, $params) {
     return $data;
 }
 
+function get_gender_data($conn, $params) {
+    $dateCondition = build_date_condition($conn, 'u.created_at', $params);
+    
+    $query = "SELECT u.gender, COUNT(*) AS count 
+              FROM users u
+              JOIN members m ON u.user_id = m.user_id
+              WHERE 1 $dateCondition
+              GROUP BY u.gender";
+    
+    $result = $conn->query($query);
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[ucfirst($row['gender'])] = $row['count'];
+    }
+    return $data;
+}
+
+function get_equipment_data($conn, $params) {
+    $dateCondition = build_date_condition($conn, 's.date', $params);
+    
+    $query = "SELECT e.name, COUNT(s.inventory_id) AS bookings_count
+              FROM schedules s
+              JOIN equipment_inventory ei ON s.inventory_id = ei.inventory_id
+              JOIN equipment e ON ei.equipment_id = e.equipment_id
+              WHERE 1 $dateCondition
+              GROUP BY s.inventory_id
+              ORDER BY bookings_count DESC
+              LIMIT 5";
+    
+    $result = $conn->query($query);
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[$row['name']] = $row['bookings_count'];
+    }
+    return $data;
+}
+
+function get_trainer_data($conn, $params) {
+    $dateCondition = build_date_condition($conn, 'tr.review_date', $params);
+    
+    $query = "SELECT CONCAT(t.first_name, ' ', t.last_name) AS trainer_name, 
+                     AVG(tr.rating) AS avg_rating, 
+                     COUNT(tr.trainer_id) AS total_reviews
+              FROM trainer_reviews tr
+              JOIN trainers t ON tr.trainer_id = t.trainer_id
+              WHERE 1 $dateCondition
+              GROUP BY tr.trainer_id
+              HAVING COUNT(tr.trainer_id) >= 3
+              ORDER BY avg_rating DESC
+              LIMIT 5";
+    
+    $result = $conn->query($query);
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[$row['trainer_name']] = "Rating: " . round($row['avg_rating'], 2) . " (Reviews: " . $row['total_reviews'] . ")";
+    }
+    return $data;
+}
+
+function get_content_data($conn, $params) {
+    $dateCondition = build_date_condition($conn, 'r.review_date', $params);
+    
+    $query = "SELECT c.title, 
+                     AVG(r.rating) AS avg_rating, 
+                     COUNT(r.review_id) AS review_count
+              FROM content c
+              LEFT JOIN reviews r ON c.content_id = r.content_id
+              WHERE 1 $dateCondition
+              GROUP BY c.content_id
+              HAVING COUNT(r.review_id) >= 3
+              ORDER BY avg_rating DESC
+              LIMIT 5";
+    
+    $result = $conn->query($query);
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[$row['title']] = "Rating: " . round($row['avg_rating'], 2) . " (Reviews: " . $row['review_count'] . ")";
+    }
+    return $data;
+}
+
 function get_trainer_growth_data($conn, $params) {
     $dateCondition = build_date_condition($conn, 'created_at', $params);
     
     $query = "SELECT DATE(created_at) AS date, COUNT(*) AS count 
               FROM trainers 
               WHERE 1 $dateCondition
-              GROUP BY DATE(created_at)";
+              GROUP BY DATE(created_at)
+              ORDER BY date";
     
     $result = $conn->query($query);
     return $result->fetch_all(MYSQLI_ASSOC);
@@ -179,7 +302,21 @@ function get_equipment_growth_data($conn, $params) {
     $query = "SELECT DATE(added_date) AS date, COUNT(*) AS count 
               FROM equipment_inventory 
               WHERE 1 $dateCondition
-              GROUP BY DATE(added_date)";
+              GROUP BY DATE(added_date)
+              ORDER BY date";
+    
+    $result = $conn->query($query);
+    return $result->fetch_all(MYSQLI_ASSOC);
+}
+
+function get_content_growth_data($conn, $params) {
+    $dateCondition = build_date_condition($conn, 'created_at', $params);
+    
+    $query = "SELECT DATE(created_at) AS date, COUNT(*) AS count 
+              FROM content 
+              WHERE 1 $dateCondition
+              GROUP BY DATE(created_at)
+              ORDER BY date";
     
     $result = $conn->query($query);
     return $result->fetch_all(MYSQLI_ASSOC);
@@ -198,22 +335,3 @@ function build_date_condition($conn, $column, $params) {
     }
     return $condition;
 }
-
-function generate_chart_image($data, $title, $width = 600, $height = 400) {
-    $chartUrl = "https://quickchart.io/chart?width=$width&height=$height&chart=";
-    $chartConfig = [
-        'type' => 'line',
-        'data' => [
-            'labels' => array_column($data, 'date'),
-            'datasets' => [[
-                'label' => $title,
-                'data' => array_column($data, 'count')
-            ]]
-        ]
-    ];
-    return $chartUrl . urlencode(json_encode($chartConfig));
-}
-
-?>
-
-<?php ob_end_flush(); // At the end of file ?>
