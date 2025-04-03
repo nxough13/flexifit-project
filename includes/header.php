@@ -16,26 +16,40 @@ $conn = new mysqli($host, $user, $password, $dbname);
 
 // Check if user is logged in and fetch user details
 $user = null;
-$profileLink = "login.php"; // Default profile link for non-logged-in users
-$logoLink = "index.php"; // Default logo link for non-logged-in users
+// Initialize default values
+$profileLink = "/flexifit-project/non-member-profile.php";
+$logoLink = "/flexifit-project/index.php";
+$userTypeLabel = "Non-member";
 
 if (isset($_SESSION['user_id'])) {
     $user_id = $_SESSION['user_id'];
-    $query = "SELECT first_name, image, user_type FROM users WHERE user_id = ?";
+    $query = "SELECT u.first_name, u.image, u.user_type, m.membership_status 
+              FROM users u 
+              LEFT JOIN members m ON u.user_id = m.user_id 
+              WHERE u.user_id = ?";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
     $user = $result->fetch_assoc();
 
-    // Set profile link and logo link based on user type
     if ($user) {
         $userType = $user['user_type'];
-        $profileLink = ($userType === 'admin') ? "admin-profile.php" : "member-profile.php";
-        $logoLink = ($userType === 'admin') ? "index.php" : "index.php";
-    } else {
-        // Default for non-logged-in users
-        $profileLink = "/flexifit-project/login.php";
+        $membershipStatus = $user['membership_status'];
+
+        if ($userType === 'member' && $membershipStatus === 'active') {
+            $userTypeLabel = "Member";
+            $profileLink = "member-profile.php";
+        } elseif ($userType === 'admin') {
+            $userTypeLabel = "Admin";
+            $profileLink = "admin-profile.php";
+        } else {
+            // Non-active member or other cases
+            $userTypeLabel = "Non-member";
+            $profileLink = "/flexifit-project/non-member-profile.php";
+        }
+        
+        // Logo link should always go to index.php regardless of user type
         $logoLink = "/flexifit-project/index.php";
     }
 }
@@ -295,7 +309,7 @@ if (isset($_SESSION['user_id'])) {
     </style>
 </head>
 <body>
-    <header>
+<header>
         <div class="header-container">
             <a href="<?= $logoLink ?>" class="logo">
                 <img src="/flexifit-project/images/flexfit-logo.png" alt="FlexiFit Logo">
@@ -314,7 +328,7 @@ if (isset($_SESSION['user_id'])) {
                         <li><a href="view-plans.php">Plans</a></li>
                         <li><a href="view-equipments.php">Equipment</a></li>
                         <li><a href="view-schedules.php">Schedules</a></li>
-                    <?php elseif ($user && $user['user_type'] === 'member'): ?>
+                    <?php elseif ($user && $user['user_type'] === 'member' && $membershipStatus === 'active'): ?>
                         <!-- Member Navigation Links -->
                         <li><a href="content.php">Content</a></li>
                         <li><a href="view-trainers.php">Trainers</a></li>
@@ -334,6 +348,7 @@ if (isset($_SESSION['user_id'])) {
                         <span><?= htmlspecialchars($user['first_name']) ?></span>
                     </a>
                     <a href="/flexifit-project/logout.php" class="logout-link">Logout</a>
+                    <span class="user-type-label"><?= $userTypeLabel ?></span> <!-- Display the user type label -->
                 <?php else: ?>
                     <a href="/flexifit-project/login.php" class="login-link">Login</a>
                     <a href="/flexifit-project/register.php" class="register-link">Register</a>

@@ -3,19 +3,23 @@ ob_start(); // Start output buffering
 session_start();
 include '../includes/header.php';
 
+
 require '../vendor/autoload.php'; // For PHPMailer
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
+
 
 // Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+
 // Ensure admin access
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: ../login.php");
     exit();
 }
+
 
 // Get current admin name
 $admin_id = $_SESSION['user_id'];
@@ -25,22 +29,23 @@ $admin_query->execute();
 $admin_result = $admin_query->get_result();
 $admin_name = $admin_result->fetch_assoc()['admin_name'];
 
+
 // Handle user type update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user_type'])) {
     $user_id = intval($_POST['user_id']);
     $new_user_type = $_POST['user_type'];
-    
+   
     // Get user's current email and name
     $user_query = $conn->prepare("SELECT email, CONCAT(first_name, ' ', last_name) AS user_name FROM users WHERE user_id = ?");
     $user_query->bind_param("i", $user_id);
     $user_query->execute();
     $user_result = $user_query->get_result();
     $user_data = $user_result->fetch_assoc();
-    
+   
     // Update user type
     $update_stmt = $conn->prepare("UPDATE users SET user_type = ? WHERE user_id = ?");
     $update_stmt->bind_param("si", $new_user_type, $user_id);
-    
+   
     if ($update_stmt->execute()) {
         // Send email notification
         $mail = new PHPMailer\PHPMailer\PHPMailer();
@@ -53,11 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user_type'])) 
             $mail->Password = 'dwnw xuwn baln ljbp';
             $mail->SMTPSecure = $mail;
             $mail->Port = 587;
-            
+           
             // Recipients
             $mail->setFrom('flexifit04@gmail.com', 'FlexiFit Gym');
             $mail->addAddress($user_data['email'], $user_data['user_name']);
-            
+           
             // Content
             $mail->isHTML(true);
             $mail->Subject = 'Your Account Type Has Been Updated';
@@ -69,27 +74,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user_type'])) 
                 <p>If you believe this is a mistake, please contact our support team.</p>
                 <p>Thank you,<br>FlexiFit Team</p>
             ";
-            
+           
             $mail->send();
-            
+           
             // If changing to member and has pending membership, update membership status
             if ($new_user_type === 'member') {
                 $membership_check = $conn->prepare("SELECT member_id FROM members WHERE user_id = ? AND membership_status = 'pending'");
                 $membership_check->bind_param("i", $user_id);
                 $membership_check->execute();
-                
+               
                 if ($membership_check->get_result()->num_rows > 0) {
                     $update_membership = $conn->prepare("UPDATE members SET membership_status = 'active' WHERE user_id = ?");
                     $update_membership->bind_param("i", $user_id);
                     $update_membership->execute();
                 }
             }
-            
+           
             $_SESSION['success_message'] = "User type updated successfully and notification sent!";
         } catch (Exception $e) {
             $_SESSION['error_message'] = "User type updated but email could not be sent. Error: " . $mail->ErrorInfo;
         }
-        
+       
         header("Location: view-users.php");
         exit();
     } else {
@@ -99,12 +104,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user_type'])) 
     }
 }
 
+
 // Determine view type
 $viewType = isset($_GET['view']) && in_array($_GET['view'], ['card', 'table']) ? $_GET['view'] : 'card';
+
 
 // Fetch filter values
 $filter_user_type = isset($_GET['filter_user_type']) ? $_GET['filter_user_type'] : 'all';
 $filter_membership = isset($_GET['filter_membership']) ? $_GET['filter_membership'] : 'all';
+
 
 // Base query for users
 if ($viewType === 'table') {
@@ -122,10 +130,12 @@ if ($viewType === 'table') {
             LEFT JOIN members m ON u.user_id = m.user_id";
 }
 
+
 // Add filters to query
 $where = [];
 $params = [];
 $types = '';
+
 
 if ($filter_user_type !== 'all') {
     $where[] = "u.user_type = ?";
@@ -133,25 +143,31 @@ if ($filter_user_type !== 'all') {
     $types .= 's';
 }
 
+
 if ($filter_membership !== 'all') {
     $where[] = "m.membership_status = ?";
     $params[] = $filter_membership;
     $types .= 's';
 }
 
+
 if (!empty($where)) {
     $sql .= " WHERE " . implode(" AND ", $where);
 }
 
+
 $stmt = $conn->prepare($sql);
+
 
 if (!empty($params)) {
     $stmt->bind_param($types, ...$params);
 }
 
+
 $stmt->execute();
 $result = $stmt->get_result();
 $users = $result->fetch_all(MYSQLI_ASSOC);
+
 
 // Get data for charts
 $userTypeQuery = "SELECT user_type, COUNT(*) as count FROM users GROUP BY user_type";
@@ -161,6 +177,7 @@ while ($row = $userTypeResult->fetch_assoc()) {
     $userTypeData[$row['user_type']] = $row['count'];
 }
 
+
 $membershipStatusQuery = "SELECT membership_status, COUNT(*) as count FROM members GROUP BY membership_status";
 $membershipStatusResult = $conn->query($membershipStatusQuery);
 $membershipStatusData = [];
@@ -168,7 +185,9 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
     $membershipStatusData[$row['membership_status']] = $row['count'];
 }
 
+
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -197,6 +216,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             --card-shadow: 0 4px 8px rgba(255, 193, 7, 0.1);
         }
 
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-dark);
@@ -204,6 +224,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             margin: 0;
             padding: 0;
         }
+
 
         .container {
             max-width: 1400px;
@@ -214,6 +235,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             box-shadow: var(--card-shadow);
         }
 
+
         .page-header {
             display: flex;
             justify-content: space-between;
@@ -223,6 +245,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             border-bottom: 1px solid var(--primary);
         }
 
+
         .page-title {
             font-size: 28px;
             color: var(--primary);
@@ -230,12 +253,14 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             text-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
         }
 
+
         .chart-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
+
 
         .chart-card {
             background: var(--bg-light);
@@ -246,12 +271,14 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             height: 300px;
         }
 
+
         .chart-title {
             font-size: 18px;
             margin-top: 0;
             margin-bottom: 15px;
             color: var(--primary);
         }
+
 
         .btn {
             text-decoration: none;
@@ -268,14 +295,17 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             gap: 5px;
         }
 
+
         .btn:hover {
             background-color: var(--primary-dark);
             transform: translateY(-2px);
         }
 
+
         .btn i {
             font-size: 14px;
         }
+
 
         .view-toggle {
             display: flex;
@@ -283,6 +313,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             margin-bottom: 20px;
             gap: 10px;
         }
+
 
         .view-toggle-btn {
             padding: 8px 15px;
@@ -294,15 +325,18 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             transition: all 0.3s;
         }
 
+
         .view-toggle-btn.active {
             background-color: var(--primary);
             color: var(--text-dark);
         }
 
+
         .view-toggle-btn:hover {
             background-color: var(--primary-dark);
             color: var(--text-dark);
         }
+
 
         /* Card View Styles */
         .grid-container {
@@ -311,6 +345,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             gap: 15px;
             margin-bottom: 30px;
         }
+
 
         .user-card {
             background: var(--bg-light);
@@ -323,10 +358,12 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             transition: all 0.3s;
         }
 
+
         .user-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
         }
+
 
         .user-card img {
             width: 100px;
@@ -337,10 +374,12 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             border: 3px solid var(--primary);
         }
 
+
         .user-info {
             text-align: left;
             font-size: 14px;
         }
+
 
         .user-info p {
             margin: 8px 0;
@@ -348,9 +387,11 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             border-bottom: 1px dashed var(--border-color);
         }
 
+
         .user-info strong {
             color: var(--primary);
         }
+
 
         .see-more {
             background-color: var(--primary);
@@ -369,13 +410,16 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             text-align: center;
         }
 
+
         .see-more:hover {
             background-color: var(--primary-dark);
         }
 
+
         .hidden {
             display: none;
         }
+
 
         /* Table View Styles */
         .table-container {
@@ -385,11 +429,13 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             margin-bottom: 30px;
         }
 
+
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
         }
+
 
         th {
             background-color: var(--primary);
@@ -401,20 +447,24 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             font-weight: 700;
         }
 
+
         td {
             padding: 12px 15px;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-light);
         }
 
+
         tr {
             background-color: var(--bg-light);
             transition: all 0.2s ease;
         }
 
+
         tr:hover {
             background-color: var(--secondary);
         }
+
 
         .status-badge {
             display: inline-block;
@@ -425,20 +475,24 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             text-transform: capitalize;
         }
 
+
         .status-admin {
             background-color: var(--danger);
             color: var(--text-light);
         }
+
 
         .status-member {
             background-color: var(--success);
             color: var(--text-light);
         }
 
+
         .status-non-member {
             background-color: var(--warning);
             color: var(--text-dark);
         }
+
 
         .action-btn {
             padding: 6px 10px;
@@ -451,14 +505,17 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             gap: 4px;
         }
 
+
         .edit-btn {
             background-color: var(--info);
             color: var(--text-light);
         }
 
+
         .edit-btn:hover {
             background-color: #138496;
         }
+
 
         .profile-img {
             width: 40px;
@@ -468,31 +525,33 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             border: 2px solid var(--primary);
         }
 
+
         @media (max-width: 768px) {
             .chart-grid {
                 grid-template-columns: 1fr;
             }
-            
+           
             .grid-container {
                 grid-template-columns: 1fr;
             }
-            
+           
             .view-toggle {
                 flex-direction: column;
             }
-            
+           
             .view-toggle-btn {
                 width: 100%;
             }
-            
+           
             table {
                 font-size: 12px;
             }
-            
+           
             th, td {
                 padding: 8px 10px;
             }
         }
+
 
         .chart-card {
     /* Add these properties to your existing .chart-card class */
@@ -501,6 +560,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
     padding: 25px; /* Increased padding */
 }
 
+
 /* Add this new class for the chart container */
 .chart-container {
     position: relative;
@@ -508,47 +568,49 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
     width: 100%;
 }
 
+
 .view-toggle-btn.active {
             background-color: var(--primary) !important;
             color: var(--text-dark) !important;
         }
 
+
         /* Ensure proper display of views */
         .view-content {
             display: none;
         }
-        
+       
         .view-content.active {
             display: block;
         }
-        
+       
         .grid-container {
             display: none;
         }
-        
+       
         .grid-container.active {
             display: grid;
         }
         .view-container {
             display: none;
         }
-        
+       
         .view-container.active {
             display: block;
         }
-        
+       
         .grid-container {
             display: none;
         }
-        
+       
         .grid-container.active {
             display: grid;
         }
-        
+       
         .table-container {
             display: none;
         }
-        
+       
         .table-container.active {
             display: block;
         }
@@ -559,26 +621,26 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             margin-bottom: 20px;
             border: 1px solid var(--primary);
         }
-        
+       
         .filter-row {
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
             margin-bottom: 10px;
         }
-        
+       
         .filter-group {
             display: flex;
             flex-direction: column;
             min-width: 200px;
         }
-        
+       
         .filter-label {
             margin-bottom: 5px;
             font-weight: 600;
             color: var(--primary);
         }
-        
+       
         .filter-select {
             padding: 8px 12px;
             border-radius: 4px;
@@ -586,7 +648,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             background-color: var(--bg-dark);
             color: var(--text-light);
         }
-        
+       
         .apply-filters {
             background-color: var(--primary);
             color: var(--text-dark);
@@ -597,11 +659,11 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             font-weight: 600;
             align-self: flex-end;
         }
-        
+       
         .apply-filters:hover {
             background-color: var(--primary-dark);
         }
-        
+       
         /* Modal styles */
         .modal {
             display: none;
@@ -613,7 +675,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             height: 100%;
             background-color: rgba(0,0,0,0.7);
         }
-        
+       
         .modal-content {
             background-color: var(--bg-light);
             margin: 10% auto;
@@ -623,7 +685,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             width: 400px;
             max-width: 90%;
         }
-        
+       
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -632,22 +694,22 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             padding-bottom: 10px;
             border-bottom: 1px solid var(--primary);
         }
-        
+       
         .modal-title {
             color: var(--primary);
             margin: 0;
         }
-        
+       
         .close-modal {
             color: var(--primary);
             font-size: 24px;
             cursor: pointer;
         }
-        
+       
         .modal-body {
             margin-bottom: 20px;
         }
-        
+       
         .modal-footer {
             display: flex;
             justify-content: flex-end;
@@ -657,23 +719,26 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
 </head>
 <body>
 
+
 <div class="container">
     <div class="page-header">
         <h1 class="page-title"><i class="fas fa-users"></i> User Management</h1>
         <a href="index.php" class="btn"><i class="fas fa-home"></i> Dashboard</a>
     </div>
 
+
     <?php if (isset($_SESSION['success_message'])): ?>
         <div class="alert alert-success">
             <i class="fas fa-check-circle"></i> <?= $_SESSION['success_message']; unset($_SESSION['success_message']); ?>
         </div>
     <?php endif; ?>
-    
+   
     <?php if (isset($_SESSION['error_message'])): ?>
         <div class="alert alert-error">
             <i class="fas fa-exclamation-circle"></i> <?= $_SESSION['error_message']; unset($_SESSION['error_message']); ?>
         </div>
     <?php endif; ?>
+
 
     <!-- Charts Section -->
     <div class="chart-grid">
@@ -686,6 +751,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             <canvas id="membershipStatusChart"></canvas>
         </div>
     </div>
+
 
     <!-- Filter Section -->
     <div class="filter-section">
@@ -716,6 +782,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
         </form>
     </div>
 
+
     <!-- View Toggle -->
     <div class="view-toggle">
         <a href="?view=card&filter_user_type=<?= $filter_user_type ?>&filter_membership=<?= $filter_membership ?>" class="view-toggle-btn <?= $viewType === 'card' ? 'active' : '' ?>">
@@ -725,6 +792,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             <i class="fas fa-table"></i> Table View
         </a>
     </div>
+
 
     <!-- Card View -->
     <div id="cardView" class="grid-container <?= $viewType === 'card' ? 'active' : '' ?>">
@@ -740,10 +808,11 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                     ?>
                     <img src="<?= $imagePath ?>" alt="Profile Image">
 
+
                     <div class="user-info">
                         <p><strong>ID:</strong> <?= htmlspecialchars($user['user_id']) ?></p>
                         <p><strong>Name:</strong> <?= htmlspecialchars($user['first_name'] . ' ' . htmlspecialchars($user['last_name'])) ?></p>
-                        <p><strong>Type:</strong> 
+                        <p><strong>Type:</strong>
                             <span class="status-badge status-<?= str_replace(' ', '-', strtolower(htmlspecialchars($user['user_type']))) ?>">
                                 <?= htmlspecialchars($user['user_type']) ?>
                             </span>
@@ -753,6 +822,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                         </p>
                         <p><strong>Gender:</strong> <?= htmlspecialchars($user['gender']) ?></p>
                         <p><strong>Age:</strong> <?= htmlspecialchars($user['age']) ?></p>
+
 
                         <!-- Full details only shown in card view -->
                         <?php if ($viewType === 'card') : ?>
@@ -770,7 +840,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                                 <p><strong>Medical Conditions:</strong> <?= htmlspecialchars($user['medical_conditions'] ?? 'N/A') ?></p>
                                 <p><strong>Description:</strong> <?= htmlspecialchars($user['description'] ?? 'N/A') ?></p>
                                 <?php if (isset($user['membership_status'])) : ?>
-                                    <p><strong>Membership:</strong> 
+                                    <p><strong>Membership:</strong>
                                         <span class="status-badge status-<?= htmlspecialchars($user['membership_status']) ?>">
                                             <?= htmlspecialchars($user['membership_status']) ?>
                                         </span>
@@ -778,6 +848,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                                 <?php endif; ?>
                             </div>
                         <?php endif; ?>
+
 
                         <!-- Toggle Button (only in card view) -->
                         <?php if ($viewType === 'card') : ?>
@@ -794,6 +865,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             </p>
         <?php endif; ?>
     </div>
+
 
     <!-- Table View -->
     <div id="tableView" class="table-container <?= $viewType === 'table' ? 'active' : '' ?>">
@@ -865,6 +937,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
     </div>
 </div>
 
+
 <!-- Edit User Type Modal -->
 <div id="editUserTypeModal" class="modal">
     <div class="modal-content">
@@ -884,6 +957,10 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                         <option value="trainer">Trainer</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Reason for Change:</label>
+                    <textarea name="change_reason" id="changeReason" class="form-control" rows="5" style="width: 100%;" required></textarea>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
@@ -892,6 +969,85 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
         </form>
     </div>
 </div>
+
+
+<?php
+// Check if the form is submitted
+if (isset($_POST['update_user_type'])) {
+    // Retrieve form data
+    $user_id = $_POST['user_id'];
+    $new_user_type = $_POST['user_type'];
+    $change_reason = $_POST['change_reason'];
+
+
+    // Check if the user ID is valid
+    if (empty($user_id) || empty($new_user_type) || empty($change_reason)) {
+        echo "<script>alert('Error: Missing required fields.');</script>";
+        exit();
+    }
+
+
+    // Fetch the user's full name from the users table
+    $query = "SELECT CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE user_id = ?";
+    if ($stmt = $conn->prepare($query)) {
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result->num_rows > 0) {
+            $user = $result->fetch_assoc();
+            $user_name = $user['full_name'];
+        } else {
+            echo "<script>alert('User not found.');</script>";
+            exit();
+        }
+        $stmt->close();
+    } else {
+        echo "<script>alert('Error: Could not fetch user details.');</script>";
+        exit();
+    }
+
+
+    // Start transaction
+    $conn->begin_transaction();
+
+
+    try {
+        // Update the user_type in the users table
+        $update_query = "UPDATE users SET user_type = ? WHERE user_id = ?";
+        $update_stmt = $conn->prepare($update_query);
+        $update_stmt->bind_param("si", $new_user_type, $user_id);
+        $update_stmt->execute();
+       
+        // Check if update was successful
+        if ($update_stmt->affected_rows > 0) {
+            // Insert the update into the UserTypeUpdate table
+            $insert_query = "INSERT INTO UserTypeUpdate (user_id, name, user_type, change_reason)
+                            VALUES (?, ?, ?, ?)";
+            $insert_stmt = $conn->prepare($insert_query);
+            $insert_stmt->bind_param("isss", $user_id, $user_name, $new_user_type, $change_reason);
+            $insert_stmt->execute();
+           
+            if ($insert_stmt->affected_rows > 0) {
+                $conn->commit();
+                echo "<script>
+                    alert('User type updated and logged successfully.');
+                    window.location.reload();
+                </script>";
+            } else {
+                throw new Exception("Error: Could not insert into UserTypeUpdate table. Error: " . $conn->error);
+            }
+            $insert_stmt->close();
+        } else {
+            throw new Exception("Error: Could not update user type. No rows affected.");
+        }
+        $update_stmt->close();
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo "<script>alert('".addslashes($e->getMessage())."');</script>";
+    }
+}
+?>
+
 
 <script>
     // User Type Distribution Chart
@@ -965,6 +1121,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
         }
     });
 
+
     // Membership Status Chart
     const membershipStatusCtx = document.getElementById('membershipStatusChart').getContext('2d');
     const membershipStatusChart = new Chart(membershipStatusCtx, {
@@ -1022,6 +1179,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
         }
     });
 
+
     // Modal functions
     function openEditModal(userId, currentType) {
         document.getElementById('modalUserId').value = userId;
@@ -1029,9 +1187,11 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
         document.getElementById('editUserTypeModal').style.display = 'block';
     }
 
+
     function closeModal() {
         document.getElementById('editUserTypeModal').style.display = 'none';
     }
+
 
     // Close modal when clicking outside
     window.onclick = function(event) {
@@ -1041,11 +1201,12 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
         }
     }
 
+
     // Toggle details in card view
     function toggleDetails(button) {
         const moreInfo = button.previousElementSibling;
         const icon = button.querySelector('i');
-        
+       
         if (moreInfo.classList.contains('hidden')) {
             moreInfo.classList.remove('hidden');
             icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
@@ -1058,8 +1219,77 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
     }
 </script>
 
+
+<!-- Reason Modal -->
+<div id="reasonModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h3 id="modalTitle">Reason for Action</h3>
+        <form id="reasonForm">
+            <input type="hidden" id="actionTrainerId">
+            <input type="hidden" id="actionType">
+            <div class="form-group">
+                <label for="reasonText">Please provide a reason:</label>
+                <textarea id="reasonText" class="form-control" rows="4" required></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="cancel-btn">Cancel</button>
+                <button type="submit" class="submit-btn">Submit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script>
+    // Modal functionality
+    const modal = document.getElementById('reasonModal');
+    const reasonForm = document.getElementById('reasonForm');
+    const reasonText = document.getElementById('reasonText');
+    const actionTrainerId = document.getElementById('actionTrainerId');
+    const actionType = document.getElementById('actionType');
+    const modalTitle = document.getElementById('modalTitle');
+   
+    // Open modal for disable action
+    function confirmDisable(trainerId) {
+        actionTrainerId.value = trainerId;
+        actionType.value = 'disable';
+        modalTitle.textContent = 'Reason for Disabling Trainer';
+        reasonText.value = '';
+        modal.style.display = 'block';
+    }
+   
+    // Open modal for enable action
+    function confirmEnable(trainerId) {
+        actionTrainerId.value = trainerId;
+        actionType.value = 'enable';
+        modalTitle.textContent = 'Reason for Enabling Trainer';
+        reasonText.value = '';
+        modal.style.display = 'block';
+    }
+   
+    // Close modal when clicking X
+    document.querySelector('.close-btn').addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+   
+    // Close modal when clicking Cancel
+    document.querySelector('.cancel-btn').addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+   
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+   
+<?php
+?>
 </body>
 </html>
+
 
 <?php $conn->close(); ?>
 <?php ob_end_flush(); // At the end of file ?>

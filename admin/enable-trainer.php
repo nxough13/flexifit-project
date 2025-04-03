@@ -6,20 +6,37 @@ $password = "";
 $dbname = "flexifit_db";
 $conn = new mysqli($host, $user, $password, $dbname);
 
-if (isset($_GET["id"])) {
-    $trainer_id = $_GET["id"];
-    $sql = "UPDATE trainers SET status='active' WHERE trainer_id=$trainer_id";
 
-    if ($conn->query($sql) === TRUE) {
-        echo "<script>
-                alert('Trainer has been re-enabled!');
-                window.location.href = 'view-trainers.php';
-              </script>";
-    } else {
-        echo "Error: " . $conn->error;
-    }
+// Get the input data
+$input = json_decode(file_get_contents('php://input'), true);
+$trainerId = $_GET['trainer_id'] ?? null;
+$reason = $input['reason'] ?? '';
+
+
+// Validate input
+if (!$trainerId) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Trainer ID is required']);
+    exit;
 }
-// neo
+
+
+try {
+    // Update the trainer status
+    $stmt = $conn->prepare("UPDATE trainers SET status = 'active' WHERE trainer_id = ?");
+    $stmt->bind_param("i", $trainerId);
+    $stmt->execute();
+   
+    // Here you might want to log the action with the reason
+    // logAction($trainerId, 'enabled', $reason);
+   
+    echo json_encode(['success' => true, 'message' => 'Trainer enabled successfully']);
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+}
+
+
 $conn->close();
 ?>
 <?php ob_end_flush(); // At the end of file ?>

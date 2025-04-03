@@ -1,8 +1,8 @@
 <?php
 ob_start(); // Turn on output buffering
 session_start();
-include '../includes/header.php';
-include '../includes/config.php';
+include 'includes/header.php';
+include 'includes/config.php';
 
 
 // Check if database connection is established
@@ -55,7 +55,7 @@ if ($user['user_type'] === 'member') {
 
 
 // Default profile picture if none is uploaded
-$profile_image = !empty($user['image']) ? "../images/" . htmlspecialchars($user['image']) : "../images/default.png";
+$profile_image = !empty($user['image']) ? "images/" . htmlspecialchars($user['image']) : "images/default.png";
 
 
 // Check if medical certificate exists
@@ -81,7 +81,7 @@ $medical_certificate = !empty($user['medical_certificate']) ? "../uploads/medica
             position: relative;
             width: 100%;
             height: 300px;
-            background: url('../images/background.jpg') center/cover no-repeat;
+            background: url('images/background.jpg') center/cover no-repeat;
         }
         .profile-info {
             background: yellow;
@@ -337,7 +337,7 @@ $medical_certificate = !empty($user['medical_certificate']) ? "../uploads/medica
 
 
     <div class="edit-btn-container">
-        <a href="member-profile-edit.php" class="edit-button">EDIT PROFILE</a>
+        <a href="non-member-profile-edit.php" class="edit-button">EDIT PROFILE</a>
     </div>
 
 

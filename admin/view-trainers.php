@@ -4,13 +4,15 @@ ob_start(); // Turn on output buffering
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
 include '../includes/header.php';
 
+
 // Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+
 // Fetch all trainers
-$trainersQuery = "SELECT t.trainer_id, t.first_name, t.last_name, t.email, t.age, t.gender, 
+$trainersQuery = "SELECT t.trainer_id, t.first_name, t.last_name, t.email, t.age, t.gender,
                  t.image, t.status, t.availability_status,
                  GROUP_CONCAT(s.name SEPARATOR ', ') AS specialties
                  FROM trainers t
@@ -23,6 +25,7 @@ while ($row = $trainersResult->fetch_assoc()) {
     $trainers[] = $row;
 }
 
+
 // Get data for charts
 $statusQuery = "SELECT status, COUNT(*) as count FROM trainers GROUP BY status";
 $statusResult = $conn->query($statusQuery);
@@ -31,8 +34,9 @@ while ($row = $statusResult->fetch_assoc()) {
     $statusData[$row['status']] = $row['count'];
 }
 
+
 // Get most booked trainers data
-$bookedQuery = "SELECT t.trainer_id, CONCAT(t.first_name, ' ', t.last_name) as trainer_name, 
+$bookedQuery = "SELECT t.trainer_id, CONCAT(t.first_name, ' ', t.last_name) as trainer_name,
                COUNT(st.schedule_id) as booking_count
                FROM trainers t
                LEFT JOIN schedule_trainer st ON t.trainer_id = st.trainer_id
@@ -47,6 +51,7 @@ while ($row = $bookedResult->fetch_assoc()) {
     $bookingCounts[] = $row['booking_count'];
 }
 
+
 // Get unique specialties for filter
 $specialtyQuery = "SELECT DISTINCT name FROM specialty ORDER BY name";
 $specialtyResult = $conn->query($specialtyQuery);
@@ -55,6 +60,7 @@ while ($row = $specialtyResult->fetch_assoc()) {
     $uniqueSpecialties[] = $row['name'];
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -83,7 +89,7 @@ while ($row = $specialtyResult->fetch_assoc()) {
             --border-color: #333333;
             --card-shadow: 0 4px 8px rgba(255, 193, 7, 0.1);
         }
-        
+       
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-dark);
@@ -91,7 +97,7 @@ while ($row = $specialtyResult->fetch_assoc()) {
             margin: 0;
             padding: 0;
         }
-        
+       
         .container {
             max-width: 1400px;
             margin: 20px auto;
@@ -100,7 +106,7 @@ while ($row = $specialtyResult->fetch_assoc()) {
             border-radius: 8px;
             box-shadow: var(--card-shadow);
         }
-        
+       
         .page-header {
             display: flex;
             justify-content: space-between;
@@ -109,62 +115,62 @@ while ($row = $specialtyResult->fetch_assoc()) {
             padding-bottom: 15px;
             border-bottom: 1px solid var(--primary);
         }
-        
+       
         .page-title {
             font-size: 28px;
             color: var(--primary);
             margin: 0;
             text-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
         }
-        
+       
         .charts-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
             margin-bottom: 30px;
         }
-        
+       
         .chart-card {
             background: var(--bg-light);
             border-radius: 8px;
             box-shadow: var(--card-shadow);
             padding: 15px;
             border: 1px solid var(--primary);
-            height: 300px; /* Fixed height */
+            height: 300px;
         }
-        
+       
         .chart-wrapper {
             position: relative;
             height: calc(100% - 40px);
             width: 100%;
         }
-        
+       
         .chart-title {
             font-size: 16px;
             margin-top: 0;
             margin-bottom: 15px;
             color: var(--primary);
         }
-        
+       
         .filter-container {
             display: flex;
             gap: 15px;
             margin-bottom: 20px;
             flex-wrap: wrap;
         }
-        
+       
         .filter-group {
             display: flex;
             flex-direction: column;
         }
-        
+       
         .filter-label {
             margin-bottom: 5px;
             font-weight: 600;
             font-size: 14px;
             color: var(--primary);
         }
-        
+       
         .filter-select {
             padding: 8px 12px;
             border-radius: 4px;
@@ -173,7 +179,7 @@ while ($row = $specialtyResult->fetch_assoc()) {
             background-color: var(--bg-light);
             color: var(--text-light);
         }
-        
+       
         .apply-filters {
             background-color: var(--primary);
             color: var(--text-dark);
@@ -184,23 +190,23 @@ while ($row = $specialtyResult->fetch_assoc()) {
             align-self: flex-end;
             font-weight: 600;
         }
-        
+       
         .apply-filters:hover {
             background-color: var(--primary-dark);
         }
-        
+       
         .table-container {
             overflow-x: auto;
             border-radius: 6px;
             border: 1px solid var(--border-color);
         }
-        
+       
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
         }
-        
+       
         th {
             background-color: var(--primary);
             color: var(--text-dark);
@@ -210,22 +216,22 @@ while ($row = $specialtyResult->fetch_assoc()) {
             top: 0;
             font-weight: 700;
         }
-        
+       
         td {
             padding: 12px 16px;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-light);
         }
-        
+       
         tr {
             background-color: var(--bg-light);
             transition: all 0.2s ease;
         }
-        
+       
         tr:hover {
             background-color: var(--secondary);
         }
-        
+       
         .status-badge {
             display: inline-block;
             padding: 6px 12px;
@@ -234,18 +240,18 @@ while ($row = $specialtyResult->fetch_assoc()) {
             font-weight: 700;
             text-transform: uppercase;
         }
-        
+       
         .status-active {
             background-color: var(--primary);
             color: var(--text-dark);
             box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
         }
-        
+       
         .status-disabled {
             background-color: var(--danger);
             color: var(--text-light);
         }
-        
+       
         .availability-badge {
             display: inline-block;
             padding: 6px 12px;
@@ -254,17 +260,17 @@ while ($row = $specialtyResult->fetch_assoc()) {
             font-weight: 700;
             text-transform: uppercase;
         }
-        
+       
         .availability-available {
             background-color: var(--success);
             color: var(--text-light);
         }
-        
+       
         .availability-unavailable {
             background-color: var(--warning);
             color: var(--text-dark);
         }
-        
+       
         .action-btn {
             display: inline-flex;
             align-items: center;
@@ -280,44 +286,44 @@ while ($row = $specialtyResult->fetch_assoc()) {
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
-        
+       
         .edit-btn {
             background-color: var(--primary);
             color: var(--text-dark);
         }
-        
+       
         .edit-btn:hover {
             background-color: var(--primary-dark);
             transform: translateY(-1px);
         }
-        
+       
         .edit-btn.disabled {
             background-color: var(--secondary);
             color: #666;
             cursor: not-allowed;
             opacity: 0.7;
         }
-        
+       
         .delete-btn {
             background-color: var(--danger);
             color: var(--text-light);
         }
-        
+       
         .delete-btn:hover {
             background-color: #c82333;
             transform: translateY(-1px);
         }
-        
+       
         .enable-btn {
             background-color: var(--success);
             color: var(--text-light);
         }
-        
+       
         .enable-btn:hover {
             background-color: #218838;
             transform: translateY(-1px);
         }
-        
+       
         .add-btn {
             display: inline-flex;
             align-items: center;
@@ -331,22 +337,22 @@ while ($row = $specialtyResult->fetch_assoc()) {
             transition: all 0.3s;
             box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
         }
-        
+       
         .add-btn:hover {
             background-color: var(--primary-dark);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
         }
-        
+       
         .add-btn i {
             margin-right: 8px;
         }
-        
+       
         .action-group {
             display: flex;
             gap: 8px;
         }
-        
+       
         .trainer-image {
             width: 75px;
             height: 75px;
@@ -354,7 +360,7 @@ while ($row = $specialtyResult->fetch_assoc()) {
             border-radius: 50%;
             border: 2px solid var(--primary);
         }
-        
+       
         .default-image {
             width: 50px;
             height: 50px;
@@ -365,49 +371,144 @@ while ($row = $specialtyResult->fetch_assoc()) {
             justify-content: center;
             border: 2px solid var(--primary);
         }
-        
+       
         .default-image i {
             color: var(--primary);
             font-size: 20px;
         }
-        
+       
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+       
+        .modal-content {
+            background-color: #2a3042;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            color: #fff;
+        }
+       
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+       
+        .close-btn:hover {
+            color: #fff;
+        }
+       
+        #modalTitle {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #ffc107;
+        }
+       
+        .form-group {
+            margin-bottom: 20px;
+        }
+       
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #444;
+            background-color: #1e2233;
+            color: #fff;
+        }
+       
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+       
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+       
+        .cancel-btn, .submit-btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+       
+        .cancel-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+       
+        .submit-btn {
+            background-color: #28a745;
+            color: white;
+        }
+       
+        .cancel-btn:hover {
+            background-color: #5a6268;
+        }
+       
+        .submit-btn:hover {
+            background-color: #218838;
+        }
+       
         @media (max-width: 768px) {
             .charts-container {
                 grid-template-columns: 1fr;
             }
-            
+           
             .chart-card {
                 height: 280px;
             }
-            
+           
             .filter-container {
                 flex-direction: column;
             }
-            
+           
             .action-group {
                 flex-direction: column;
             }
-            
+           
             .action-btn {
                 width: 100%;
                 margin-bottom: 6px;
                 justify-content: flex-start;
             }
+           
+            .modal-content {
+                width: 90%;
+            }
         }
-        
+       
         .alert {
             padding: 15px;
             margin-bottom: 20px;
             border-radius: 4px;
             font-weight: 600;
         }
-        
+       
         .alert-success {
             background-color: rgba(40, 167, 69, 0.2);
             border-left: 4px solid var(--success);
             color: var(--success);
         }
-        
+       
         .alert-error {
             background-color: rgba(220, 53, 69, 0.2);
             border-left: 4px solid var(--danger);
@@ -417,23 +518,24 @@ while ($row = $specialtyResult->fetch_assoc()) {
 </head>
 <body>
 
+
 <div class="container">
     <div class="page-header">
         <h1 class="page-title"><i class="fas fa-dumbbell"></i> Trainer Management</h1>
     </div>
-    
+   
     <?php if (isset($_SESSION['success_message'])): ?>
         <div class="alert alert-success">
             <i class="fas fa-check-circle"></i> <?php echo $_SESSION['success_message']; unset($_SESSION['success_message']); ?>
         </div>
     <?php endif; ?>
-    
+   
     <?php if (isset($_SESSION['error_message'])): ?>
         <div class="alert alert-error">
             <i class="fas fa-exclamation-circle"></i> <?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?>
         </div>
     <?php endif; ?>
-    
+   
     <!-- Charts Section -->
     <div class="charts-container">
         <div class="chart-card">
@@ -449,7 +551,7 @@ while ($row = $specialtyResult->fetch_assoc()) {
             </div>
         </div>
     </div>
-    
+   
     <!-- Filters Section -->
     <div class="filter-container">
         <div class="filter-group">
@@ -479,11 +581,11 @@ while ($row = $specialtyResult->fetch_assoc()) {
         </div>
         <button class="apply-filters" id="applyFilters">Apply Filters</button>
     </div>
-    
+   
     <a href="create-trainers.php" class="add-btn">
         <i class="fas fa-plus"></i> Add New Trainer
     </a>
-    
+   
     <!-- Trainers Table -->
     <div class="table-container">
         <table id="trainersTable">
@@ -503,14 +605,14 @@ while ($row = $specialtyResult->fetch_assoc()) {
             </thead>
             <tbody>
                 <?php foreach ($trainers as $trainer): ?>
-                    <tr data-status="<?php echo $trainer['status']; ?>" 
+                    <tr data-status="<?php echo $trainer['status']; ?>"
                         data-availability="<?php echo $trainer['availability_status']; ?>"
                         data-specialties="<?php echo htmlspecialchars($trainer['specialties']); ?>">
                         <td><?php echo $trainer['trainer_id']; ?></td>
                         <td>
                             <?php if (!empty($trainer['image'])): ?>
-                                <img src="uploads/trainers<?php echo htmlspecialchars($trainer['image']); ?>"
-                                     class="trainer-image" 
+                                <img src="uploads/trainers/<?php echo htmlspecialchars($trainer['image']); ?>"
+                                     class="trainer-image"
                                      alt="<?php echo htmlspecialchars($trainer['first_name'] . ' ' . $trainer['last_name']); ?>">
                             <?php else: ?>
                                 <div class="default-image">
@@ -536,28 +638,28 @@ while ($row = $specialtyResult->fetch_assoc()) {
                             </span>
                         </td>
                         <td>
-    <div class="action-group">
-        <?php if ($trainer['status'] == "active"): ?>
-            <a href="edit-trainers.php?trainer_id=<?php echo $trainer['trainer_id']; ?>" 
-               class="action-btn edit-btn">
-                <i class="fas fa-edit"></i> Edit
-            </a>
-            <button onclick="disableTrainer(<?php echo $trainer['trainer_id']; ?>)" 
-                    class="action-btn delete-btn">
-                <i class="fas fa-ban"></i> Disable
-            </button>
-        <?php else: ?>
-            <span class="action-btn edit-btn disabled" 
-                  style="pointer-events: none; cursor: not-allowed;">
-                <i class="fas fa-edit"></i> Edit
-            </span>
-            <button onclick="enableTrainer(<?php echo $trainer['trainer_id']; ?>)" 
-                    class="action-btn enable-btn">
-                <i class="fas fa-check-circle"></i> Enable
-            </button>
-        <?php endif; ?>
-    </div>
-</td>
+                            <div class="action-group">
+                                <?php if ($trainer['status'] == "active"): ?>
+                                    <a href="edit-trainers.php?trainer_id=<?php echo $trainer['trainer_id']; ?>"
+                                       class="action-btn edit-btn">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <button onclick="confirmDisable(<?php echo $trainer['trainer_id']; ?>)"
+                                            class="action-btn delete-btn">
+                                        <i class="fas fa-ban"></i> Disable
+                                    </button>
+                                <?php else: ?>
+                                    <span class="action-btn edit-btn disabled"
+                                          style="pointer-events: none; cursor: not-allowed;">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </span>
+                                    <button onclick="confirmEnable(<?php echo $trainer['trainer_id']; ?>)"
+                                            class="action-btn enable-btn">
+                                        <i class="fas fa-check-circle"></i> Enable
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -565,8 +667,138 @@ while ($row = $specialtyResult->fetch_assoc()) {
     </div>
 </div>
 
+
+<!-- Reason Modal -->
+<div id="reasonModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h3 id="modalTitle">Reason for Action</h3>
+        <form id="reasonForm">
+            <input type="hidden" id="actionTrainerId">
+            <input type="hidden" id="actionType">
+            <div class="form-group">
+                <label for="reasonText">Please provide a reason:</label>
+                <textarea id="reasonText" class="form-control" rows="4" required></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="cancel-btn">Cancel</button>
+                <button type="submit" class="submit-btn">Submit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
 <script>
-    // Status Chart (unchanged)
+    // Modal functionality
+    const modal = document.getElementById('reasonModal');
+    const reasonForm = document.getElementById('reasonForm');
+    const reasonText = document.getElementById('reasonText');
+    const actionTrainerId = document.getElementById('actionTrainerId');
+    const actionType = document.getElementById('actionType');
+    const modalTitle = document.getElementById('modalTitle');
+   
+    // Open modal for disable action
+    function confirmDisable(trainerId) {
+        actionTrainerId.value = trainerId;
+        actionType.value = 'disable';
+        modalTitle.textContent = 'Reason for Disabling Trainer';
+        reasonText.value = '';
+        modal.style.display = 'block';
+    }
+   
+    // Open modal for enable action
+    function confirmEnable(trainerId) {
+        actionTrainerId.value = trainerId;
+        actionType.value = 'enable';
+        modalTitle.textContent = 'Reason for Enabling Trainer';
+        reasonText.value = '';
+        modal.style.display = 'block';
+    }
+   
+    // Close modal when clicking X
+    document.querySelector('.close-btn').addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+   
+    // Close modal when clicking Cancel
+    document.querySelector('.cancel-btn').addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+   
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+   
+    // Handle form submission
+    reasonForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+       
+        const trainerId = actionTrainerId.value;
+        const reason = reasonText.value.trim();
+        const action = actionType.value;
+       
+        if (!reason) {
+            alert('Please provide a reason for this action');
+            return;
+        }
+       
+        modal.style.display = 'none';
+       
+        if (action === 'disable') {
+            disableTrainer(trainerId, reason);
+        } else {
+            enableTrainer(trainerId, reason);
+        }
+    });
+   
+    function disableTrainer(trainerId, reason) {
+        fetch(`disable-trainer.php?trainer_id=${trainerId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ reason: reason })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Network error: ' + error.message);
+        });
+    }
+   
+    function enableTrainer(trainerId, reason) {
+        fetch(`enable-trainer.php?trainer_id=${trainerId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ reason: reason })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Network error: ' + error.message);
+        });
+    }
+
+
+    // Status Chart
     const statusCtx = document.getElementById('statusChart').getContext('2d');
     const statusChart = new Chart(statusCtx, {
         type: 'doughnut',
@@ -626,6 +858,7 @@ while ($row = $specialtyResult->fetch_assoc()) {
         }
     });
 
+
     // Most Booked Trainers Chart
     const bookedCtx = document.getElementById('bookedChart').getContext('2d');
     const bookedChart = new Chart(bookedCtx, {
@@ -643,7 +876,7 @@ while ($row = $specialtyResult->fetch_assoc()) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            indexAxis: 'y', // Makes it horizontal bar chart
+            indexAxis: 'y',
             scales: {
                 x: {
                     beginAtZero: true,
@@ -690,52 +923,39 @@ while ($row = $specialtyResult->fetch_assoc()) {
         }
     });
 
+
     // Filter functionality
     $(document).ready(function() {
         $('#applyFilters').click(function() {
             const statusFilter = $('#statusFilter').val();
             const availabilityFilter = $('#availabilityFilter').val();
             const specialtyFilter = $('#specialtyFilter').val();
-            
+           
             $('#trainersTable tbody tr').each(function() {
                 const rowStatus = $(this).data('status');
                 const rowAvailability = $(this).data('availability');
                 const rowSpecialties = $(this).data('specialties');
                 let showRow = true;
-                
-                // Status filter
+               
                 if (statusFilter !== 'all' && rowStatus !== statusFilter) {
                     showRow = false;
                 }
-                
-                // Availability filter
+               
                 if (availabilityFilter !== 'all' && rowAvailability !== availabilityFilter) {
                     showRow = false;
                 }
-                
-                // Specialty filter
+               
                 if (specialtyFilter !== 'all' && (!rowSpecialties || !rowSpecialties.includes(specialtyFilter))) {
                     showRow = false;
                 }
-                
+               
                 $(this).toggle(showRow);
             });
         });
     });
-
-    function disableTrainer(trainerId) {
-        if (confirm("Are you sure you want to disable this trainer?\n\nCurrent appointments will be cancelled.")) {
-            window.location.href = "disable-trainer.php?id=" + trainerId;
-        }
-    }
-
-    function enableTrainer(trainerId) {
-        if (confirm("Are you sure you want to enable this trainer?\n\nThey will become available for new appointments.")) {
-            window.location.href = "enable-trainer.php?id=" + trainerId;
-        }
-    }
 </script>
+
 
 </body>
 </html>
-<?php ob_end_flush(); // At the end of file ?>
+<?php ob_end_flush(); ?>
