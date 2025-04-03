@@ -128,8 +128,20 @@ if (!$show_terms && !isset($_SESSION['email_sent'])) {
         $_SESSION['email_sent'] = true;
         
         // Redirect to home page after successful email
-        header("Location: /flexifit-project/index.php");
-        exit();
+        $email_success = false;
+$email_error = null;
+
+// Then in your email sending try-catch block:
+try {
+    // ... email sending code ...
+    
+    $_SESSION['email_sent'] = true;
+    $email_success = true; // Add this line
+    
+    // Remove the redirect here
+} catch (Exception $e) {
+    $email_error = $mail->ErrorInfo; // Store the error
+}
         
     } catch (Exception $e) {
         echo "<script>
@@ -323,7 +335,127 @@ HTML;
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        /* Previous styles remain the same */
+        :root {
+            --primary: #FF6B00;
+            --primary-light: #FF8C42;
+            --dark: #121212;
+            --light: #F8F9FA;
+            --gray: #6C757D;
+            --light-gray: #E9ECEF;
+        }
+        
+        body {
+            background-color: #FAFAFA;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--dark);
+        }
+        
+        .receipt-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid var(--light-gray);
+        }
+        
+        .receipt-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .receipt-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .receipt-subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .receipt-body {
+            padding: 2rem;
+        }
+        
+        .receipt-section {
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 0.75rem;
+        }
+        
+        .detail-row {
+            display: flex;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .detail-row:hover {
+            background-color: rgba(255, 107, 0, 0.05);
+        }
+        
+        .detail-label {
+            flex: 1;
+            font-weight: 600;
+            color: var(--gray);
+        }
+        
+        .detail-value {
+            flex: 2;
+            font-weight: 500;
+        }
+        
+        .payment-highlight {
+            background-color: rgba(255, 107, 0, 0.1);
+            border-left: 4px solid var(--primary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+        
+        .payment-amount {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0.5rem 0;
+        }
+        
+        .payment-method {
+            display: inline-block;
+            background-color: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        
+        .receipt-footer {
+            background-color: var(--light-gray);
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
         
         /* Terms and Conditions Modal Styles */
         .terms-modal {
@@ -398,6 +530,18 @@ HTML;
         .decline-btn:hover {
             background-color: #c82333;
         }
+        
+        @media (max-width: 768px) {
+            .receipt-container {
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            .terms-content {
+                width: 95%;
+                padding: 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -462,8 +606,109 @@ HTML;
         </div>
         
         <div class="receipt-body">
-            <!-- Rest of your receipt content remains the same -->
-            <!-- ... -->
+            <div class="receipt-section">
+                <h2 class="section-title"><i class="fas fa-user"></i> Member Information</h2>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Full Name</div>
+                    <div class="detail-value"><?php echo $member_name; ?></div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Membership Number</div>
+                    <div class="detail-value"><?php echo $member_no; ?></div>
+                </div>
+            </div>
+            
+            <div class="receipt-section">
+                <h2 class="section-title"><i class="fas fa-dumbbell"></i> Membership Details</h2>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Plan Name</div>
+                    <div class="detail-value"><?php echo $plan_name; ?></div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Description</div>
+                    <div class="detail-value"><?php echo $plan_description; ?></div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Start Date</div>
+                    <div class="detail-value"><?php echo $start_date; ?></div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">End Date</div>
+                    <div class="detail-value"><?php echo $end_date; ?></div>
+                </div>
+            </div>
+            
+            <div class="payment-highlight">
+                <div class="detail-label">Amount Paid</div>
+                <div class="payment-amount">₱<?php echo $amount_paid; ?></div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Payment Method</div>
+                    <div class="detail-value">
+                        <?php echo $payment_mode; ?>
+                        <span class="payment-method">
+                            <?php 
+                            if ($payment['payment_mode'] == 'gcash') {
+                                echo '<i class="fab fa-google-pay"></i> GCash';
+                            } elseif ($payment['payment_mode'] == 'credit_card') {
+                                echo '<i class="far fa-credit-card"></i> Credit Card';
+                            } elseif ($payment['payment_mode'] == 'debit') {
+                                echo '<i class="far fa-credit-card"></i> Debit Card';
+                            } else {
+                                echo '<i class="fas fa-money-bill-wave"></i> Cash';
+                            }
+                            ?>
+                        </span>
+                    </div>
+                </div>
+                
+                <?php if ($payment['payment_mode'] == 'gcash'): ?>
+                <div class="detail-row">
+                    <div class="detail-label">GCash Reference</div>
+                    <div class="detail-value"><?php echo $payment['gcash_reference_number']; ?></div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">GCash Phone</div>
+                    <div class="detail-value"><?php echo $payment['gcash_phone_number']; ?></div>
+                </div>
+                <?php elseif ($payment['payment_mode'] == 'credit_card' || $payment['payment_mode'] == 'debit'): ?>
+                <div class="detail-row">
+                    <div class="detail-label">Card Number</div>
+                    <div class="detail-value">•••• •••• •••• <?php echo substr($payment['card_id_number'], -4); ?></div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Card Type</div>
+                    <div class="detail-value"><?php echo ucfirst($payment['card_type']); ?></div>
+                </div>
+                <?php endif; ?>
+            </div>
+            
+            <div class="receipt-section">
+                <h2 class="section-title"><i class="fas fa-receipt"></i> Transaction Details</h2>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Payment Date</div>
+                    <div class="detail-value"><?php echo $payment_date; ?></div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Transaction ID</div>
+                    <div class="detail-value"><?php echo str_pad($payment['payment_id'], 6, "0", STR_PAD_LEFT); ?></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="receipt-footer">
+            <p>Thank you for choosing FlexiFit Gym! For any questions about your membership, please contact our support team.</p>
+            <p class="mb-0"><i class="fas fa-phone"></i> (123) 456-7890 | <i class="fas fa-envelope"></i> flexifit04@gmail.com</p>
         </div>
     </div>
     <?php endif; ?>
@@ -474,6 +719,33 @@ HTML;
         function printReceipt() {
             window.print();
         }
+
+         // Show success/error message after page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        <?php if (isset($email_success) && $email_success): ?>
+            Swal.fire({
+                icon: 'success',
+                title: 'Receipt Sent!',
+                text: 'The receipt has been sent to your email and the admin.',
+                confirmButtonColor: '#FFD700',
+                confirmButtonText: 'OK'
+            });
+        <?php elseif (isset($email_error)): ?>
+            Swal.fire({
+                icon: 'error',
+                title: 'Email Error',
+                text: 'Failed to send receipt: <?php echo addslashes($email_error); ?>',
+                confirmButtonColor: '#FFD700',
+                confirmButtonText: 'OK'
+            });
+        <?php endif; ?>
+    });
+
+    // Print receipt functionality
+    function printReceipt() {
+        window.print();
+    }
+
     </script>
 </body>
 </html>

@@ -3,23 +3,19 @@ ob_start(); // Start output buffering
 session_start();
 include '../includes/header.php';
 
-
 require '../vendor/autoload.php'; // For PHPMailer
 $conn = new mysqli("localhost", "root", "", "flexifit_db");
-
 
 // Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-
 // Ensure admin access
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: ../login.php");
     exit();
 }
-
 
 // Get current admin name
 $admin_id = $_SESSION['user_id'];
@@ -29,113 +25,200 @@ $admin_query->execute();
 $admin_result = $admin_query->get_result();
 $admin_name = $admin_result->fetch_assoc()['admin_name'];
 
+// Function to send email notification
+function sendEmailNotification($email, $subject, $body) {
+    $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+    try {
+        // Server settings
+        $mail->isSMTP();
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'flexifit04@gmail.com';
+        $mail->Password = 'dwnw xuwn baln ljbp';
+        $mail->SMTPSecure = 'tls';
+        $mail->Port = 587;
+       
+        // Recipients
+        $mail->setFrom('flexifit04@gmail.com', 'FlexiFit Gym');
+        $mail->addAddress($email);
+       
+        // Content
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body = $body;
+       
+        return $mail->send();
+    } catch (Exception $e) {
+        error_log("Mailer Error: " . $mail->ErrorInfo);
+        return false;
+    }
+}
 
 // Handle user type update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user_type'])) {
     $user_id = intval($_POST['user_id']);
     $new_user_type = $_POST['user_type'];
-   
+    $change_reason = $_POST['change_reason'];
+    
     // Get user's current email and name
-    $user_query = $conn->prepare("SELECT email, CONCAT(first_name, ' ', last_name) AS user_name FROM users WHERE user_id = ?");
+    $user_query = $conn->prepare("SELECT email, CONCAT(first_name, ' ', last_name) AS user_name, user_type FROM users WHERE user_id = ?");
     $user_query->bind_param("i", $user_id);
     $user_query->execute();
     $user_result = $user_query->get_result();
     $user_data = $user_result->fetch_assoc();
-   
-    // Update user type
-    $update_stmt = $conn->prepare("UPDATE users SET user_type = ? WHERE user_id = ?");
-    $update_stmt->bind_param("si", $new_user_type, $user_id);
-   
-    if ($update_stmt->execute()) {
-        // Send email notification
-        $mail = new PHPMailer\PHPMailer\PHPMailer();
-        try {
-            // Server settings
-            $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com'; // Your SMTP server
-            $mail->SMTPAuth = true;
-            $mail->Username = 'flexifit04@gmail.com';
-            $mail->Password = 'dwnw xuwn baln ljbp';
-            $mail->SMTPSecure = $mail;
-            $mail->Port = 587;
-           
-            // Recipients
-            $mail->setFrom('flexifit04@gmail.com', 'FlexiFit Gym');
-            $mail->addAddress($user_data['email'], $user_data['user_name']);
-           
-            // Content
-            $mail->isHTML(true);
-            $mail->Subject = 'Your Account Type Has Been Updated';
-            $mail->Body = "
+    
+    // Start transaction
+    $conn->begin_transaction();
+    
+    try {
+        // Update user type
+        $update_stmt = $conn->prepare("UPDATE users SET user_type = ? WHERE user_id = ?");
+        $update_stmt->bind_param("si", $new_user_type, $user_id);
+        
+        if ($update_stmt->execute()) {
+            // Record the change in UserTypeUpdate table
+            $log_stmt = $conn->prepare("INSERT INTO UserTypeUpdate (user_id, name, user_type, change_reason) VALUES (?, ?, ?, ?)");
+            $log_stmt->bind_param("isss", $user_id, $user_data['user_name'], $new_user_type, $change_reason);
+            $log_stmt->execute();
+            
+            // Send email notification
+            $email_subject = 'Your Account Type Has Been Updated';
+            $email_body = "
                 <h2>Account Type Update</h2>
                 <p>Hello {$user_data['user_name']},</p>
-                <p>Your account type has been updated to: <strong>{$new_user_type}</strong></p>
+                <p>Your account type has been updated from <strong>{$user_data['user_type']}</strong> to: <strong>{$new_user_type}</strong></p>
+                <p><strong>Reason:</strong> {$change_reason}</p>
                 <p>Changed by: <strong>{$admin_name}</strong></p>
                 <p>If you believe this is a mistake, please contact our support team.</p>
                 <p>Thank you,<br>FlexiFit Team</p>
             ";
-           
-            $mail->send();
-           
+            
+            $email_sent = sendEmailNotification($user_data['email'], $email_subject, $email_body);
+            
             // If changing to member and has pending membership, update membership status
             if ($new_user_type === 'member') {
                 $membership_check = $conn->prepare("SELECT member_id FROM members WHERE user_id = ? AND membership_status = 'pending'");
                 $membership_check->bind_param("i", $user_id);
                 $membership_check->execute();
-               
+                
                 if ($membership_check->get_result()->num_rows > 0) {
                     $update_membership = $conn->prepare("UPDATE members SET membership_status = 'active' WHERE user_id = ?");
                     $update_membership->bind_param("i", $user_id);
                     $update_membership->execute();
+                    
+                    // Send membership activation email
+                    $membership_email_subject = 'Your Membership Has Been Activated';
+                    $membership_email_body = "
+                        <h2>Membership Activated</h2>
+                        <p>Hello {$user_data['user_name']},</p>
+                        <p>Your membership status has been updated to: <strong>active</strong></p>
+                        <p>You can now enjoy all the benefits of being a FlexiFit member!</p>
+                        <p>If you have any questions, please contact our support team.</p>
+                        <p>Thank you,<br>FlexiFit Team</p>
+                    ";
+                    
+                    sendEmailNotification($user_data['email'], $membership_email_subject, $membership_email_body);
                 }
             }
-           
-            $_SESSION['success_message'] = "User type updated successfully and notification sent!";
-        } catch (Exception $e) {
-            $_SESSION['error_message'] = "User type updated but email could not be sent. Error: " . $mail->ErrorInfo;
+            
+            $conn->commit();
+            $_SESSION['success_message'] = "User type updated successfully! " . ($email_sent ? "Notification sent." : "Could not send email notification.");
+        } else {
+            throw new Exception("Error updating user type: " . $conn->error);
         }
-       
-        header("Location: view-users.php");
-        exit();
-    } else {
-        $_SESSION['error_message'] = "Error updating user type: " . $conn->error;
-        header("Location: view-users.php");
-        exit();
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['error_message'] = $e->getMessage();
     }
+    
+    header("Location: view-users.php");
+    exit();
 }
 
+// Handle membership status update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_membership_status'])) {
+    $user_id = intval($_POST['user_id']);
+    $new_status = $_POST['membership_status'];
+    $change_reason = $_POST['change_reason'];
+    
+    // Get user's current email and name
+    $user_query = $conn->prepare("SELECT u.email, CONCAT(u.first_name, ' ', u.last_name) AS user_name, m.membership_status 
+                                 FROM users u 
+                                 JOIN members m ON u.user_id = m.user_id 
+                                 WHERE u.user_id = ?");
+    $user_query->bind_param("i", $user_id);
+    $user_query->execute();
+    $user_result = $user_query->get_result();
+    $user_data = $user_result->fetch_assoc();
+    
+    // Start transaction
+    $conn->begin_transaction();
+    
+    try {
+        // Update membership status
+        $update_stmt = $conn->prepare("UPDATE members SET membership_status = ? WHERE user_id = ?");
+        $update_stmt->bind_param("si", $new_status, $user_id);
+        
+        if ($update_stmt->execute()) {
+            // Send email notification if status changed to active
+            if ($new_status === 'active') {
+                $email_subject = 'Your Membership Has Been Activated';
+                $email_body = "
+                    <h2>Membership Status Update</h2>
+                    <p>Hello {$user_data['user_name']},</p>
+                    <p>Your membership status has been updated from <strong>{$user_data['membership_status']}</strong> to: <strong>{$new_status}</strong></p>
+                    <p><strong>Reason:</strong> {$change_reason}</p>
+                    <p>Changed by: <strong>{$admin_name}</strong></p>
+                    <p>You can now enjoy all the benefits of being a FlexiFit member!</p>
+                    <p>If you have any questions, please contact our support team.</p>
+                    <p>Thank you,<br>FlexiFit Team</p>
+                ";
+                
+                $email_sent = sendEmailNotification($user_data['email'], $email_subject, $email_body);
+            }
+            
+            $conn->commit();
+            $_SESSION['success_message'] = "Membership status updated successfully! " . 
+                ($new_status === 'active' && $email_sent ? "Notification sent." : "");
+        } else {
+            throw new Exception("Error updating membership status: " . $conn->error);
+        }
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['error_message'] = $e->getMessage();
+    }
+    
+    header("Location: view-users.php");
+    exit();
+}
 
 // Determine view type
 $viewType = isset($_GET['view']) && in_array($_GET['view'], ['card', 'table']) ? $_GET['view'] : 'card';
-
 
 // Fetch filter values
 $filter_user_type = isset($_GET['filter_user_type']) ? $_GET['filter_user_type'] : 'all';
 $filter_membership = isset($_GET['filter_membership']) ? $_GET['filter_membership'] : 'all';
 
-
 // Base query for users
 if ($viewType === 'table') {
     $sql = "SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone_number, u.user_type, u.image,
                    u.age, u.gender, u.username, u.address, u.description,
-                   m.membership_status
+                   m.membership_status, m.member_id
             FROM users u
             LEFT JOIN members m ON u.user_id = m.user_id";
 } else {
     $sql = "SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone_number, u.user_type, u.image,
                    u.age, u.gender, u.username, u.address, u.description, u.created_at, u.birthdate,
                    u.height, u.weight, u.weight_goal, u.medical_condition, u.medical_conditions,
-                   m.membership_status
+                   m.membership_status, m.member_id
             FROM users u
             LEFT JOIN members m ON u.user_id = m.user_id";
 }
-
 
 // Add filters to query
 $where = [];
 $params = [];
 $types = '';
-
 
 if ($filter_user_type !== 'all') {
     $where[] = "u.user_type = ?";
@@ -143,31 +226,25 @@ if ($filter_user_type !== 'all') {
     $types .= 's';
 }
 
-
 if ($filter_membership !== 'all') {
     $where[] = "m.membership_status = ?";
     $params[] = $filter_membership;
     $types .= 's';
 }
 
-
 if (!empty($where)) {
     $sql .= " WHERE " . implode(" AND ", $where);
 }
 
-
 $stmt = $conn->prepare($sql);
-
 
 if (!empty($params)) {
     $stmt->bind_param($types, ...$params);
 }
 
-
 $stmt->execute();
 $result = $stmt->get_result();
 $users = $result->fetch_all(MYSQLI_ASSOC);
-
 
 // Get data for charts
 $userTypeQuery = "SELECT user_type, COUNT(*) as count FROM users GROUP BY user_type";
@@ -177,17 +254,13 @@ while ($row = $userTypeResult->fetch_assoc()) {
     $userTypeData[$row['user_type']] = $row['count'];
 }
 
-
 $membershipStatusQuery = "SELECT membership_status, COUNT(*) as count FROM members GROUP BY membership_status";
 $membershipStatusResult = $conn->query($membershipStatusQuery);
 $membershipStatusData = [];
 while ($row = $membershipStatusResult->fetch_assoc()) {
     $membershipStatusData[$row['membership_status']] = $row['count'];
 }
-
-
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -718,14 +791,11 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
     </style>
 </head>
 <body>
-
-
 <div class="container">
     <div class="page-header">
         <h1 class="page-title"><i class="fas fa-users"></i> User Management</h1>
         <a href="index.php" class="btn"><i class="fas fa-home"></i> Dashboard</a>
     </div>
-
 
     <?php if (isset($_SESSION['success_message'])): ?>
         <div class="alert alert-success">
@@ -739,7 +809,6 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
         </div>
     <?php endif; ?>
 
-
     <!-- Charts Section -->
     <div class="chart-grid">
         <div class="chart-card">
@@ -751,7 +820,6 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             <canvas id="membershipStatusChart"></canvas>
         </div>
     </div>
-
 
     <!-- Filter Section -->
     <div class="filter-section">
@@ -782,7 +850,6 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
         </form>
     </div>
 
-
     <!-- View Toggle -->
     <div class="view-toggle">
         <a href="?view=card&filter_user_type=<?= $filter_user_type ?>&filter_membership=<?= $filter_membership ?>" class="view-toggle-btn <?= $viewType === 'card' ? 'active' : '' ?>">
@@ -792,7 +859,6 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             <i class="fas fa-table"></i> Table View
         </a>
     </div>
-
 
     <!-- Card View -->
     <div id="cardView" class="grid-container <?= $viewType === 'card' ? 'active' : '' ?>">
@@ -808,7 +874,6 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                     ?>
                     <img src="<?= $imagePath ?>" alt="Profile Image">
 
-
                     <div class="user-info">
                         <p><strong>ID:</strong> <?= htmlspecialchars($user['user_id']) ?></p>
                         <p><strong>Name:</strong> <?= htmlspecialchars($user['first_name'] . ' ' . htmlspecialchars($user['last_name'])) ?></p>
@@ -823,6 +888,18 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                         <p><strong>Gender:</strong> <?= htmlspecialchars($user['gender']) ?></p>
                         <p><strong>Age:</strong> <?= htmlspecialchars($user['age']) ?></p>
 
+                        <?php if (isset($user['member_id'])) : ?>
+                            <p><strong>Membership:</strong>
+                                <span class="status-badge status-<?= htmlspecialchars($user['membership_status']) ?>">
+                                    <?= htmlspecialchars($user['membership_status']) ?>
+                                </span>
+                                <?php if ($user['membership_status'] === 'pending') : ?>
+                                    <button class="edit-membership-btn" onclick="openMembershipModal(<?= $user['user_id'] ?>, '<?= htmlspecialchars($user['membership_status']) ?>')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                <?php endif; ?>
+                            </p>
+                        <?php endif; ?>
 
                         <!-- Full details only shown in card view -->
                         <?php if ($viewType === 'card') : ?>
@@ -839,16 +916,8 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                                 <p><strong>Medical Condition:</strong> <?= htmlspecialchars($user['medical_condition'] ?? 'N/A') ?></p>
                                 <p><strong>Medical Conditions:</strong> <?= htmlspecialchars($user['medical_conditions'] ?? 'N/A') ?></p>
                                 <p><strong>Description:</strong> <?= htmlspecialchars($user['description'] ?? 'N/A') ?></p>
-                                <?php if (isset($user['membership_status'])) : ?>
-                                    <p><strong>Membership:</strong>
-                                        <span class="status-badge status-<?= htmlspecialchars($user['membership_status']) ?>">
-                                            <?= htmlspecialchars($user['membership_status']) ?>
-                                        </span>
-                                    </p>
-                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
-
 
                         <!-- Toggle Button (only in card view) -->
                         <?php if ($viewType === 'card') : ?>
@@ -865,7 +934,6 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             </p>
         <?php endif; ?>
     </div>
-
 
     <!-- Table View -->
     <div id="tableView" class="table-container <?= $viewType === 'table' ? 'active' : '' ?>">
@@ -924,6 +992,11 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                                 <button class="action-btn edit-btn" onclick="openEditModal(<?= $user['user_id'] ?>, '<?= htmlspecialchars($user['user_type']) ?>')" title="Edit User Type">
                                     <i class="fas fa-edit"></i>
                                 </button>
+                                <?php if (isset($user['member_id']) && $user['membership_status'] === 'pending') : ?>
+                                    <button class="action-btn edit-btn" onclick="openMembershipModal(<?= $user['user_id'] ?>, '<?= htmlspecialchars($user['membership_status']) ?>')" title="Update Membership">
+                                        <i class="fas fa-id-card"></i>
+                                    </button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -937,17 +1010,17 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
     </div>
 </div>
 
-
 <!-- Edit User Type Modal -->
 <div id="editUserTypeModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h3 class="modal-title">Edit User Type</h3>
-            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <span class="close-modal" onclick="closeModal('editUserTypeModal')">&times;</span>
         </div>
         <form method="post" id="userTypeForm">
             <div class="modal-body">
                 <input type="hidden" name="user_id" id="modalUserId">
+                <input type="hidden" name="update_user_type" value="1">
                 <div class="form-group">
                     <label class="form-label">Select New User Type:</label>
                     <select name="user_type" id="modalUserType" class="form-control">
@@ -963,91 +1036,44 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                <button type="submit" name="update_user_type" class="btn btn-primary">Save Changes</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editUserTypeModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
             </div>
         </form>
     </div>
 </div>
 
-
-<?php
-// Check if the form is submitted
-if (isset($_POST['update_user_type'])) {
-    // Retrieve form data
-    $user_id = $_POST['user_id'];
-    $new_user_type = $_POST['user_type'];
-    $change_reason = $_POST['change_reason'];
-
-
-    // Check if the user ID is valid
-    if (empty($user_id) || empty($new_user_type) || empty($change_reason)) {
-        echo "<script>alert('Error: Missing required fields.');</script>";
-        exit();
-    }
-
-
-    // Fetch the user's full name from the users table
-    $query = "SELECT CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE user_id = ?";
-    if ($stmt = $conn->prepare($query)) {
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($result->num_rows > 0) {
-            $user = $result->fetch_assoc();
-            $user_name = $user['full_name'];
-        } else {
-            echo "<script>alert('User not found.');</script>";
-            exit();
-        }
-        $stmt->close();
-    } else {
-        echo "<script>alert('Error: Could not fetch user details.');</script>";
-        exit();
-    }
-
-
-    // Start transaction
-    $conn->begin_transaction();
-
-
-    try {
-        // Update the user_type in the users table
-        $update_query = "UPDATE users SET user_type = ? WHERE user_id = ?";
-        $update_stmt = $conn->prepare($update_query);
-        $update_stmt->bind_param("si", $new_user_type, $user_id);
-        $update_stmt->execute();
-       
-        // Check if update was successful
-        if ($update_stmt->affected_rows > 0) {
-            // Insert the update into the UserTypeUpdate table
-            $insert_query = "INSERT INTO UserTypeUpdate (user_id, name, user_type, change_reason)
-                            VALUES (?, ?, ?, ?)";
-            $insert_stmt = $conn->prepare($insert_query);
-            $insert_stmt->bind_param("isss", $user_id, $user_name, $new_user_type, $change_reason);
-            $insert_stmt->execute();
-           
-            if ($insert_stmt->affected_rows > 0) {
-                $conn->commit();
-                echo "<script>
-                    alert('User type updated and logged successfully.');
-                    window.location.reload();
-                </script>";
-            } else {
-                throw new Exception("Error: Could not insert into UserTypeUpdate table. Error: " . $conn->error);
-            }
-            $insert_stmt->close();
-        } else {
-            throw new Exception("Error: Could not update user type. No rows affected.");
-        }
-        $update_stmt->close();
-    } catch (Exception $e) {
-        $conn->rollback();
-        echo "<script>alert('".addslashes($e->getMessage())."');</script>";
-    }
-}
-?>
-
+<!-- Edit Membership Status Modal -->
+<div id="editMembershipModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Update Membership Status</h3>
+            <span class="close-modal" onclick="closeModal('editMembershipModal')">&times;</span>
+        </div>
+        <form method="post" id="membershipForm">
+            <div class="modal-body">
+                <input type="hidden" name="user_id" id="modalMembershipUserId">
+                <input type="hidden" name="update_membership_status" value="1">
+                <div class="form-group">
+                    <label class="form-label">Select New Status:</label>
+                    <select name="membership_status" id="modalMembershipStatus" class="form-control">
+                        <option value="active">Active</option>
+                        <option value="pending">Pending</option>
+                        <option value="expired">Expired</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Reason for Change:</label>
+                    <textarea name="change_reason" id="membershipChangeReason" class="form-control" rows="5" style="width: 100%;" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editMembershipModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
     // User Type Distribution Chart
@@ -1121,7 +1147,6 @@ if (isset($_POST['update_user_type'])) {
         }
     });
 
-
     // Membership Status Chart
     const membershipStatusCtx = document.getElementById('membershipStatusChart').getContext('2d');
     const membershipStatusChart = new Chart(membershipStatusCtx, {
@@ -1179,7 +1204,6 @@ if (isset($_POST['update_user_type'])) {
         }
     });
 
-
     // Modal functions
     function openEditModal(userId, currentType) {
         document.getElementById('modalUserId').value = userId;
@@ -1187,20 +1211,24 @@ if (isset($_POST['update_user_type'])) {
         document.getElementById('editUserTypeModal').style.display = 'block';
     }
 
-
-    function closeModal() {
-        document.getElementById('editUserTypeModal').style.display = 'none';
+    function openMembershipModal(userId, currentStatus) {
+        document.getElementById('modalMembershipUserId').value = userId;
+        document.getElementById('modalMembershipStatus').value = currentStatus;
+        document.getElementById('editMembershipModal').style.display = 'block';
     }
 
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
 
     // Close modal when clicking outside
     window.onclick = function(event) {
-        const modal = document.getElementById('editUserTypeModal');
-        if (event.target == modal) {
-            closeModal();
+        if (event.target.classList.contains('modal')) {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
         }
     }
-
 
     // Toggle details in card view
     function toggleDetails(button) {
@@ -1219,77 +1247,8 @@ if (isset($_POST['update_user_type'])) {
     }
 </script>
 
-
-<!-- Reason Modal -->
-<div id="reasonModal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn">&times;</span>
-        <h3 id="modalTitle">Reason for Action</h3>
-        <form id="reasonForm">
-            <input type="hidden" id="actionTrainerId">
-            <input type="hidden" id="actionType">
-            <div class="form-group">
-                <label for="reasonText">Please provide a reason:</label>
-                <textarea id="reasonText" class="form-control" rows="4" required></textarea>
-            </div>
-            <div class="form-actions">
-                <button type="button" class="cancel-btn">Cancel</button>
-                <button type="submit" class="submit-btn">Submit</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-
-<script>
-    // Modal functionality
-    const modal = document.getElementById('reasonModal');
-    const reasonForm = document.getElementById('reasonForm');
-    const reasonText = document.getElementById('reasonText');
-    const actionTrainerId = document.getElementById('actionTrainerId');
-    const actionType = document.getElementById('actionType');
-    const modalTitle = document.getElementById('modalTitle');
-   
-    // Open modal for disable action
-    function confirmDisable(trainerId) {
-        actionTrainerId.value = trainerId;
-        actionType.value = 'disable';
-        modalTitle.textContent = 'Reason for Disabling Trainer';
-        reasonText.value = '';
-        modal.style.display = 'block';
-    }
-   
-    // Open modal for enable action
-    function confirmEnable(trainerId) {
-        actionTrainerId.value = trainerId;
-        actionType.value = 'enable';
-        modalTitle.textContent = 'Reason for Enabling Trainer';
-        reasonText.value = '';
-        modal.style.display = 'block';
-    }
-   
-    // Close modal when clicking X
-    document.querySelector('.close-btn').addEventListener('click', function() {
-        modal.style.display = 'none';
-    });
-   
-    // Close modal when clicking Cancel
-    document.querySelector('.cancel-btn').addEventListener('click', function() {
-        modal.style.display = 'none';
-    });
-   
-    // Close modal when clicking outside
-    window.addEventListener('click', function(event) {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
-   
-<?php
-?>
 </body>
 </html>
-
 
 <?php $conn->close(); ?>
 <?php ob_end_flush(); // At the end of file ?>
