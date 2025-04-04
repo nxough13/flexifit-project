@@ -18,6 +18,17 @@ $selected_plan = $_SESSION['selected_plan'];
 $start_date = $_SESSION['start_date'];
 $end_date = $_SESSION['end_date'];
 
+// Validate file upload if payment method requires it
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $payment_method = $_POST['paymentMethod'] ?? '';
+    
+    // Require proof for online payments
+    if (($payment_method == 'gcash' || $payment_method == 'credit_card') && 
+        (!isset($_FILES['proofImage']) || $_FILES['proofImage']['error'] !== UPLOAD_ERR_OK)) {
+        die("Payment proof is required for online payments");
+    }
+}
+
 // Fetch plan details from the database
 $plan_query = "SELECT * FROM membership_plans WHERE plan_id = ?";
 $stmt = $conn->prepare($plan_query);
@@ -35,20 +46,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $_SESSION['payment_gmail'] = $gmail;
 
     // Handle file upload
-    $proof_of_payment = null;
-    if (isset($_FILES['proofImage']) && $_FILES['proofImage']['error'] == UPLOAD_ERR_OK) {
-        $upload_dir = '../uploads/payment_proofs/';
-        if (!file_exists($upload_dir)) {
-            mkdir($upload_dir, 0777, true);
-        }
-        
-        $file_name = uniqid() . '_' . basename($_FILES['proofImage']['name']);
-        $target_path = $upload_dir . $file_name;
-        
-        if (move_uploaded_file($_FILES['proofImage']['tmp_name'], $target_path)) {
-            $proof_of_payment = $file_name;
-        }
+$proof_of_payment = null;
+if (isset($_FILES['proofImage']) && $_FILES['proofImage']['error'] === UPLOAD_ERR_OK) {
+    $upload_dir = '../uploads/payment_proofs/';
+    
+    // Create directory if it doesn't exist
+    if (!file_exists($upload_dir)) {
+        mkdir($upload_dir, 0777, true);
     }
+    
+    // Generate unique filename
+    $file_ext = pathinfo($_FILES['proofImage']['name'], PATHINFO_EXTENSION);
+    $file_name = 'proof_' . uniqid() . '.' . $file_ext;
+    $target_path = $upload_dir . $file_name;
+    
+    // Move uploaded file
+    if (move_uploaded_file($_FILES['proofImage']['tmp_name'], $target_path)) {
+        $proof_of_payment = $file_name;
+    } else {
+        // Handle upload error
+        die("Failed to upload payment proof");
+    }
+}
 
     // Set the payment status based on the payment method
     if ($payment_method == 'payOnSite') {
@@ -558,14 +577,16 @@ $stmt->close();
             <input type="email" id="gmail" name="gmail" class="form-control" value="<?php echo htmlspecialchars($user_email); ?>" placeholder="your.email@example.com" required>
         </div>
 
-        <!-- Proof of Payment -->
-        <div class="proof-upload" id="proofUpload">
-            <input type="file" id="proofImage" name="proofImage" accept="image/*">
-            <i class="fas fa-cloud-upload-alt"></i>
-            <p>Upload Proof of Payment</p>
-            <small>(Screenshot, Photo of receipt, etc.)</small>
-            <div class="file-name" id="fileName"></div>
-        </div>
+      <!-- Proof of Payment -->
+<div class="proof-upload active" id="proofUpload">
+    <label for="proofImage" style="cursor: pointer;">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p>Upload Proof of Payment</p>
+        <small>(Screenshot, Photo of receipt, etc.)</small>
+        <div class="file-name" id="fileName"></div>
+    </label>
+    <input type="file" id="proofImage" name="proofImage" accept="image/*" style="display: none;">
+</div>
 
         <button type="submit" class="submit-btn">
             <i class="fas fa-paper-plane"></i> Submit Payment
@@ -612,10 +633,32 @@ $stmt->close();
         toggleFields();
 
         // File upload display
-        document.getElementById('proofImage').addEventListener('change', function(e) {
-            const fileName = e.target.files[0] ? e.target.files[0].name : 'No file selected';
-            document.getElementById('fileName').textContent = fileName;
-        });
+    //     document.getElementById('proofImage').addEventListener('change', function(e) {
+    //         const fileName = e.target.files[0] ? e.target.files[0].name : 'No file selected';
+    //         document.getElementById('fileName').textContent = fileName;
+    //     });
+    // });
+
+    // File upload display - Replace this in your existing script
+document.getElementById('proofImage').addEventListener('change', function(e) {
+    if (this.files && this.files[0]) {
+        const fileName = this.files[0].name;
+        document.getElementById('fileName').textContent = fileName;
+        
+        // Optional: Preview the image
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // You could show a preview here if needed
+        };
+        reader.readAsDataURL(this.files[0]);
+    }
+});
+
+// Add click handler for the upload area
+document.querySelector('#proofUpload label').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('proofImage').click();
+});
     });
 </script>
 </body>

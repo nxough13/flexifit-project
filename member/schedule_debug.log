@@ -506,3 +506,57 @@ Trainer ID: 2
 Processing equipment: ID=1, Start=11:49, End=11:54
 Inserted schedule ID: 7
 All schedules processed successfully
+--- New Request 2025-04-04 01:16:20 ---
+POST data: Array
+(
+    [date] => 2025-04-06
+    [equipment] => [{"id":"6","name":"Dumb Bell (ID: Dumbell-03)","start":"07:16","end":"07:22"}]
+    [trainer_id] => 6
+    [member_id] => 7
+)
+
+User ID: 12, Member ID: 7
+Date: 2025-04-06
+Equipment: Array
+(
+    [0] => Array
+        (
+            [id] => 6
+            [name] => Dumb Bell (ID: Dumbell-03)
+            [start] => 07:16
+            [end] => 07:22
+        )
+
+)
+
+Trainer ID: 6
+Processing equipment: ID=6, Start=07:16, End=07:22
+Inserted schedule ID: 8
+All schedules processed successfully
+--- New Request 2025-04-04 01:16:47 ---
+POST data: Array
+(
+    [date] => 2025-04-05
+    [equipment] => [{"id":"3","name":"TreadMill (ID: TreadMill-03)","start":"07:16","end":"07:22"}]
+    [trainer_id] => 
+    [member_id] => 7
+)
+
+User ID: 12, Member ID: 7
+Date: 2025-04-05
+Equipment: Array
+(
+    [0] => Array
+        (
+            [id] => 3
+            [name] => TreadMill (ID: TreadMill-03)
+            [start] => 07:16
+            [end] => 07:22
+        )
+
+)
+
+Trainer ID: 
+Processing equipment: ID=3, Start=07:16, End=07:22
+Inserted schedule ID: 9
+All schedules processed successfully

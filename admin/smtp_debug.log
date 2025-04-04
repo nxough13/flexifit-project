@@ -1,0 +1,132 @@
+2: SERVER -> CLIENT: 220 smtp.gmail.com ESMTP 98e67ed59e1d1-3057ca1f40fsm2316954a91.4 - gsmtp
+
+1: CLIENT -> SERVER: EHLO localhost
+
+2: SERVER -> CLIENT: 250-smtp.gmail.com at your service, [152.32.104.168]
+250-SIZE 35882577
+250-8BITMIME
+250-STARTTLS
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+1: CLIENT -> SERVER: STARTTLS
+
+2: SERVER -> CLIENT: 220 2.0.0 Ready to start TLS
+
+1: CLIENT -> SERVER: EHLO localhost
+
+2: SERVER -> CLIENT: 250-smtp.gmail.com at your service, [152.32.104.168]
+250-SIZE 35882577
+250-8BITMIME
+250-AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+1: CLIENT -> SERVER: AUTH LOGIN
+
+2: SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+1: CLIENT -> SERVER: [credentials hidden]
+2: SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+1: CLIENT -> SERVER: [credentials hidden]
+2: SERVER -> CLIENT: 235 2.7.0 Accepted
+
+1: CLIENT -> SERVER: MAIL FROM:<flexifit04@gmail.com>
+
+2: SERVER -> CLIENT: 250 2.1.0 OK 98e67ed59e1d1-3057ca1f40fsm2316954a91.4 - gsmtp
+
+1: CLIENT -> SERVER: RCPT TO:<debayn@gmail.com>
+
+2: SERVER -> CLIENT: 250 2.1.5 OK 98e67ed59e1d1-3057ca1f40fsm2316954a91.4 - gsmtp
+
+1: CLIENT -> SERVER: RCPT TO:<johnbagon4@gmail.com>
+
+2: SERVER -> CLIENT: 250 2.1.5 OK 98e67ed59e1d1-3057ca1f40fsm2316954a91.4 - gsmtp
+
+1: CLIENT -> SERVER: DATA
+
+2: SERVER -> CLIENT: 354 Go ahead 98e67ed59e1d1-3057ca1f40fsm2316954a91.4 - gsmtp
+
+1: CLIENT -> SERVER: Date: Fri, 4 Apr 2025 01:21:33 +0200
+
+1: CLIENT -> SERVER: To: Debayn Untalan <debayn@gmail.com>
+
+1: CLIENT -> SERVER: From: FlexiFit <flexifit04@gmail.com>
+
+1: CLIENT -> SERVER: Cc: Neo Bagon <johnbagon4@gmail.com>
+
+1: CLIENT -> SERVER: Subject: Schedule Update: Approved
+
+1: CLIENT -> SERVER: Message-ID: <ZHdtFb639QeNAo42RLTXnpjmZhL5AllNRmUkqZQI@localhost>
+
+1: CLIENT -> SERVER: X-Mailer: PHPMailer 6.9.3 (https://github.com/PHPMailer/PHPMailer)
+
+1: CLIENT -> SERVER: MIME-Version: 1.0
+
+1: CLIENT -> SERVER: Content-Type: multipart/alternative;
+
+1: CLIENT -> SERVER:  boundary="b1=_ZHdtFb639QeNAo42RLTXnpjmZhL5AllNRmUkqZQI"
+
+1: CLIENT -> SERVER: Content-Transfer-Encoding: 8bit
+
+1: CLIENT -> SERVER: 
+
+1: CLIENT -> SERVER: --b1=_ZHdtFb639QeNAo42RLTXnpjmZhL5AllNRmUkqZQI
+
+1: CLIENT -> SERVER: Content-Type: text/plain; charset=us-ascii
+
+1: CLIENT -> SERVER: 
+
+1: CLIENT -> SERVER: 
+
+1: CLIENT -> SERVER:             Schedule Status Updated
+
+1: CLIENT -> SERVER:             Dear Debayn,
+
+1: CLIENT -> SERVER:             Your booking has been updated to: approved
+
+1: CLIENT -> SERVER:             Reason: hello
+
+1: CLIENT -> SERVER:         
+
+1: CLIENT -> SERVER: 
+
+1: CLIENT -> SERVER: --b1=_ZHdtFb639QeNAo42RLTXnpjmZhL5AllNRmUkqZQI
+
+1: CLIENT -> SERVER: Content-Type: text/html; charset=us-ascii
+
+1: CLIENT -> SERVER: 
+
+1: CLIENT -> SERVER: 
+
+1: CLIENT -> SERVER:             <h2>Schedule Status Updated</h2>
+
+1: CLIENT -> SERVER:             <p>Dear Debayn,</p>
+
+1: CLIENT -> SERVER:             <p>Your booking has been updated to: <strong>approved</strong></p>
+
+1: CLIENT -> SERVER:             <p>Reason: hello</p>
+
+1: CLIENT -> SERVER:         
+
+1: CLIENT -> SERVER: 
+
+1: CLIENT -> SERVER: 
+
+1: CLIENT -> SERVER: --b1=_ZHdtFb639QeNAo42RLTXnpjmZhL5AllNRmUkqZQI--
+
+1: CLIENT -> SERVER: 
+
+1: CLIENT -> SERVER: .
+
+2: SERVER -> CLIENT: 250 2.0.0 OK  1743722503 98e67ed59e1d1-3057ca1f40fsm2316954a91.4 - gsmtp
+
+1: CLIENT -> SERVER: QUIT
+
+2: SERVER -> CLIENT: 221 2.0.0 closing connection 98e67ed59e1d1-3057ca1f40fsm2316954a91.4 - gsmtp
+

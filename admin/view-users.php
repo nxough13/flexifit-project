@@ -61,11 +61,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user_type'])) 
     $change_reason = $_POST['change_reason'];
     
     // Get user's current email and name
-    $user_query = $conn->prepare("SELECT email, CONCAT(first_name, ' ', last_name) AS user_name, user_type FROM users WHERE user_id = ?");
-    $user_query->bind_param("i", $user_id);
-    $user_query->execute();
+    $user_query = $conn->prepare("SELECT u.email, CONCAT(u.first_name, ' ', u.last_name) AS user_name, 
+    m.membership_status, mp.proof_of_payment, mp.payment_mode 
+FROM users u 
+JOIN members m ON u.user_id = m.user_id 
+LEFT JOIN membership_payments mp ON m.member_id = mp.member_id 
+WHERE u.user_id = ?");
+$user_query->bind_param("i", $user_id);  // Bind the user ID for the query
+$user_query->execute();
+$user_result = $user_query->get_result();
+
+// Check if the query returns results
+if ($user_result->num_rows > 0) {
+$user_data = $user_result->fetch_assoc();
+error_log("User Data: " . print_r($user_data, true));  // Log the fetched data
+$paymentProof = $user_data['proof_of_payment'] ?? 'default.jpg';  // Default if no proof
+$paymentMode = $user_data['payment_mode'] ?? 'N/A';  // Default if no payment mode
+} else {
+error_log("No user data found for user ID: $user_id");
+$paymentProof = 'default.jpg';
+$paymentMode = 'N/A';
+}
+
+// Log the proof image path
+error_log("Proof of Payment Path: /flexifit-project/uploads/payment_proofs/" . $paymentProof);
     $user_result = $user_query->get_result();
     $user_data = $user_result->fetch_assoc();
+
+    if (isset($user_data)) {
+        $paymentProof = $user_data['proof_of_payment'];
+        $paymentMode = $user_data['payment_mode'];
+    } else {
+        $paymentProof = 'default.jpg';  // Use a default image in case there is no proof of payment
+        $paymentMode = 'N/A';
+    }
+    
     
     // Start transaction
     $conn->begin_transaction();
@@ -141,10 +171,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_membership_sta
     $new_status = $_POST['membership_status'];
     $change_reason = $_POST['change_reason'];
     
-    // Get user's current email and name
-    $user_query = $conn->prepare("SELECT u.email, CONCAT(u.first_name, ' ', u.last_name) AS user_name, m.membership_status 
+    // Get user's current email, name, and membership info
+    $user_query = $conn->prepare("SELECT u.email, CONCAT(u.first_name, ' ', u.last_name) AS user_name, 
+                                      m.membership_status, mp.payment_proof, mp.payment_mode 
                                  FROM users u 
                                  JOIN members m ON u.user_id = m.user_id 
+                                 LEFT JOIN membership_payments mp ON m.member_id = mp.member_id 
                                  WHERE u.user_id = ?");
     $user_query->bind_param("i", $user_id);
     $user_query->execute();
@@ -174,12 +206,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_membership_sta
                     <p>Thank you,<br>FlexiFit Team</p>
                 ";
                 
-                $email_sent = sendEmailNotification($user_data['email'], $email_subject, $email_body);
+                sendEmailNotification($user_data['email'], $email_subject, $email_body);
             }
             
             $conn->commit();
             $_SESSION['success_message'] = "Membership status updated successfully! " . 
-                ($new_status === 'active' && $email_sent ? "Notification sent." : "");
+                ($new_status === 'active' ? "Notification sent." : "");
         } else {
             throw new Exception("Error updating membership status: " . $conn->error);
         }
@@ -788,6 +820,9 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             justify-content: flex-end;
             gap: 10px;
         }
+
+
+
     </style>
 </head>
 <body>
@@ -894,7 +929,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                                     <?= htmlspecialchars($user['membership_status']) ?>
                                 </span>
                                 <?php if ($user['membership_status'] === 'pending') : ?>
-                                    <button class="edit-membership-btn" onclick="openMembershipModal(<?= $user['user_id'] ?>, '<?= htmlspecialchars($user['membership_status']) ?>')">
+                                    <button class="edit-membership-btn" onclick="openMembershipModal(<?= $user['user_id'] ?>, '<?= htmlspecialchars($user['membership_status'] ?? 'pending') ?>')">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                 <?php endif; ?>
@@ -934,6 +969,8 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             </p>
         <?php endif; ?>
     </div>
+
+    
 
     <!-- Table View -->
     <div id="tableView" class="table-container <?= $viewType === 'table' ? 'active' : '' ?>">
@@ -993,7 +1030,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <?php if (isset($user['member_id']) && $user['membership_status'] === 'pending') : ?>
-                                    <button class="action-btn edit-btn" onclick="openMembershipModal(<?= $user['user_id'] ?>, '<?= htmlspecialchars($user['membership_status']) ?>')" title="Update Membership">
+                                    <button class="action-btn edit-btn" onclick="openMembershipModal(<?= $user['user_id'] ?>, '<?= htmlspecialchars($user['membership_status'] ?? 'pending') ?>')" title="Update Membership">
                                         <i class="fas fa-id-card"></i>
                                     </button>
                                 <?php endif; ?>
@@ -1044,6 +1081,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
 </div>
 
 <!-- Edit Membership Status Modal -->
+<!-- Edit Membership Status Modal -->
 <div id="editMembershipModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -1054,6 +1092,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             <div class="modal-body">
                 <input type="hidden" name="user_id" id="modalMembershipUserId">
                 <input type="hidden" name="update_membership_status" value="1">
+                
                 <div class="form-group">
                     <label class="form-label">Select New Status:</label>
                     <select name="membership_status" id="modalMembershipStatus" class="form-control">
@@ -1062,11 +1101,26 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
                         <option value="expired">Expired</option>
                     </select>
                 </div>
+                
+                <div class="form-group">
+    <label class="form-label">Payment Proof:</label>
+    <div id="paymentProofContainer">
+        <img id="paymentProofImage" src="" alt="Payment Proof" 
+             style="max-width: 100%; max-height: 200px; display: none;">
+    </div>
+</div>
+<div class="form-group">
+    <label class="form-label">Mode of Payment:</label>
+    <input type="text" id="paymentMode" class="form-control" 
+           value="<?= htmlspecialchars($user_data['payment_mode'] ?? 'N/A') ?>" readonly>
+</div>
+                
                 <div class="form-group">
                     <label class="form-label">Reason for Change:</label>
                     <textarea name="change_reason" id="membershipChangeReason" class="form-control" rows="5" style="width: 100%;" required></textarea>
                 </div>
             </div>
+            
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('editMembershipModal')">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -1075,7 +1129,25 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
     </div>
 </div>
 
+
+
+<!-- Modal for Reason -->
+<div id="reasonModal" style="display:none;">
+    <div class="modal-overlay">
+        <div class="modal-content">
+            <h3>Provide Reason</h3>
+            <textarea id="reasonText" placeholder="Enter the reason..."></textarea>
+            <button id="submitReasonBtn">Submit</button>
+            <button id="closeModalBtn">Close</button>
+        </div>
+    </div>
+</div>
+
+
+
 <script>
+
+
     // User Type Distribution Chart
     const userTypeCtx = document.getElementById('userTypeChart').getContext('2d');
     const userTypeChart = new Chart(userTypeCtx, {
@@ -1212,14 +1284,58 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
     }
 
     function openMembershipModal(userId, currentStatus) {
-        document.getElementById('modalMembershipUserId').value = userId;
-        document.getElementById('modalMembershipStatus').value = currentStatus;
-        document.getElementById('editMembershipModal').style.display = 'block';
-    }
+    fetch('get_payment_info.php?user_id=' + userId)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Received payment data:', data); // Debug log
+            
+            const proofImg = document.getElementById('paymentProofImage');
+            if (data.proof_of_payment) {
+                proofImg.src = '/flexifit-project/uploads/payment_proofs/' + data.proof_of_payment;
+                proofImg.style.display = 'block';
+            } else {
+                proofImg.style.display = 'none';
+            }
+            
+            document.getElementById('paymentMode').value = data.payment_mode || 'No payment method recorded';
+            
+            // Set the modal values
+            document.getElementById('modalMembershipUserId').value = userId;
+            document.getElementById('modalMembershipStatus').value = currentStatus;
+            document.getElementById('editMembershipModal').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error fetching payment info:', error);
+            // Fallback
+            document.getElementById('modalMembershipUserId').value = userId;
+            document.getElementById('modalMembershipStatus').value = currentStatus;
+            document.getElementById('paymentProofImage').style.display = 'none';
+            document.getElementById('paymentMode').value = 'Error loading payment info';
+            document.getElementById('editMembershipModal').style.display = 'block';
+        });
+}
 
-    function closeModal(modalId) {
-        document.getElementById(modalId).style.display = 'none';
-    }
+
+
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+// Open the modal with data when needed
+function openMembershipModalWithPayment(userId) {
+    // Fetch the member's payment data for this user
+    $.ajax({
+        url: 'fetch_payment_info.php',
+        method: 'GET',
+        data: { user_id: userId },
+        success: function(response) {
+            const data = JSON.parse(response);
+            openMembershipModal(userId, data.status, data.payment_proof, data.payment_mode);
+        }
+    });
+}
+
 
     // Close modal when clicking outside
     window.onclick = function(event) {
@@ -1248,7 +1364,10 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
 </script>
 
 </body>
+
+
 </html>
 
-<?php $conn->close(); ?>
+<?php
+ $conn->close(); ?>
 <?php ob_end_flush(); // At the end of file ?>

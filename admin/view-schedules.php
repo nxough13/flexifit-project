@@ -15,10 +15,34 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
     exit;
 }
 
+// Function to send email
+function sendScheduleStatusEmail($to, $subject, $message, $adminEmail = null) {
+    $headers = "From: FlexiFit <noreply@flexifit.com>\r\n";
+    $headers .= "Reply-To: no-reply@flexifit.com\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+    
+    if ($adminEmail) {
+        $headers .= "Cc: $adminEmail\r\n";
+    }
+    
+    return mail($to, $subject, $message, $headers);
+}
+
+// Get admin email for CC
+$adminEmailQuery = "SELECT email FROM users WHERE user_id = ?";
+$stmt = $conn->prepare($adminEmailQuery);
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
+$adminEmailResult = $stmt->get_result();
+$adminEmail = $adminEmailResult->fetch_assoc()['email'];
+$stmt->close();
+
 // Get schedules data
 $query = "
     SELECT s.schedule_id, s.date, s.start_time, s.end_time, ei.inventory_id, ei.identifier, e.name AS equipment_name,
-           t.trainer_id, t.first_name, t.last_name, s.status, m.user_id, u.first_name AS member_first_name, u.last_name AS member_last_name
+           t.trainer_id, t.first_name, t.last_name, s.status, m.user_id, u.first_name AS member_first_name, 
+           u.last_name AS member_last_name, u.email AS member_email
     FROM schedules s
     JOIN equipment_inventory ei ON s.inventory_id = ei.inventory_id
     JOIN equipment e ON ei.equipment_id = e.equipment_id
@@ -64,6 +88,7 @@ while ($row = $equipmentResult->fetch_assoc()) {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.css" />
     <style>
     :root {
         --primary: #FFC107; /* Yellow */
@@ -292,9 +317,81 @@ while ($row = $equipmentResult->fetch_assoc()) {
             flex-direction: column;
         }
     }
+
+    .modal {
+        display: none;
+        background-color: var(--bg-light);
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 500px;
+        margin: 20px auto;
+    }
+    
+    .modal h2 {
+        color: var(--primary);
+        margin-top: 0;
+    }
+    
+    .modal label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--primary);
+    }
+    
+    .modal textarea {
+        width: 100%;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-light);
+        color: var(--text-light);
+        min-height: 100px;
+        margin-bottom: 15px;
+    }
+    
+    .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    
+    .modal-btn {
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+    
+    .modal-confirm {
+        background-color: var(--primary);
+        color: var(--text-dark);
+        border: none;
+    }
+    
+    .modal-cancel {
+        background-color: transparent;
+        color: var(--text-light);
+        border: 1px solid var(--border-color);
+    }
 </style>
 </head>
 <body>
+
+<div id="reasonModal" class="modal">
+    <h2>Update Schedule Status</h2>
+    <p>You are about to change this schedule's status to <strong><span id="statusDisplay"></span></strong>.</p>
+    <p>Please provide a reason for this action:</p>
+    <form id="reasonForm">
+        <input type="hidden" id="modalScheduleId">
+        <input type="hidden" id="modalNewStatus">
+        <label for="reasonText">Reason:</label>
+        <textarea id="reasonText" required></textarea>
+        <div class="modal-buttons">
+            <button type="button" class="modal-btn modal-cancel" onclick="$.modal.close()">Cancel</button>
+            <button type="submit" class="modal-btn modal-confirm">Confirm</button>
+        </div>
+    </form>
+</div>
 
 <div class="container">
     <div class="page-header">
@@ -415,6 +512,8 @@ while ($row = $equipmentResult->fetch_assoc()) {
     </div>
 </div>
 
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.js"></script>
 <script>
     // Status Chart
     const statusCtx = document.getElementById('statusChart').getContext('2d');
@@ -549,29 +648,94 @@ while ($row = $equipmentResult->fetch_assoc()) {
         });
         
         // Save button functionality
-        $(".save-btn").on("click", function() {
-            const scheduleId = $(this).data("schedule-id");
-            const newStatus = $(this).closest("td").find(".action-dropdown").val();
-            
-            if (confirm(`Are you sure you want to change this schedule to "${newStatus}"?`)) {
-                $.ajax({
-                    url: "update_schedule_status.php",
-                    method: "POST",
-                    data: {
-                        schedule_id: scheduleId,
-                        status: newStatus
-                    },
-                    success: function(response) {
-                        alert("Schedule status updated successfully!");
-                        location.reload();
-                    },
-                    error: function(xhr, status, error) {
-                        alert("Error updating schedule: " + error);
-                    }
-                });
-            }
+       
+    });
+
+    $(".save-btn").on("click", function() {
+        const scheduleId = $(this).data("schedule-id");
+        const newStatus = $(this).closest("td").find(".action-dropdown").val();
+        
+        // Skip modal if keeping as pending
+        if (newStatus === 'pending') {
+            alert("No change made to schedule status.");
+            return;
+        }
+        
+        // Show modal for approval/cancellation
+        $("#modalScheduleId").val(scheduleId);
+        $("#modalNewStatus").val(newStatus);
+        $("#statusDisplay").text(newStatus);
+        $("#reasonText").val(""); // Clear previous reason
+        
+        $("#reasonModal").modal({
+            escapeClose: false,
+            clickClose: false,
+            showClose: false
         });
     });
+
+    // Handle form submission
+    // Handle form submission - UPDATED VERSION
+    $("#reasonForm").on("submit", function(e) {
+    e.preventDefault();
+    
+    const $form = $(this);
+    const $confirmBtn = $form.find(".modal-confirm");
+    $confirmBtn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+
+    const formData = {
+        schedule_id: $("#modalScheduleId").val(),
+        status: $("#modalNewStatus").val(),
+        reason: $("#reasonText").val(),
+        admin_id: <?php echo $_SESSION['user_id']; ?>
+    };
+
+    console.log("Submitting:", formData); // Debug log
+
+    $.ajax({
+        url: "update_schedule_status.php",
+        type: "POST",
+        data: formData,
+        dataType: "json",
+        success: function(response) {
+            console.log("Response:", response); // Debug log
+            
+            if (response && response.success) {
+                let message = "Status updated successfully!";
+                if (response.mail_sent) {
+                    message += "\nEmail sent to: " + response.data.member_email;
+                    if (response.data.admin_email) {
+                        message += " and CC to admin";
+                    }
+                } else {
+                    message += "\nEmail failed to send. Check server logs.";
+                }
+                
+                alert(message);
+                $.modal.close();
+                setTimeout(() => location.reload(), 500);
+            } else {
+                throw new Error(response?.message || "Invalid server response");
+            }
+        },
+        error: function(xhr, status, error) {
+            let errorMsg = "Error: ";
+            try {
+                const response = xhr.responseJSON || JSON.parse(xhr.responseText);
+                errorMsg += response.message || error;
+            } catch (e) {
+                errorMsg += xhr.statusText || error;
+            }
+            alert(errorMsg);
+            console.error("AJAX Error:", xhr);
+        },
+        complete: function() {
+            $confirmBtn.prop("disabled", false).text('Confirm');
+        }
+    });
+});
+
+
 </script>
 
 </body>

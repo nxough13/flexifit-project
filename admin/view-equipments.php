@@ -596,6 +596,7 @@ $disabled_count = $stats['disabled'] ?? 0;
 </head>
 
 <body>
+    
     <div class="container">
         <div class="top-bar">
             <h2><i class="fas fa-dumbbell"></i> Equipment Management</h2>

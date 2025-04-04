@@ -734,26 +734,49 @@ while ($row = $specialtyResult->fetch_assoc()) {
     });
    
     // Handle form submission
-    reasonForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-       
-        const trainerId = actionTrainerId.value;
-        const reason = reasonText.value.trim();
-        const action = actionType.value;
-       
-        if (!reason) {
-            alert('Please provide a reason for this action');
-            return;
-        }
-       
-        modal.style.display = 'none';
-       
-        if (action === 'disable') {
-            disableTrainer(trainerId, reason);
-        } else {
-            enableTrainer(trainerId, reason);
+    $("#reasonForm").on("submit", function(e) {
+    e.preventDefault();
+    
+    const trainerId = $("#actionTrainerId").val();
+    const action = $("#actionType").val();
+    const reason = $("#reasonText").val();
+    
+    // Show loading state
+    const submitBtn = $(this).find(".submit-btn");
+    submitBtn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+
+    $.ajax({
+        url: action === 'disable' ? 'disable-trainer.php' : 'enable-trainer.php',
+        method: "POST",
+        data: {
+            trainer_id: trainerId,
+            reason: reason,
+            admin_id: <?php echo $_SESSION['user_id']; ?>
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                let message = "Trainer " + (action === 'disable' ? 'disabled' : 'enabled') + " successfully!";
+                if (response.mail_sent) {
+                    message += "\nNotification sent to trainer.";
+                } else {
+                    message += "\nEmail notification failed to send.";
+                }
+                alert(message);
+                location.reload();
+            } else {
+                alert("Error: " + (response.message || "Action failed"));
+            }
+        },
+        error: function(xhr, status, error) {
+            alert("Request failed: " + error);
+            console.error(xhr);
+        },
+        complete: function() {
+            submitBtn.prop("disabled", false).text('Submit');
         }
     });
+});
    
     function disableTrainer(trainerId, reason) {
         fetch(`disable-trainer.php?trainer_id=${trainerId}`, {

@@ -1,0 +1,24 @@
+[2025-04-04 00:58:14] Script started
+POST data: Array
+(
+    [schedule_id] => 3
+    [status] => approved
+    [reason] => hbsnfdf
+    [admin_id] => 1
+)
+
+Current status: pending, New status: approved
+Update executed. Affected rows: 1
+Response sent: {"success":true,"message":"Status updated successfully","debug":{"schedule_id":3,"old_status":"pending","new_status":"approved","affected_rows":1}}
+[2025-04-04 00:58:30] Script started
+POST data: Array
+(
+    [schedule_id] => 4
+    [status] => approved
+    [reason] => dvfbgvnmj
+    [admin_id] => 1
+)
+
+Current status: pending, New status: approved
+Update executed. Affected rows: 1
+Response sent: {"success":true,"message":"Status updated successfully","debug":{"schedule_id":4,"old_status":"pending","new_status":"approved","affected_rows":1}}
