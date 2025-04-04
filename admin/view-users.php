@@ -1282,7 +1282,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
         document.getElementById('modalUserType').value = currentType;
         document.getElementById('editUserTypeModal').style.display = 'block';
     }
-
+// 
     function openMembershipModal(userId, currentStatus) {
     fetch('get_payment_info.php?user_id=' + userId)
         .then(response => response.json())
