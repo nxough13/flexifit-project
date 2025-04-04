@@ -173,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_membership_sta
     
     // Get user's current email, name, and membership info
     $user_query = $conn->prepare("SELECT u.email, CONCAT(u.first_name, ' ', u.last_name) AS user_name, 
-                                      m.membership_status, mp.payment_proof, mp.payment_mode 
+                                      m.membership_status, mp.proof_of_payment, mp.payment_mode 
                                  FROM users u 
                                  JOIN members m ON u.user_id = m.user_id 
                                  LEFT JOIN membership_payments mp ON m.member_id = mp.member_id 
@@ -1331,7 +1331,7 @@ function openMembershipModalWithPayment(userId) {
         data: { user_id: userId },
         success: function(response) {
             const data = JSON.parse(response);
-            openMembershipModal(userId, data.status, data.payment_proof, data.payment_mode);
+            openMembershipModal(userId, data.status, data.proof_of_payment, data.payment_mode);
         }
     });
 }
