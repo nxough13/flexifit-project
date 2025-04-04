@@ -40,9 +40,11 @@ if (isset($_SESSION['user_id'])) {
         if ($userType === 'member' && $membershipStatus === 'active') {
             $userTypeLabel = "Member";
             $profileLink = "member-profile.php";
+            $logoLink = "/flexifit-project/member/index.php";
         } elseif ($userType === 'admin') {
             $userTypeLabel = "Admin";
             $profileLink = "admin-profile.php";
+            $logoLink = "/flexifit-project/admin/index.php";
         } else {
             // Non-active member or other cases
             $userTypeLabel = "Non-member";
@@ -50,7 +52,7 @@ if (isset($_SESSION['user_id'])) {
         }
         
         // Logo link should always go to index.php regardless of user type
-        $logoLink = "/flexifit-project/index.php";
+        // $logoLink = "/flexifit-project/index.php";
     }
 }
 ?>
