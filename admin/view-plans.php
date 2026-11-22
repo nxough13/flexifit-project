@@ -1,7 +1,7 @@
 <?php
 ob_start(); // Turn on output buffering
 // Connect to database
-$conn = new mysqli("localhost", "root", "", "flexifit_db");
+require_once '../includes/config.php';
 include '../includes/header.php';
 
 // Check connection

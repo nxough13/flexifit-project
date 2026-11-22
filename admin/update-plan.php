@@ -21,7 +21,7 @@ $existing_image = $_POST['existing_image'];
 $image_to_save = $existing_image; // Default to existing image
 
 if (!empty($_FILES['image']['name'])) {
-    $target_dir = "uploads/";
+    $target_dir = __DIR__ . "/uploads/";
     if (!is_dir($target_dir)) {
         mkdir($target_dir, 0777, true);
     }

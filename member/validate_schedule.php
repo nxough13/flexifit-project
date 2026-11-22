@@ -4,11 +4,7 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 header("Content-Type: application/json");
 
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 session_start();
 

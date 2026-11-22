@@ -1,11 +1,7 @@
 <?php
 ob_start(); // Turn on output buffering
 // Database connection
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 // Ensure POST values exist
 if (!isset($_POST['schedule_date']) || !isset($_POST['start_time']) || !isset($_POST['end_time'])) {

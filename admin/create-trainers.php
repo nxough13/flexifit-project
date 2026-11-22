@@ -1,11 +1,7 @@
 <?php
 ob_start(); // Turn on output buffering
 include '../includes/header.php';
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -42,7 +38,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Process image upload
         $image = "default.png";
         if (!empty($_FILES["image"]["name"])) {
-            $target_dir = "uploads/trainers/";
+            $target_dir = __DIR__ . "/uploads/trainers/";
             if (!file_exists($target_dir)) {
                 mkdir($target_dir, 0777, true);
             }
@@ -143,14 +139,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Use PHPMailer for more reliable email sending
         $mail = new PHPMailer(true);
         $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
+        $mail->Host = MAIL_HOST;
         $mail->SMTPAuth = true;
-        $mail->Username = 'flexifit04@gmail.com';
-        $mail->Password = 'dwnw xuwn baln ljbp';
+        $mail->Username = MAIL_USERNAME;
+        $mail->Password = MAIL_PASSWORD;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
         
-        $mail->setFrom('flexifit04@gmail.com', 'FlexiFit Gym');
+        $mail->setFrom(MAIL_FROM, MAIL_FROM_NAME);
         $mail->addAddress($to);
         $mail->Subject = $subject;
         $mail->Body = $message;

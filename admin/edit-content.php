@@ -2,11 +2,7 @@
 ob_start(); // Turn on output buffering
 session_start();
 include '../includes/header.php';
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 // Initialize variables
 $content_creation_successful = false;
@@ -54,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         
         // Upload new image
-        $upload_dir = '../admin/uploads/';
+        $upload_dir = __DIR__ . "/uploads/";
         if (!file_exists($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }

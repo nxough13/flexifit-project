@@ -1,15 +1,12 @@
 <?php
 ob_start(); // Turn on output buffering
 session_start();
-$servername = "localhost";
-$username = "root";
-$password = "";
-$database = "flexifit_db";
+require_once '../includes/config.php';
 include '../includes/header.php';
 require_once('../vendor/autoload.php'); // For TCPDF
 use TCPDF as TCPDF;
 // Create connection
-$conn = new mysqli($servername, $username, $password, $database);
+// $conn already set by config.php
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../index.php");
@@ -71,10 +68,11 @@ while ($row = mysqli_fetch_assoc($gender_distribution_result)) {
 // Function to get image path
 function getImagePath($image)
 {
-    $uploadPath = "../images/";
+    $uploadPath = __DIR__ . "/../images/";
+    $webPath = BASE_URL . "/images/";
     return !empty($image) && file_exists($uploadPath . $image)
-        ? htmlspecialchars($uploadPath . $image)
-        : htmlspecialchars($uploadPath . "placeholder.png");
+        ? htmlspecialchars($webPath . $image)
+        : htmlspecialchars($webPath . "placeholder.png");
 }
 
 // Query to fetch Most Booked Equipment

@@ -1,11 +1,7 @@
 <?php
 ob_start(); // Turn on output buffering
 session_start();
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 // Check admin authorization before any output
 // if (!isset($_SESSION['id']) || $_SESSION['user_type'] !== 'admin') {
@@ -22,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $free_training_session = $_POST['free_training_session'];
     $description = $_POST['description'];
     $image = $_FILES['image']['name'];
-    $target = "uploads/plans/" . basename($image);
+    $target = __DIR__ . "/uploads/plans/" . basename($image);
     
     // Create uploads directory if it doesn't exist
     if (!file_exists('uploads/plans')) {

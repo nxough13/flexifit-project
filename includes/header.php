@@ -5,20 +5,13 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Correct the path dynamically
-$base_path = __DIR__; // Gets the directory of the current file
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
-
+require_once __DIR__ . '/config.php';
 
 // Check if user is logged in and fetch user details
 $user = null;
 // Initialize default values
-$profileLink = "/flexifit-project/non-member-profile.php";
-$logoLink = "/flexifit-project/index.php";
+$profileLink = BASE_URL . "/non-member-profile.php";
+$logoLink = BASE_URL . "/index.php";
 $userTypeLabel = "Non-member";
 
 if (isset($_SESSION['user_id'])) {
@@ -39,20 +32,17 @@ if (isset($_SESSION['user_id'])) {
 
         if ($userType === 'member' && $membershipStatus === 'active') {
             $userTypeLabel = "Member";
-            $profileLink = "member-profile.php";
-            $logoLink = "/flexifit-project/member/index.php";
+            $profileLink = BASE_URL . "/member/member-profile.php";
+            $logoLink = BASE_URL . "/member/index.php";
         } elseif ($userType === 'admin') {
             $userTypeLabel = "Admin";
-            $profileLink = "admin-profile.php";
-            $logoLink = "/flexifit-project/admin/index.php";
+            $profileLink = BASE_URL . "/admin/admin-profile.php";
+            $logoLink = BASE_URL . "/admin/index.php";
         } else {
             // Non-active member or other cases
             $userTypeLabel = "Non-member";
-            $profileLink = "/flexifit-project/non-member-profile.php";
+            $profileLink = BASE_URL . "/non-member-profile.php";
         }
-        
-        // Logo link should always go to index.php regardless of user type
-        // $logoLink = "/flexifit-project/index.php";
     }
 }
 ?>
@@ -314,7 +304,7 @@ if (isset($_SESSION['user_id'])) {
 <header>
         <div class="header-container">
             <a href="<?= $logoLink ?>" class="logo">
-                <img src="/flexifit-project/images/flexfit-logo.png" alt="FlexiFit Logo">
+                <img src="<?= BASE_URL ?>/images/flexfit-logo.png" alt="FlexiFit Logo">
                 <span>FLEXIFIT GYM</span>
             </a>
 
@@ -345,15 +335,15 @@ if (isset($_SESSION['user_id'])) {
             <div class="user-controls">
                 <?php if ($user): ?>
                     <a href="<?= $profileLink ?>" class="profile-link">
-                        <img src="<?= $user['image'] ? '/flexifit-project/images/' . $user['image'] : '/flexifit-project/images/default-profile.png'; ?>" 
+                        <img src="<?= $user['image'] ? BASE_URL . '/images/' . htmlspecialchars($user['image']) : BASE_URL . '/images/default-profile.png'; ?>" 
                              alt="Profile">
                         <span><?= htmlspecialchars($user['first_name']) ?></span>
                     </a>
-                    <a href="/flexifit-project/logout.php" class="logout-link">Logout</a>
+                    <a href="<?= BASE_URL ?>/logout.php" class="logout-link">Logout</a>
                     <span class="user-type-label"><?= $userTypeLabel ?></span> <!-- Display the user type label -->
                 <?php else: ?>
-                    <a href="/flexifit-project/login.php" class="login-link">Login</a>
-                    <a href="/flexifit-project/register.php" class="register-link">Register</a>
+                    <a href="<?= BASE_URL ?>/login.php" class="login-link">Login</a>
+                    <a href="<?= BASE_URL ?>/register.php" class="register-link">Register</a>
                 <?php endif; ?>
             </div>
         </div>

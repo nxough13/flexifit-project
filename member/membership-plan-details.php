@@ -1,5 +1,5 @@
 <?php
-include '../includes/config.php';
+require_once '\';
 
 
 // Validate input
@@ -217,7 +217,7 @@ $plan = $result->fetch_assoc();
         <div class="plan-header">
             <?php if(!empty($plan['image'])): ?>
             <div class="plan-image">
-                <img src="../images/<?php echo htmlspecialchars($plan['image']); ?>" alt="<?php echo htmlspecialchars($plan['name']); ?>">
+                <img src="<?= BASE_URL ?>/images/<?php echo htmlspecialchars($plan['image']); ?>" alt="<?php echo htmlspecialchars($plan['name']); ?>">
             </div>
             <?php endif; ?>
            
@@ -239,7 +239,7 @@ $plan = $result->fetch_assoc();
             </div>
         </div>
        
-        <a href="/flexifit-project/index.php" class="back-link">← Back to All Membership Plans</a>
+        <a href="<?= BASE_URL ?>/index.php" class="back-link">← Back to All Membership Plans</a>
     </div>
 </body>
 </html>

@@ -1,11 +1,7 @@
 <?php
 ob_start(); // Turn on output buffering
 session_start();
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once 'includes/config.php';
 
 
 

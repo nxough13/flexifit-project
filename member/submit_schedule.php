@@ -4,18 +4,15 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 header("Content-Type: application/json");
 
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
 session_start();
+require_once '../includes/config.php';
 
 // Debug log file
 $log_file = "schedule_debug.log";
 file_put_contents($log_file, "--- New Request " . date('Y-m-d H:i:s') . " ---\n", FILE_APPEND);
 file_put_contents($log_file, "POST data: " . print_r($_POST, true) . "\n", FILE_APPEND);
 
-$conn = new mysqli($host, $user, $password, $dbname);
+// $conn already set by config.php
 
 if ($conn->connect_error) {
     file_put_contents($log_file, "Connection error: " . $conn->connect_error . "\n", FILE_APPEND);
@@ -109,6 +106,12 @@ try {
                     throw new Exception("Error assigning trainer: " . $stmt->error);
                 }
                 $stmt->close();
+
+                // Decrement free_training_session (replaces trigger)
+                $dec = $conn->prepare("UPDATE members SET free_training_session = free_training_session - 1 WHERE member_id = ? AND free_training_session > 0");
+                $dec->bind_param("i", $member_id);
+                $dec->execute();
+                $dec->close();
             }
         }
     } 
@@ -142,6 +145,12 @@ try {
             throw new Exception("Error assigning trainer: " . $stmt->error);
         }
         $stmt->close();
+
+        // Decrement free_training_session (replaces trigger)
+        $dec = $conn->prepare("UPDATE members SET free_training_session = free_training_session - 1 WHERE member_id = ? AND free_training_session > 0");
+        $dec->bind_param("i", $member_id);
+        $dec->execute();
+        $dec->close();
     }
 
     $conn->commit();

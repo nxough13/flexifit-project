@@ -1,0 +1,36 @@
+# Secrets — never commit
+includes/env.php
+
+# SQL dumps — keep out of version control and deployments
+*.sql
+
+# Log files
+*.log
+admin/email_attempts.log
+admin/schedule_updates.log
+admin/smtp_debug.log
+member/schedule_debug.log
+member/debug_validate.txt
+
+# User-uploaded content (large binary files, managed separately)
+uploads/payment_proofs/*
+uploads/plans/*
+uploads/trainers/*
+admin/uploads/*
+member/uploads/*
+images/1*.jpg
+images/1*.png
+
+# Keep the upload directories themselves
+!uploads/payment_proofs/.gitkeep
+!uploads/plans/.gitkeep
+!uploads/trainers/.gitkeep
+!admin/uploads/.gitkeep
+!member/uploads/.gitkeep
+
+# Composer dependencies — regenerate with `composer install`
+vendor/
+
+# OS junk
+.DS_Store
+Thumbs.db

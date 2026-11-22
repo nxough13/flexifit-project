@@ -177,27 +177,6 @@ INSERT INTO `members` (`member_id`, `user_id`, `membership_status`, `plan_id`, `
 (7, 12, 'active', 2, '2025-04-03', '2025-04-06', NULL, 1, 'none', NULL),
 (8, 13, 'pending', 2, '2025-04-03', '2025-04-06', NULL, 1, 'none', NULL);
 
---
--- Triggers `members`
---
-DELIMITER $$
-CREATE TRIGGER `set_end_date_before_insert` BEFORE INSERT ON `members` FOR EACH ROW BEGIN
-    DECLARE plan_days INT;
-    SELECT duration_days INTO plan_days FROM membership_plans WHERE plan_id = NEW.plan_id;
-    SET NEW.end_date = DATE_ADD(NEW.start_date, INTERVAL plan_days DAY);
-END
-$$
-DELIMITER ;
-DELIMITER $$
-CREATE TRIGGER `update_dates_on_renewal` BEFORE UPDATE ON `members` FOR EACH ROW BEGIN
-    IF NEW.renewed_date IS NOT NULL THEN
-        SET NEW.start_date = NEW.renewed_date;
-        SET NEW.end_date = (SELECT DATE_ADD(NEW.renewed_date, INTERVAL duration_days DAY) FROM membership_plans WHERE plan_id = NEW.plan_id);
-    END IF;
-END
-$$
-DELIMITER ;
-
 -- --------------------------------------------------------
 
 --
@@ -226,14 +205,14 @@ CREATE TABLE `membership_payments` (
 --
 
 INSERT INTO `membership_payments` (`payment_id`, `member_id`, `plan_id`, `amount`, `gmail`, `payment_mode`, `gcash_reference_number`, `gcash_phone_number`, `card_type`, `card_id_number`, `payment_status`, `payment_date`, `proof_of_payment`, `email_sent`) VALUES
-(1, 1, 1, 770.00, 'princenatsu07@gmail.com', 'gcash', '1234567890', '09611676764', '', '', '', '2025-03-27 20:16:42', NULL, 0),
-(2, 2, 2, 330.00, 'johnbagon4@gmail.com', 'cash', '', '', '', '', 'pending', '2025-03-28 00:02:25', '67e5e710c272a_Magnetic Rowing.jpg', 0),
-(3, 3, 1, 770.00, 'johnbagon4@gmail.com', 'gcash', '0987654321', '', '', '', '', '2025-03-28 02:49:06', '67e60e21ec450_1742211401_right-image.jpg', 0),
-(4, 4, 3, 2950.00, 'johnbagon4@gmail.com', 'cash', '', '', '', '', 'pending', '2025-03-28 03:33:26', NULL, 0),
-(5, 5, 3, 2950.00, 'mari@gmail.com', 'cash', '', '', '', '', 'pending', '2025-04-03 05:53:29', NULL, 1),
-(6, 6, 4, 5000.00, 'erpemem.pascua@gmail.com', 'cash', '1234567890', '09611676764', '', '', 'pending', '2025-04-03 05:58:19', NULL, 1),
-(7, 7, 2, 330.00, 'debayn@gmail.com', 'cash', '', '', '', '', 'pending', '2025-04-03 06:19:40', NULL, 1),
-(8, 8, 2, 330.00, 'mel@gmail.com', 'gcash', '987546371920123', '09611676764', '', '', 'pending', '2025-04-03 23:58:46', 'proof_67ef20b60941c.png', 1);
+(1, 1, 1, 770.00, 'princenatsu07@gmail.com', 'gcash', '1234567890', '09611676764', NULL, NULL, 'pending', '2025-03-27 20:16:42', NULL, 0),
+(2, 2, 2, 330.00, 'johnbagon4@gmail.com', 'cash', NULL, NULL, NULL, NULL, 'pending', '2025-03-28 00:02:25', '67e5e710c272a_Magnetic Rowing.jpg', 0),
+(3, 3, 1, 770.00, 'johnbagon4@gmail.com', 'gcash', '0987654321', NULL, NULL, NULL, 'pending', '2025-03-28 02:49:06', '67e60e21ec450_1742211401_right-image.jpg', 0),
+(4, 4, 3, 2950.00, 'johnbagon4@gmail.com', 'cash', NULL, NULL, NULL, NULL, 'pending', '2025-03-28 03:33:26', NULL, 0),
+(5, 5, 3, 2950.00, 'mari@gmail.com', 'cash', NULL, NULL, NULL, NULL, 'pending', '2025-04-03 05:53:29', NULL, 1),
+(6, 6, 4, 5000.00, 'erpemem.pascua@gmail.com', 'cash', NULL, NULL, NULL, NULL, 'pending', '2025-04-03 05:58:19', NULL, 1),
+(7, 7, 2, 330.00, 'debayn@gmail.com', 'cash', NULL, NULL, NULL, NULL, 'pending', '2025-04-03 06:19:40', NULL, 1),
+(8, 8, 2, 330.00, 'mel@gmail.com', 'gcash', '987546371920123', '09611676764', NULL, NULL, 'pending', '2025-04-03 23:58:46', 'proof_67ef20b60941c.png', 1);
 
 -- --------------------------------------------------------
 
@@ -330,32 +309,6 @@ INSERT INTO `schedule_trainer` (`id`, `schedule_id`, `trainer_id`, `trainer_stat
 (2, 7, 2, 'approved'),
 (3, 8, 6, 'approved');
 
---
--- Triggers `schedule_trainer`
---
-DELIMITER $$
-CREATE TRIGGER `decrease_free_training_session_after_schedule` AFTER INSERT ON `schedule_trainer` FOR EACH ROW BEGIN
-    DECLARE free_sessions_left INT;
-
-    
-    SELECT member_id INTO free_sessions_left
-    FROM schedules
-    WHERE schedule_id = NEW.schedule_id;
-
-    
-    SELECT free_training_session INTO free_sessions_left
-    FROM members
-    WHERE member_id = free_sessions_left;
-
-    
-    IF free_sessions_left > 0 THEN
-        UPDATE members
-        SET free_training_session = free_sessions_left - 1
-        WHERE member_id = free_sessions_left;
-    END IF;
-END
-$$
-DELIMITER ;
 
 -- --------------------------------------------------------
 

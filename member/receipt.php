@@ -9,11 +9,7 @@ use PHPMailer\PHPMailer\Exception;
 require '../vendor/autoload.php';
 
 // Database connection
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 // Check if terms were accepted
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['terms_action'])) {
@@ -54,15 +50,15 @@ if (!$show_terms && !isset($_SESSION['email_sent'])) {
     try {
         // Server settings
         $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
+        $mail->Host = MAIL_HOST;
         $mail->SMTPAuth = true;
-        $mail->Username = 'flexifit04@gmail.com';
-        $mail->Password = 'dwnw xuwn baln ljbp';
+        $mail->Username = MAIL_USERNAME;
+        $mail->Password = MAIL_PASSWORD;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
 
         // Recipients
-        $mail->setFrom('flexifit04@gmail.com', 'FlexiFit Gym');
+        $mail->setFrom(MAIL_FROM, MAIL_FROM_NAME);
         $mail->addAddress($to);
         $mail->addAddress($admin_email);
 

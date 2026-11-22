@@ -2,7 +2,7 @@
 ob_start(); // Turn on output buffering
 session_start();
 include '../includes/header.php';
-include '../includes/config.php';
+require_once '\';
 
 
 // Check if user is logged in
@@ -51,7 +51,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Handle profile picture upload
     if (!empty($_FILES["profile_image"]["name"])) {
-        $target_dir = "../images/";
+        $target_dir = __DIR__ . "/../images/";
         $image_name = time() . "_" . basename($_FILES["profile_image"]["name"]);
         $target_file = $target_dir . $image_name;
 
@@ -68,7 +68,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Handle medical certificate upload
     if (!empty($_FILES["medical_certificate"]["name"])) {
-        $target_dir = "../uploads/medical_certificates/";
+        $target_dir = __DIR__ . "/../uploads/medical_certificates/";
         $cert_name = time() . "_" . basename($_FILES["medical_certificate"]["name"]);
         $target_file = $target_dir . $cert_name;
 
@@ -381,11 +381,7 @@ Register.php
 
 <?php
 ob_start(); // Turn on output buffering
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 
 session_start();
@@ -451,7 +447,7 @@ $medical_certificate_path = '';
 
 // Upload medical certificate if provided
 if (!empty($_FILES['medical_certificate']['name'])) {
-    $target_dir = '../images/medical_certificates/';
+    $target_dir = __DIR__ . "/../images/medical_certificates/";
    
     // Create directory if it doesn't exist
     if (!file_exists($target_dir)) {

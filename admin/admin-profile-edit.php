@@ -3,7 +3,7 @@
 ob_start(); // Turn on output buffering
 session_start();
 include '../includes/header.php';
-include '../includes/config.php';
+require_once '\';
 
 
 // Check if user is logged in
@@ -49,7 +49,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Handle profile picture upload
     if (!empty($_FILES["profile_image"]["name"])) {
-        $target_dir = "../images/";
+        $target_dir = __DIR__ . "/../images/";
         $image_name = time() . "_" . basename($_FILES["profile_image"]["name"]); // Prevent duplicate file names
         $target_file = $target_dir . $image_name;
 

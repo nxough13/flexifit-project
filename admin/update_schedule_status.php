@@ -41,7 +41,7 @@ try {
     }
 
     // Database connection
-    $conn = new mysqli("localhost", "root", "", "flexifit_db");
+    require_once '../includes/config.php';
     if ($conn->connect_error) {
         throw new Exception("DB connection failed: " . $conn->connect_error);
     }
@@ -84,10 +84,10 @@ try {
 
     try {
         $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
+        $mail->Host = MAIL_HOST;
         $mail->SMTPAuth = true;
-        $mail->Username = 'flexifit04@gmail.com';
-        $mail->Password = 'dwnw xuwn baln ljbp';
+        $mail->Username = MAIL_USERNAME;
+        $mail->Password = MAIL_PASSWORD;
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
         $mail->SMTPDebug = 2; // Enable verbose debug output
@@ -95,7 +95,7 @@ try {
             file_put_contents(__DIR__ . '/smtp_debug.log', "$level: $str\n", FILE_APPEND);
         };
 
-        $mail->setFrom('flexifit04@gmail.com', 'FlexiFit');
+        $mail->setFrom(MAIL_FROM, MAIL_FROM_NAME);
         $mail->addAddress($schedule['member_email'], $schedule['first_name'].' '.$schedule['last_name']);
         
         if ($admin) {

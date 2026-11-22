@@ -3,7 +3,7 @@ ob_start(); // Turn on output buffering
 // neo
 session_start();
 include '../includes/header.php';
-include '../includes/config.php';
+require_once '\';
 
 
 // Enable error reporting for debugging
@@ -61,7 +61,7 @@ if (!isset($_SESSION['user_type'])) {
 
 
 // Default profile picture if none is uploaded
-$profile_image = !empty($user['image']) ? "../images/" . htmlspecialchars($user['image']) : "../images/default.png";
+$profile_image = !empty($user['image']) ? BASE_URL . "/images/" . htmlspecialchars($user['image']) : BASE_URL . "/images/default.png";
 ?>
 
 

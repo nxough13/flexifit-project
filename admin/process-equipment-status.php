@@ -58,10 +58,10 @@ try {
         try {
             // Server settings
             $mail->isSMTP();
-            $mail->Host       = 'smtp.gmail.com'; // Your SMTP server
+            $mail->Host = MAIL_HOST; // Your SMTP server
             $mail->SMTPAuth   = true;
-            $mail->Username   = 'flexifit04@gmail.com'; // Your email
-            $mail->Password   = 'your_password_here'; // Your email password
+            $mail->Username = MAIL_USERNAME; // Your email
+            $mail->Password = MAIL_PASSWORD;
             $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
             $mail->Port       = 465;
             

@@ -6,10 +6,7 @@ require_once('../vendor/autoload.php');
 use TCPDF as TCPDF;
 
 // Database configuration
-$servername = "localhost";
-$username = "root";
-$password = "";
-$database = "flexifit_db";
+require_once '../includes/config.php';
 
 // Verify admin access
 if (!isset($_SESSION['user_id'])) {
@@ -20,7 +17,7 @@ if (!isset($_SESSION['user_id'])) {
 
 // Create connection
 try {
-    $conn = new mysqli($servername, $username, $password, $database);
+    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
     if ($conn->connect_error) {
         throw new Exception("Connection failed: " . $conn->connect_error);
     }

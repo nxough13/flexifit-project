@@ -2,7 +2,7 @@
 ob_start(); // Turn on output buffering
 header("Content-Type: application/json");
 session_start();
-$conn = new mysqli("localhost", "root", "", "flexifit_db");
+require_once '../includes/config.php';
 
 $schedule_id = $_POST['schedule_id'];
 $date = $_POST['edit_date'];
@@ -22,6 +22,19 @@ if ($trainer_id) {
     $insert_trainer = $conn->prepare("INSERT INTO schedule_trainer (schedule_id, trainer_id, trainer_status) VALUES (?, ?, 'approved')");
     $insert_trainer->bind_param("ii", $schedule_id, $trainer_id);
     $insert_trainer->execute();
+
+    // Decrement free_training_session (replaces trigger)
+    $member_query = $conn->prepare("SELECT member_id FROM schedules WHERE schedule_id = ?");
+    $member_query->bind_param("i", $schedule_id);
+    $member_query->execute();
+    $member_result = $member_query->get_result()->fetch_assoc();
+    $member_query->close();
+    if ($member_result) {
+        $dec = $conn->prepare("UPDATE members SET free_training_session = free_training_session - 1 WHERE member_id = ? AND free_training_session > 0");
+        $dec->bind_param("i", $member_result['member_id']);
+        $dec->execute();
+        $dec->close();
+    }
 }
 
 echo json_encode(["status" => "success", "message" => "Schedule updated successfully."]);

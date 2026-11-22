@@ -58,11 +58,7 @@
 
 
 session_start();
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 
 if (isset($_GET['content_id'])) {

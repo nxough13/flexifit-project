@@ -6,11 +6,7 @@ header("Content-Type: application/json");
 // Debugging - log session data
 error_log("Session user_id: " . ($_SESSION['user_id'] ?? 'not set'));
 
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 if ($conn->connect_error) {
     error_log("Connection failed: " . $conn->connect_error);

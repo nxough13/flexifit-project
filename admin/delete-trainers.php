@@ -1,10 +1,6 @@
 <?php
 ob_start(); // Turn on output buffering
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 if (isset($_GET["id"])) {
     $trainer_id = $_GET["id"];

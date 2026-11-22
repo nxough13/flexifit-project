@@ -1,9 +1,5 @@
 <?php
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 header('Content-Type: application/json');
 
 // Debug - log the request

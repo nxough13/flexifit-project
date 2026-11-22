@@ -2,11 +2,7 @@
 ob_start(); // Turn on output buffering
 
 session_start();
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 // Check admin permissions
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
@@ -56,7 +52,7 @@ try {
         
         // Handle image upload
         $image = $existing_image; // Default to existing image
-        $target_dir = "../uploads/trainers/";
+        $target_dir = __DIR__ . "/../uploads/trainers/";
         
         // Create directory if it doesn't exist
         if (!file_exists($target_dir)) {

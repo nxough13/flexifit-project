@@ -1,0 +1,7 @@
+Phase	Effort	Risk if skipped
+1 — Cleanup & Security	Medium	Credentials exposed, payments silently fail
+2 — Path & URL Fixes	Medium	Every page breaks on the host
+3 — Local Testing	Low	You find broken things on the live server instead
+4 — Hosting Setup	Low	Nothing to deploy to
+5 — Deployment	Low	—
+6 — Post-Deploy Hardening	Low	Debug files and directory listings are public

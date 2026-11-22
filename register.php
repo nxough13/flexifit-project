@@ -1,12 +1,7 @@
 <?php
 ob_start(); // Turn on output buffering
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
-
 session_start();
+require_once 'includes/config.php';
 include 'includes/header.php';
 
 // Initialize a variable to store the success message
@@ -78,7 +73,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // Upload medical certificate if provided
         if (!empty($_FILES['medical_certificate']['name'])) {
-            $target_dir = '../images/medical_certificates/';
+            $target_dir = __DIR__ . "/images/medical_certificates/";
            
             // Create directory if it doesn't exist
             if (!file_exists($target_dir)) {

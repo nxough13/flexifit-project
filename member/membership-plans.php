@@ -2,11 +2,7 @@
 ob_start(); // Turn on output buffering
 include '../includes/header.php';
 // Database connection
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 // Check user login
 if (!isset($_SESSION['user_id'])) {

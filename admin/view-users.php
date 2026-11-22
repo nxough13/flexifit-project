@@ -4,7 +4,7 @@ session_start();
 include '../includes/header.php';
 
 require '../vendor/autoload.php'; // For PHPMailer
-$conn = new mysqli("localhost", "root", "", "flexifit_db");
+require_once '../includes/config.php';
 
 // Check connection
 if ($conn->connect_error) {
@@ -31,15 +31,15 @@ function sendEmailNotification($email, $subject, $body) {
     try {
         // Server settings
         $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
+        $mail->Host = MAIL_HOST;
         $mail->SMTPAuth = true;
-        $mail->Username = 'flexifit04@gmail.com';
-        $mail->Password = 'dwnw xuwn baln ljbp';
+        $mail->Username = MAIL_USERNAME;
+        $mail->Password = MAIL_PASSWORD;
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
        
         // Recipients
-        $mail->setFrom('flexifit04@gmail.com', 'FlexiFit Gym');
+        $mail->setFrom(MAIL_FROM, MAIL_FROM_NAME);
         $mail->addAddress($email);
        
         // Content
@@ -84,7 +84,7 @@ $paymentMode = 'N/A';
 }
 
 // Log the proof image path
-error_log("Proof of Payment Path: /flexifit-project/uploads/payment_proofs/" . $paymentProof);
+error_log("Proof of Payment Path: " . BASE_URL . "/uploads/payment_proofs/" . $paymentProof);
     $user_result = $user_query->get_result();
     $user_data = $user_result->fetch_assoc();
 
@@ -1291,7 +1291,7 @@ while ($row = $membershipStatusResult->fetch_assoc()) {
             
             const proofImg = document.getElementById('paymentProofImage');
             if (data.proof_of_payment) {
-                proofImg.src = '/flexifit-project/uploads/payment_proofs/' + data.proof_of_payment;
+                proofImg.src = '<?= BASE_URL ?>/uploads/payment_proofs/' + data.proof_of_payment;
                 proofImg.style.display = 'block';
             } else {
                 proofImg.style.display = 'none';

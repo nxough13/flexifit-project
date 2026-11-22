@@ -4,11 +4,7 @@ session_start(); // Start session to access the logged-in user's details
 include '../includes/header.php';
 
 
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 
 if (!isset($_SESSION['user_id'])) {
@@ -349,7 +345,7 @@ if (isset($_GET['delete_review_id']) && isset($_SESSION['user_id'])) {
 
 
         <div class="content-details">
-            <img src="../images/Left-image.jpg" alt="Content Image" class="content-image">
+            <img src="<?= BASE_URL ?>/images/Left-image.jpg" alt="Content Image" class="content-image">
 
 
             <p class="content-text">

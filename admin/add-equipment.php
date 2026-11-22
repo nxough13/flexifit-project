@@ -2,12 +2,7 @@
 ob_start(); // Turn on output buffering
 session_start();
 include '../includes/header.php';
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 // Ensure admin access
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
@@ -20,7 +15,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $name = trim($_POST['name']);
     $description = trim($_POST['description']);
     $quantity = $_POST['quantity'];
-    $upload_dir = "uploads/";
+    $upload_dir = __DIR__ . "/uploads/";
 
     // Ensure upload directory exists
     if (!is_dir($upload_dir)) {

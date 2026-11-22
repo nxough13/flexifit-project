@@ -29,7 +29,7 @@ try {
     $reason = trim($_POST['reason']);
     $adminId = (int)$_POST['admin_id'];
 
-    $conn = new mysqli("localhost", "root", "", "flexifit_db");
+    require_once '../includes/config.php';
     if ($conn->connect_error) {
         throw new Exception("DB connection failed");
     }
@@ -64,14 +64,14 @@ try {
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
+        $mail->Host = MAIL_HOST;
         $mail->SMTPAuth = true;
-        $mail->Username = 'flexifit04@gmail.com';
-        $mail->Password = 'dwnw xuwn baln ljbp';
+        $mail->Username = MAIL_USERNAME;
+        $mail->Password = MAIL_PASSWORD;
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
 
-        $mail->setFrom('flexifit04@gmail.com', 'FlexiFit Admin');
+        $mail->setFrom(MAIL_FROM, MAIL_FROM_NAME);
         $mail->addAddress($trainer['email'], $trainer['first_name'].' '.$trainer['last_name']);
         
         if ($admin) {

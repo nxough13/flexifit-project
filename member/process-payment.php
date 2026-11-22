@@ -2,11 +2,7 @@
 ob_start(); // Turn on output buffering
 include '../includes/header.php';
 
-$host = "localhost";
-$user = "root";
-$password = "";
-$dbname = "flexifit_db";
-$conn = new mysqli($host, $user, $password, $dbname);
+require_once '../includes/config.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../index.php");
@@ -48,7 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Handle file upload
 $proof_of_payment = null;
 if (isset($_FILES['proofImage']) && $_FILES['proofImage']['error'] === UPLOAD_ERR_OK) {
-    $upload_dir = '../uploads/payment_proofs/';
+    $upload_dir = __DIR__ . "/../uploads/payment_proofs/";
     
     // Create directory if it doesn't exist
     if (!file_exists($upload_dir)) {
